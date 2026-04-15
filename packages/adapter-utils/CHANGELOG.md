@@ -1,10 +1,10 @@
 # @taskcore/adapter-utils
 
-## 0.3.1
+## 0.2.1
 
 ### Patch Changes
 
-- Stable release preparation for 0.3.1
+- Stable release preparation for 0.2.1
 
 ## 0.3.0
 
