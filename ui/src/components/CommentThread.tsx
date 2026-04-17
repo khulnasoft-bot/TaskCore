@@ -9,7 +9,8 @@ import type {
   IssueComment,
 } from "@taskcore/shared";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Check, Copy, Taskcore } from "lucide-react";
+import { ArrowRight, Check, Copy } from "lucide-react";
+import { TaskcoreIcon } from "./TaskcoreIcon";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Identity } from "./Identity";
 import { InlineEntitySelector, type InlineEntityOption } from "./InlineEntitySelector";
@@ -938,7 +939,7 @@ export function CommentThread({
                   disabled={attaching}
                   title="Attach image"
                 >
-                  <Taskcore className="h-4 w-4" />
+                  <TaskcoreIcon className="h-4 w-4" />
                 </Button>
               </div>
             )}

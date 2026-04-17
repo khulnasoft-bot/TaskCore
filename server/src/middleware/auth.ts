@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
-import type { Request, RequestHandler } from "express";
 import { and, eq, isNull } from "drizzle-orm";
+import express, { type Request, type RequestHandler } from "express";
 import type { Db } from "@taskcore/db";
 import { agentApiKeys, agents, companyMemberships, instanceUserRoles } from "@taskcore/db";
 import { verifyLocalAgentJwt } from "../agent-auth-jwt.js";
@@ -8,6 +8,26 @@ import type { DeploymentMode } from "@taskcore/shared";
 import type { BetterAuthSessionResult } from "../auth/better-auth.js";
 import { logger } from "./logger.js";
 import { boardAuthService } from "../services/board-auth.js";
+
+export interface Actor {
+  type: "none" | "board" | "agent";
+  userId?: string;
+  agentId?: string;
+  companyId?: string;
+  companyIds?: string[];
+  isInstanceAdmin?: boolean;
+  keyId?: string;
+  runId?: string;
+  source: "none" | "local_implicit" | "session" | "board_key" | "agent_jwt" | "agent_key";
+}
+
+declare global {
+  namespace Express {
+    interface Request {
+      actor: Actor;
+    }
+  }
+}
 
 function hashToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
