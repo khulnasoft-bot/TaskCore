@@ -11,6 +11,7 @@ export const heartbeatRuns = pgTable(
     agentId: uuid("agent_id").notNull().references(() => agents.id),
     invocationSource: text("invocation_source").notNull().default("on_demand"),
     triggerDetail: text("trigger_detail"),
+    wakeReason: text("wake_reason"),
     status: text("status").notNull().default("queued"),
     startedAt: timestamp("started_at", { withTimezone: true }),
     finishedAt: timestamp("finished_at", { withTimezone: true }),
