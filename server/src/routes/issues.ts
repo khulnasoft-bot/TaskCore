@@ -2629,6 +2629,12 @@ export function issueRoutes(
     res.json(attachments.map(withContentPath));
   });
 
+  router.get("/issues/:id/artifacts", async (req, res) => {
+    const { id: issueId } = req.params;
+    const artifacts = await svc.listArtifacts(issueId);
+    res.json(artifacts);
+  });
+
   router.post("/companies/:companyId/issues/:issueId/attachments", async (req, res) => {
     const companyId = req.params.companyId as string;
     const issueId = req.params.issueId as string;
@@ -2781,6 +2787,57 @@ export function issueRoutes(
     });
 
     res.json({ ok: true });
+  });
+
+  router.get("/artifacts/:artifactId/content", async (req, res, next) => {
+    const artifactId = req.params.artifactId as string;
+    const artifact = await svc.getArtifactById(artifactId);
+    if (!artifact) {
+      res.status(404).json({ error: "Artifact not found" });
+      return;
+    }
+    assertCompanyAccess(req, artifact.companyId);
+
+    const object = await storage.getObject(artifact.companyId, artifact.objectKey);
+    const responseContentType = normalizeContentType(artifact.mimeType || object.contentType);
+    res.setHeader("Content-Type", responseContentType);
+    res.setHeader("Content-Length", String(artifact.sizeBytes || object.contentLength || 0));
+    res.setHeader("Cache-Control", "private, max-age=60");
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    
+    const filename = artifact.title ?? "artifact";
+    const disposition = isInlineAttachmentContentType(responseContentType) ? "inline" : "attachment";
+    res.setHeader("Content-Disposition", `${disposition}; filename=\"${filename.replaceAll("\"", "")}\"`);
+
+    object.stream.on("error", (err) => {
+      next(err);
+    });
+    object.stream.pipe(res);
+  });
+
+  router.get("/artifacts/:artifactId/download", async (req, res, next) => {
+    const artifactId = req.params.artifactId as string;
+    const artifact = await svc.getArtifactById(artifactId);
+    if (!artifact) {
+      res.status(404).json({ error: "Artifact not found" });
+      return;
+    }
+    assertCompanyAccess(req, artifact.companyId);
+
+    const object = await storage.getObject(artifact.companyId, artifact.objectKey);
+    const responseContentType = normalizeContentType(artifact.mimeType || object.contentType);
+    res.setHeader("Content-Type", responseContentType);
+    res.setHeader("Content-Length", String(artifact.sizeBytes || object.contentLength || 0));
+    res.setHeader("Cache-Control", "private, max-age=60");
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    
+    const filename = artifact.title ?? "artifact";
+    res.setHeader("Content-Disposition", `attachment; filename=\"${filename.replaceAll("\"", "")}\"`);
+
+    object.stream.on("error", (err) => {
+      next(err);
+    });
+    object.stream.pipe(res);
   });
 
   return router;

@@ -5,6 +5,7 @@ import type {
   FeedbackTrace,
   FeedbackVote,
   Issue,
+  IssueArtifact,
   IssueAttachment,
   IssueComment,
   IssueDocument,
@@ -166,4 +167,5 @@ export const issuesApi = {
   updateWorkProduct: (id: string, data: Record<string, unknown>) =>
     api.patch<IssueWorkProduct>(`/work-products/${id}`, data),
   deleteWorkProduct: (id: string) => api.delete<IssueWorkProduct>(`/work-products/${id}`),
+  listArtifacts: (id: string) => api.get<IssueArtifact[]>(`/issues/${id}/artifacts`),
 };

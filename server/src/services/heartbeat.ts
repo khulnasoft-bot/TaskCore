@@ -4,7 +4,7 @@ import { execFile as execFileCallback } from "node:child_process";
 import { promisify } from "node:util";
 import { and, asc, desc, eq, gt, inArray, isNull, or, sql } from "drizzle-orm";
 import type { Db } from "@taskcore/db";
-import type { BillingType, ExecutionWorkspace, ExecutionWorkspaceConfig } from "@taskcore/shared";
+import type { BillingType, ExecutionWorkspace, ExecutionWorkspaceConfig, WakeReason } from "@taskcore/shared";
 import {
   agents,
   agentRuntimeState,
@@ -31,6 +31,7 @@ import { trackAgentFirstHeartbeat } from "@taskcore/shared/telemetry";
 import { getTelemetryClient } from "../telemetry.js";
 import { companySkillService } from "./company-skills.js";
 import { budgetService, type BudgetEnforcementScope } from "./budgets.js";
+import { circuitBreakerService } from "./circuitBreakers.js";
 import { secretService } from "./secrets.js";
 import { resolveDefaultAgentWorkspaceDir, resolveManagedProjectWorkspaceDir } from "../home-paths.js";
 import {
@@ -459,6 +460,7 @@ async function withAgentStartLock<T>(agentId: string, fn: () => Promise<T>) {
 interface WakeupOptions {
   source?: "timer" | "assignment" | "on_demand" | "automation";
   triggerDetail?: "manual" | "ping" | "callback" | "system";
+  wakeReason?: WakeReason;
   reason?: string | null;
   payload?: Record<string, unknown> | null;
   idempotencyKey?: string | null;
@@ -2736,6 +2738,7 @@ export function heartbeatService(db: Db) {
     const queued = await enqueueWakeup(input.agentId, {
       source: "automation",
       triggerDetail: "system",
+      wakeReason: "task_update",
       reason: input.reason,
       payload: {
         issueId: input.issueId,
@@ -2956,6 +2959,12 @@ export function heartbeatService(db: Db) {
         lastRunId: run.id,
         lastRunStatus: run.status,
         lastError: result.errorMessage ?? null,
+        consecutiveFailures:
+          run.status === "succeeded"
+            ? 0
+            : run.status === "cancelled"
+              ? agentRuntimeState.consecutiveFailures
+              : sql`${agentRuntimeState.consecutiveFailures} + 1`,
         totalInputTokens: sql`${agentRuntimeState.totalInputTokens} + ${inputTokens}`,
         totalOutputTokens: sql`${agentRuntimeState.totalOutputTokens} + ${outputTokens}`,
         totalCachedInputTokens: sql`${agentRuntimeState.totalCachedInputTokens} + ${cachedInputTokens}`,
@@ -2963,6 +2972,11 @@ export function heartbeatService(db: Db) {
         updatedAt: new Date(),
       })
       .where(eq(agentRuntimeState.agentId, agent.id));
+
+    if (run.status !== "succeeded" && run.status !== "cancelled") {
+      const cb = circuitBreakerService(db, budgetService(db, budgetHooks));
+      await cb.checkAndEnforce(agent.id);
+    }
 
     if (additionalCostCents > 0 || hasTokenUsage) {
       const costs = costService(db, budgetHooks);
@@ -4242,6 +4256,7 @@ export function heartbeatService(db: Db) {
     const source = opts.source ?? "on_demand";
     const triggerDetail = opts.triggerDetail ?? null;
     const contextSnapshot: Record<string, unknown> = { ...(opts.contextSnapshot ?? {}) };
+    const wakeReason = opts.wakeReason ?? (source === "timer" ? "heartbeat_timer" : "force_wake");
     const reason = opts.reason ?? null;
     const payload = opts.payload ?? null;
     const {
@@ -4260,6 +4275,25 @@ export function heartbeatService(db: Db) {
 
     const agent = await getAgent(agentId);
     if (!agent) throw notFound("Agent not found");
+
+    // Log activity for the wake attempt
+    await logActivity(db, {
+      companyId: agent.companyId,
+      actorType: opts.requestedByActorType ?? "system",
+      actorId: opts.requestedByActorId ?? "system",
+      action: "agent.wakeup_requested",
+      entityType: "agent",
+      entityId: agentId,
+      agentId,
+      details: {
+        wakeReason,
+        source,
+        triggerDetail,
+        reason,
+        issueId,
+      },
+    });
+
     const explicitResumeSession = await resolveExplicitResumeSessionOverride(agent, payload, taskKey);
     if (explicitResumeSession) {
       enrichedContextSnapshot.resumeFromRunId = explicitResumeSession.resumeFromRunId;
@@ -4287,6 +4321,7 @@ export function heartbeatService(db: Db) {
         agentId,
         source,
         triggerDetail,
+        wakeReason,
         reason: skipReason,
         payload,
         status: "skipped",
@@ -4365,6 +4400,7 @@ export function heartbeatService(db: Db) {
             agentId,
             source,
             triggerDetail,
+            wakeReason,
             reason: "issue_execution_issue_not_found",
             payload,
             status: "skipped",
@@ -4539,6 +4575,7 @@ export function heartbeatService(db: Db) {
             agentId,
             source,
             triggerDetail,
+            wakeReason,
             reason: "issue_execution_deferred",
             payload: deferredPayload,
             status: "deferred_issue_execution",
@@ -4557,6 +4594,7 @@ export function heartbeatService(db: Db) {
             agentId,
             source,
             triggerDetail,
+            wakeReason,
             reason,
             payload,
             status: "queued",
@@ -4574,6 +4612,7 @@ export function heartbeatService(db: Db) {
             agentId,
             invocationSource: source,
             triggerDetail,
+            wakeReason,
             status: "queued",
             wakeupRequestId: wakeupRequest.id,
             contextSnapshot: enrichedContextSnapshot,
@@ -5094,15 +5133,38 @@ export function heartbeatService(db: Db) {
         const elapsedMs = now.getTime() - baseline;
         if (elapsedMs < policy.intervalSec * 1000) continue;
 
+        // Deterministic Wake Gating: Only wake if agent has active work OR it's a forced interval
+        const activeTasks = await db
+          .select({ id: issues.id })
+          .from(issues)
+          .where(
+            and(
+              eq(issues.assigneeAgentId, agent.id),
+              inArray(issues.status, ["todo", "in_progress", "in_review", "blocked"]),
+            ),
+          )
+          .limit(1);
+
+        if (activeTasks.length === 0) {
+          // If no active tasks, only wake every 10x interval (minimum once per hour)
+          // as a "safety" check for system configuration changes or missed events.
+          const safetyIntervalMs = Math.max(3600 * 1000, policy.intervalSec * 1000 * 10);
+          if (elapsedMs < safetyIntervalMs) {
+            continue;
+          }
+        }
+
         const run = await enqueueWakeup(agent.id, {
           source: "timer",
           triggerDetail: "system",
-          reason: "heartbeat_timer",
+          wakeReason: "heartbeat_timer",
+          reason: activeTasks.length > 0 ? "active_tasks_detected" : "periodic_safety_check",
           requestedByActorType: "system",
           requestedByActorId: "heartbeat_scheduler",
           contextSnapshot: {
             source: "scheduler",
             reason: "interval_elapsed",
+            activeTaskCount: activeTasks.length,
             now: now.toISOString(),
           },
         });

@@ -11,6 +11,7 @@ import {
   heartbeatRuns,
   executionWorkspaces,
   issueAttachments,
+  issueArtifacts,
   issueInboxArchives,
   issueLabels,
   issueRelations,
@@ -2514,6 +2515,72 @@ export function issueService(db: Db) {
         project: a.projectId ? projectMap.get(a.projectId) ?? null : null,
         goal: a.goalId ? goalMap.get(a.goalId) ?? null : null,
       }));
+    },
+
+    listArtifacts: async (issueId: string) => {
+      return db
+        .select()
+        .from(issueArtifacts)
+        .where(eq(issueArtifacts.issueId, issueId))
+        .orderBy(desc(issueArtifacts.version), asc(issueArtifacts.artifactId));
+    },
+
+    upsertArtifact: async (input: {
+      companyId: string;
+      issueId: string;
+      artifactId: string;
+      title: string;
+      mimeType: string;
+      provider: string;
+      objectKey: string;
+      sizeBytes: number;
+      sha256: string;
+      metadataJson?: Record<string, unknown>;
+      agentId?: string | null;
+      userId?: string | null;
+    }) => {
+      const existing = await db
+        .select({ version: issueArtifacts.version })
+        .from(issueArtifacts)
+        .where(
+          and(
+            eq(issueArtifacts.issueId, input.issueId),
+            eq(issueArtifacts.artifactId, input.artifactId),
+          ),
+        )
+        .orderBy(desc(issueArtifacts.version))
+        .limit(1)
+        .then((rows) => rows[0] ?? null);
+
+      const nextVersion = existing ? existing.version + 1 : 1;
+
+      return db
+        .insert(issueArtifacts)
+        .values({
+          companyId: input.companyId,
+          issueId: input.issueId,
+          artifactId: input.artifactId,
+          version: nextVersion,
+          title: input.title,
+          mimeType: input.mimeType,
+          provider: input.provider,
+          objectKey: input.objectKey,
+          sizeBytes: input.sizeBytes,
+          sha256: input.sha256,
+          metadataJson: input.metadataJson ?? null,
+          createdByAgentId: input.agentId ?? null,
+          createdByUserId: input.userId ?? null,
+        })
+        .returning()
+        .then((rows) => rows[0]);
+    },
+
+    getArtifactById: async (id: string) => {
+      return db
+        .select()
+        .from(issueArtifacts)
+        .where(eq(issueArtifacts.id, id))
+        .then((rows) => rows[0] ?? null);
     },
   };
 }
