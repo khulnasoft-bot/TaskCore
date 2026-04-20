@@ -259,3 +259,19 @@ export interface IssueAttachment {
   updatedAt: Date;
   contentPath: string;
 }
+
+export interface IssueArtifact {
+  id: string;
+  companyId: string;
+  issueId: string;
+  artifactId: string;
+  version: number;
+  title: string;
+  mimeType: string;
+  sizeBytes: number;
+  sha256: string;
+  createdByAgentId: string | null;
+  createdByUserId: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}

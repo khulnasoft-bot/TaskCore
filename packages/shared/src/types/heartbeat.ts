@@ -5,7 +5,10 @@ import type {
   HeartbeatRunStatus,
   WakeupTriggerDetail,
   WakeupRequestStatus,
+  WakeReason,
 } from "../constants.js";
+
+export type { WakeReason };
 
 export interface HeartbeatRun {
   id: string;

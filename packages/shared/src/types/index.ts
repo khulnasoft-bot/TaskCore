@@ -119,6 +119,7 @@ export type {
   IssueAncestorProject,
   IssueAncestorGoal,
   IssueAttachment,
+  IssueArtifact,
   IssueLabel,
 } from "./issue.js";
 export type { Goal } from "./goal.js";
@@ -163,6 +164,7 @@ export type {
   AgentRuntimeState,
   AgentTaskSession,
   AgentWakeupRequest,
+  WakeReason,
   InstanceSchedulerHeartbeatAgent,
 } from "./heartbeat.js";
 export type { LiveEvent } from "./live.js";

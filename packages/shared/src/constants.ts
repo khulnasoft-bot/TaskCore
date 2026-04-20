@@ -333,6 +333,16 @@ export const WAKEUP_REQUEST_STATUSES = [
 ] as const;
 export type WakeupRequestStatus = (typeof WAKEUP_REQUEST_STATUSES)[number];
 
+export const WAKE_REASONS = [
+  "heartbeat_timer",
+  "mention",
+  "task_update",
+  "force_wake",
+  "budget_check",
+  "system",
+] as const;
+export type WakeReason = (typeof WAKE_REASONS)[number];
+
 export const HEARTBEAT_RUN_STATUSES = [
   "queued",
   "running",
