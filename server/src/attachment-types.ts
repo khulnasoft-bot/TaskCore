@@ -27,6 +27,13 @@ export const DEFAULT_ALLOWED_TYPES: readonly string[] = [
   "application/json",
   "text/csv",
   "text/html",
+  "text/javascript",
+  "application/javascript",
+  "text/typescript",
+  "application/typescript",
+  "text/css",
+  "application/xml",
+  "text/xml",
 ];
 
 export const DEFAULT_ATTACHMENT_CONTENT_TYPE = "application/octet-stream";
@@ -38,6 +45,13 @@ export const INLINE_ATTACHMENT_TYPES: readonly string[] = [
   "text/markdown",
   "application/json",
   "text/csv",
+  "text/javascript",
+  "application/javascript",
+  "text/typescript",
+  "application/typescript",
+  "text/css",
+  "application/xml",
+  "text/xml",
 ];
 
 /**
