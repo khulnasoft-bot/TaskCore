@@ -16,6 +16,8 @@ import {
   PopoverContent,
   PopoverTrigger
 } from "@/components/ui/popover";
+import { Input } from "@/components/ui/input";
+import { OnboardingInterview } from "./OnboardingInterview";
 import { Button } from "@/components/ui/button";
 import { cn } from "../lib/utils";
 import {
@@ -103,6 +105,7 @@ export function OnboardingWizard() {
   // Step 1
   const [companyName, setCompanyName] = useState("");
   const [companyGoal, setCompanyGoal] = useState("");
+  const [showInterview, setShowInterview] = useState(false);
 
   // Step 2
   const [agentName, setAgentName] = useState("CEO");
@@ -675,43 +678,72 @@ export function OnboardingWizard() {
                       </p>
                     </div>
                   </div>
-                  <div className="mt-3 group">
-                    <label
-                      className={cn(
-                        "text-xs mb-1 block transition-colors",
-                        companyName.trim()
-                          ? "text-foreground"
-                          : "text-muted-foreground group-focus-within:text-foreground"
+                  {!showInterview ? (
+                    <>
+                      <div className="mt-3 group">
+                        <label
+                          className={cn(
+                            "text-xs mb-1 block transition-colors",
+                            companyName.trim()
+                              ? "text-foreground"
+                              : "text-muted-foreground group-focus-within:text-foreground"
+                          )}
+                        >
+                          Company name
+                        </label>
+                        <input
+                          className="w-full rounded-md border border-border bg-transparent px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground/50"
+                          placeholder="Acme Corp"
+                          value={companyName}
+                          onChange={(e) => setCompanyName(e.target.value)}
+                          autoFocus
+                        />
+                      </div>
+                      <div className="group">
+                        <label
+                          className={cn(
+                            "text-xs mb-1 block transition-colors",
+                            companyGoal.trim()
+                              ? "text-foreground"
+                              : "text-muted-foreground group-focus-within:text-foreground"
+                          )}
+                        >
+                          Mission / goal (optional)
+                        </label>
+                        <textarea
+                          className="w-full rounded-md border border-border bg-transparent px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground/50 resize-none min-h-[60px]"
+                          placeholder="What is this company trying to achieve?"
+                          value={companyGoal}
+                          onChange={(e) => setCompanyGoal(e.target.value)}
+                        />
+                      </div>
+                      {companyGoal.trim().length > 10 && (
+                        <Button 
+                          variant="outline" 
+                          className="w-full gap-2 py-6 border-blue-200 bg-blue-50/30 text-blue-700 hover:bg-blue-50 hover:border-blue-300"
+                          onClick={() => setShowInterview(true)}
+                        >
+                          <Sparkles className="h-4 w-4" />
+                          Help me refine this mission with AI
+                        </Button>
                       )}
-                    >
-                      Company name
-                    </label>
-                    <input
-                      className="w-full rounded-md border border-border bg-transparent px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground/50"
-                      placeholder="Acme Corp"
-                      value={companyName}
-                      onChange={(e) => setCompanyName(e.target.value)}
-                      autoFocus
+                    </>
+                  ) : (
+                    <OnboardingInterview 
+                      initialMission={companyGoal}
+                      onConfirm={(rec) => {
+                        setTaskTitle(rec.suggestedTaskTitle);
+                        setTaskDescription(rec.suggestedTaskDescription);
+                        // We also set the project name for later use or just keep it in mind
+                        setShowInterview(false);
+                        // Auto-advance to step 2 after name is set (if they haven't set it yet)
+                        if (companyName.trim()) {
+                          // Handled by the wizard's footer "Next" button usually
+                          // but we could auto-advance if we wanted.
+                        }
+                      }}
                     />
-                  </div>
-                  <div className="group">
-                    <label
-                      className={cn(
-                        "text-xs mb-1 block transition-colors",
-                        companyGoal.trim()
-                          ? "text-foreground"
-                          : "text-muted-foreground group-focus-within:text-foreground"
-                      )}
-                    >
-                      Mission / goal (optional)
-                    </label>
-                    <textarea
-                      className="w-full rounded-md border border-border bg-transparent px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground/50 resize-none min-h-[60px]"
-                      placeholder="What is this company trying to achieve?"
-                      value={companyGoal}
-                      onChange={(e) => setCompanyGoal(e.target.value)}
-                    />
-                  </div>
+                  )}
                 </div>
               )}
 
