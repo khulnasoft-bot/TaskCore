@@ -588,5 +588,17 @@ export function executionWorkspaceRoutes(db: Db) {
     res.json(workspace);
   });
 
+  router.get("/execution-workspaces/:id/files", async (req, res) => {
+    const id = req.params.id as string;
+    const workspace = await svc.getById(id);
+    if (!workspace) {
+      res.status(404).json({ error: "Execution workspace not found" });
+      return;
+    }
+    assertCompanyAccess(req, workspace.companyId);
+    const files = await svc.listFiles(id);
+    res.json(files);
+  });
+
   return router;
 }

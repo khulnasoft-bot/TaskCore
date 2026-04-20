@@ -692,6 +692,29 @@ export function executionWorkspaceService(db: Db) {
         .then((rows) => rows[0] ?? null);
       return row ? toExecutionWorkspace(row) : null;
     },
+
+    listFiles: async (id: string) => {
+      const workspace = await db
+        .select({ cwd: executionWorkspaces.cwd })
+        .from(executionWorkspaces)
+        .where(eq(executionWorkspaces.id, id))
+        .then((rows) => rows[0] ?? null);
+
+      if (!workspace?.cwd) return [];
+
+      try {
+        const entries = await fs.readdir(workspace.cwd, { recursive: true, withFileTypes: true });
+        return entries
+          .filter((entry) => entry.isFile())
+          .map((entry) => {
+            const fullPath = path.join(entry.path, entry.name);
+            return path.relative(workspace.cwd!, fullPath);
+          });
+      } catch (error) {
+        console.error(`Failed to list files for workspace ${id}:`, error);
+        return [];
+      }
+    },
   };
 }
 

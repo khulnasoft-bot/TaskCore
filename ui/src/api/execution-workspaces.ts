@@ -51,4 +51,5 @@ export const executionWorkspacesApi = {
       sanitizeWorkspaceRuntimeControlTarget(target),
     ),
   update: (id: string, data: Record<string, unknown>) => api.patch<ExecutionWorkspace>(`/execution-workspaces/${id}`, data),
+  listFiles: (id: string) => api.get<string[]>(`/execution-workspaces/${id}/files`),
 };
