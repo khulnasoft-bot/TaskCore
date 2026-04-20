@@ -60,6 +60,9 @@ import { IssueDocumentsSection } from "../components/IssueDocumentsSection";
 import { IssuesList } from "../components/IssuesList";
 import { IssueProperties } from "../components/IssueProperties";
 import { IssueWorkspaceCard } from "../components/IssueWorkspaceCard";
+import { IssueArtifactList } from "../components/IssueArtifactList";
+import { IssueFileBrowser } from "../components/IssueFileBrowser";
+import { ArtifactPreviewModal } from "../components/ArtifactPreviewModal";
 import type { MentionOption } from "../components/MarkdownEditor";
 import { ImageGalleryModal } from "../components/ImageGalleryModal";
 import { ScrollToBottom } from "../components/ScrollToBottom";
@@ -87,6 +90,8 @@ import {
   ChevronRight,
   Copy,
   EyeOff,
+  Files,
+  Box,
   Hexagon,
   MessageSquare,
   MoreHorizontal,
@@ -858,7 +863,8 @@ export function IssueDetail() {
   const [moreOpen, setMoreOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [mobilePropsOpen, setMobilePropsOpen] = useState(false);
-  const [detailTab, setDetailTab] = useState("chat");
+  const [detailTab, setDetailTab] = useState<string>("chat");
+  const [previewArtifact, setPreviewArtifact] = useState<IssueArtifact | null>(null);
   const [pendingApprovalAction, setPendingApprovalAction] = useState<{
     approvalId: string;
     action: "approve" | "reject";
@@ -937,6 +943,12 @@ export function IssueDetail() {
     queryFn: () => issuesApi.listAttachments(issueId!),
     enabled: !!issueId,
     placeholderData: keepPreviousDataForSameQueryTail<IssueAttachment[]>(issueId ?? "pending"),
+  });
+
+  const { data: artifacts } = useQuery({
+    queryKey: ["issues", issueId, "artifacts"],
+    queryFn: () => issuesApi.listArtifacts(issueId!),
+    enabled: !!issueId,
   });
 
   const { data: liveRunCount = 0 } = useQuery<LiveRunForIssue[], Error, number>({
@@ -2552,6 +2564,16 @@ export function IssueDetail() {
             <ActivityIcon className="h-3.5 w-3.5" />
             Activity
           </TabsTrigger>
+          <TabsTrigger value="artifacts" className="gap-1.5">
+            <Box className="h-3.5 w-3.5" />
+            Artifacts
+          </TabsTrigger>
+          {issue.executionWorkspaceId && (
+            <TabsTrigger value="files" className="gap-1.5">
+              <Files className="h-3.5 w-3.5" />
+              Files
+            </TabsTrigger>
+          )}
           {issuePluginTabItems.map((item) => (
             <TabsTrigger key={item.value} value={item.value}>
               {item.label}
@@ -2629,6 +2651,35 @@ export function IssueDetail() {
             />
           ) : null}
         </TabsContent>
+
+        <TabsContent value="artifacts">
+          {detailTab === "artifacts" ? (
+            <div className="p-4 bg-slate-50/50 rounded-xl border border-slate-200">
+              <IssueArtifactList 
+                artifacts={artifacts ?? []} 
+                onDownload={(a) => window.open(`/api/artifacts/${a.id}/download`)}
+                onPreview={(a) => setPreviewArtifact(a)}
+              />
+            </div>
+          ) : null}
+        </TabsContent>
+
+        <ArtifactPreviewModal
+          artifact={previewArtifact}
+          open={!!previewArtifact}
+          onOpenChange={(open) => !open && setPreviewArtifact(null)}
+          onDownload={(a) => window.open(`/api/artifacts/${a.id}/download`)}
+        />
+
+        {issue.executionWorkspaceId && (
+          <TabsContent value="files">
+            {detailTab === "files" ? (
+              <div className="p-4 bg-slate-50/50 rounded-xl border border-slate-200">
+                <IssueFileBrowser executionWorkspaceId={issue.executionWorkspaceId} />
+              </div>
+            ) : null}
+          </TabsContent>
+        )}
 
         {activePluginTab && (
           <TabsContent value={activePluginTab.value}>
