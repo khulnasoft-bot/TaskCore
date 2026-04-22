@@ -20,6 +20,7 @@ describe("opencode_local environment diagnostics", () => {
       config: {
         command: process.execPath,
         cwd,
+        dangerouslySkipPermissions: false,
       },
     });
 
@@ -40,6 +41,7 @@ describe("opencode_local environment diagnostics", () => {
         config: {
           command: process.execPath,
           cwd,
+          dangerouslySkipPermissions: false,
           env: {
             OPENAI_API_KEY: "",
           },
@@ -81,6 +83,7 @@ describe("opencode_local environment diagnostics", () => {
         config: {
           command: fakeOpencode,
           cwd,
+          dangerouslySkipPermissions: false,
         },
       });
 

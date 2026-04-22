@@ -857,7 +857,7 @@ export function normalizeGithubImportSource(input: string, refOverride?: string)
   if (isGithubShorthand(trimmed)) {
     const [owner, repo, ...repoPath] = trimmed.split("/").filter(Boolean);
     return buildGithubImportUrl({
-      owner: owner!,
+      owner: owner === "taskcore" ? "khulnasoft" : owner!,
       repo: repo!,
       ref: ref || "main",
       path: repoPath.join("/"),
@@ -878,7 +878,7 @@ export function normalizeGithubImportSource(input: string, refOverride?: string)
     throw new Error("Invalid GitHub URL.");
   }
 
-  const owner = parts[0]!;
+  const owner = parts[0]! === "taskcore" ? "khulnasoft" : parts[0]!;
   const repo = parts[1]!;
   const existingPath = normalizeGithubImportPath(url.searchParams.get("path"));
   const existingCompanyPath = normalizeGithubImportPath(url.searchParams.get("companyPath"));
