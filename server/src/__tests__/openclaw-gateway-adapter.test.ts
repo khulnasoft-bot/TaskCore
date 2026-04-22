@@ -34,7 +34,7 @@ function buildContext(
       wakeReason: "issue_assigned",
       issueIds: ["issue-123"],
     },
-    onLog: async () => { },
+    onLog: async () => {},
     ...overrides,
   };
 }
@@ -260,11 +260,11 @@ async function createMockGatewayServerWithPairing() {
               pending: approved
                 ? []
                 : [
-                  {
-                    requestId: pendingRequestId,
-                    deviceId: lastSeenDeviceId ?? "device-unknown",
-                  },
-                ],
+                    {
+                      requestId: pendingRequestId,
+                      deviceId: lastSeenDeviceId ?? "device-unknown",
+                    },
+                  ],
               paired: approved && lastSeenDeviceId ? [{ deviceId: lastSeenDeviceId }] : [],
             },
           }),

@@ -2,12 +2,15 @@ import { describe, expect, it } from "vitest";
 import { shouldTrackDevServerPath } from "../../../scripts/dev-runner-paths.mjs";
 
 describe("shouldTrackDevServerPath", () => {
-  it("ignores repo-local Taskcore state and common test file paths", () => {
+  it("ignores generated state, diagnostic reports, and common test file paths", () => {
     expect(
       shouldTrackDevServerPath(
         ".taskcore/worktrees/PAP-712-for-project-configuration-get-rid-of-the-overview-tab-for-now/.agents/skills/taskcore",
       ),
     ).toBe(false);
+    expect(shouldTrackDevServerPath("server/report.20260416.154629.4965.0.001.json")).toBe(false);
+    expect(shouldTrackDevServerPath("server/report.20260416.154636.4725.0.001.json")).toBe(false);
+    expect(shouldTrackDevServerPath("server/report.20260416.154636.4965.0.002.json")).toBe(false);
     expect(shouldTrackDevServerPath("server/src/__tests__/health.test.ts")).toBe(false);
     expect(shouldTrackDevServerPath("packages/shared/src/lib/foo.test.ts")).toBe(false);
     expect(shouldTrackDevServerPath("packages/shared/src/lib/foo.spec.tsx")).toBe(false);

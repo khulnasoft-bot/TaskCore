@@ -110,7 +110,7 @@ function stripAnsi(value: string) {
 
 describe("claude_local cli formatter", () => {
   it("prints the user-visible and background transcript events from stream-json output", () => {
-    const spy = vi.spyOn(console, "log").mockImplementation(() => { });
+    const spy = vi.spyOn(console, "log").mockImplementation(() => {});
 
     try {
       printClaudeStreamEvent(

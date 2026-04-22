@@ -1,21 +1,21 @@
 # @taskcore/server
 
-## 0.2.1
+## 0.3.1
 
 ### Patch Changes
 
-- Stable release preparation for 0.2.1
+- Stable release preparation for 0.3.1
 - Updated dependencies
-  - @taskcore/adapter-utils@0.2.1
-  - @taskcore/adapter-claude-local@0.2.1
-  - @taskcore/adapter-codex-local@0.2.1
-  - @taskcore/adapter-cursor-local@0.2.1
-  - @taskcore/adapter-gemini-local@0.2.1
-  - @taskcore/adapter-openclaw-gateway@0.2.1
-  - @taskcore/adapter-opencode-local@0.2.1
-  - @taskcore/adapter-pi-local@0.2.1
-  - @taskcore/db@0.2.1
-  - @taskcore/shared@0.2.1
+  - @taskcore/adapter-utils@0.3.1
+  - @taskcore/adapter-claude-local@0.3.1
+  - @taskcore/adapter-codex-local@0.3.1
+  - @taskcore/adapter-cursor-local@0.3.1
+  - @taskcore/adapter-gemini-local@0.3.1
+  - @taskcore/adapter-openclaw-gateway@0.3.1
+  - @taskcore/adapter-opencode-local@0.3.1
+  - @taskcore/adapter-pi-local@0.3.1
+  - @taskcore/db@0.3.1
+  - @taskcore/shared@0.3.1
 
 ## 0.3.0
 

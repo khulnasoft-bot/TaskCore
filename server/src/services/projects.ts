@@ -621,9 +621,9 @@ export function projectService(db: Db) {
             metadata:
               data.runtimeConfig !== undefined
                 ? mergeProjectWorkspaceRuntimeConfig(
-                  (data.metadata as Record<string, unknown> | null | undefined) ?? null,
-                  data.runtimeConfig ?? null,
-                )
+                    (data.metadata as Record<string, unknown> | null | undefined) ?? null,
+                    data.runtimeConfig ?? null,
+                  )
                 : (data.metadata as Record<string, unknown> | null | undefined) ?? null,
             isPrimary: shouldBePrimary,
           })
@@ -698,11 +698,11 @@ export function projectService(db: Db) {
         patch.metadata =
           data.runtimeConfig !== undefined
             ? mergeProjectWorkspaceRuntimeConfig(
-              data.metadata !== undefined
-                ? (data.metadata as Record<string, unknown> | null | undefined)
-                : ((existing.metadata as Record<string, unknown> | null | undefined) ?? null),
-              data.runtimeConfig ?? null,
-            )
+                data.metadata !== undefined
+                  ? (data.metadata as Record<string, unknown> | null | undefined)
+                  : ((existing.metadata as Record<string, unknown> | null | undefined) ?? null),
+                data.runtimeConfig ?? null,
+              )
             : data.metadata;
       }
 

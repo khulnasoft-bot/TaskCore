@@ -8,6 +8,7 @@ import {
   updateExecutionWorkspaceSchema,
   workspaceRuntimeControlTargetSchema,
 } from "@taskcore/shared";
+import type { WorkspaceRuntimeDesiredState, WorkspaceRuntimeServiceStateMap } from "@taskcore/shared";
 import { validate } from "../middleware/validate.js";
 import { executionWorkspaceService, logActivity, workspaceOperationService } from "../services/index.js";
 import { mergeExecutionWorkspaceConfig, readExecutionWorkspaceConfig } from "../services/execution-workspaces.js";
@@ -23,6 +24,14 @@ import {
   stopRuntimeServicesForExecutionWorkspace,
 } from "../services/workspace-runtime.js";
 import { assertCompanyAccess, getActorInfo } from "./authz.js";
+import {
+  assertNoAgentHostWorkspaceCommandMutation,
+  collectExecutionWorkspaceCommandPaths,
+} from "./workspace-command-authz.js";
+import { assertCanManageExecutionWorkspaceRuntimeServices } from "./workspace-runtime-service-authz.js";
+import { appendWithCap } from "../adapters/utils.js";
+
+const WORKSPACE_CONTROL_OUTPUT_MAX_CHARS = 256 * 1024;
 
 export function executionWorkspaceRoutes(db: Db) {
   const router = Router();
@@ -32,13 +41,16 @@ export function executionWorkspaceRoutes(db: Db) {
   router.get("/companies/:companyId/execution-workspaces", async (req, res) => {
     const companyId = req.params.companyId as string;
     assertCompanyAccess(req, companyId);
-    const workspaces = await svc.list(companyId, {
+    const filters = {
       projectId: req.query.projectId as string | undefined,
       projectWorkspaceId: req.query.projectWorkspaceId as string | undefined,
       issueId: req.query.issueId as string | undefined,
       status: req.query.status as string | undefined,
       reuseEligible: req.query.reuseEligible === "true",
-    });
+    };
+    const workspaces = req.query.summary === "true"
+      ? await svc.listSummaries(companyId, filters)
+      : await svc.list(companyId, filters);
     res.json(workspaces);
   });
 
@@ -96,6 +108,12 @@ export function executionWorkspaceRoutes(db: Db) {
     }
     assertCompanyAccess(req, existing.companyId);
 
+    await assertCanManageExecutionWorkspaceRuntimeServices(db, req, {
+      companyId: existing.companyId,
+      executionWorkspaceId: existing.id,
+      sourceIssueId: existing.sourceIssueId,
+    });
+
     const workspaceCwd = existing.cwd;
     if (!workspaceCwd) {
       res.status(422).json({ error: "Execution workspace needs a local path before Taskcore can run workspace commands" });
@@ -104,39 +122,39 @@ export function executionWorkspaceRoutes(db: Db) {
 
     const projectWorkspace = existing.projectWorkspaceId
       ? await db
-        .select({
-          id: projectWorkspaces.id,
-          cwd: projectWorkspaces.cwd,
-          repoUrl: projectWorkspaces.repoUrl,
-          repoRef: projectWorkspaces.repoRef,
-          defaultRef: projectWorkspaces.defaultRef,
-          metadata: projectWorkspaces.metadata,
-        })
-        .from(projectWorkspaces)
-        .where(
-          and(
-            eq(projectWorkspaces.id, existing.projectWorkspaceId),
-            eq(projectWorkspaces.companyId, existing.companyId),
-          ),
-        )
-        .then((rows) => rows[0] ?? null)
+          .select({
+            id: projectWorkspaces.id,
+            cwd: projectWorkspaces.cwd,
+            repoUrl: projectWorkspaces.repoUrl,
+            repoRef: projectWorkspaces.repoRef,
+            defaultRef: projectWorkspaces.defaultRef,
+            metadata: projectWorkspaces.metadata,
+          })
+          .from(projectWorkspaces)
+          .where(
+            and(
+              eq(projectWorkspaces.id, existing.projectWorkspaceId),
+              eq(projectWorkspaces.companyId, existing.companyId),
+            ),
+          )
+          .then((rows) => rows[0] ?? null)
       : null;
     const projectWorkspaceRuntime = readProjectWorkspaceRuntimeConfig(
       (projectWorkspace?.metadata as Record<string, unknown> | null) ?? null,
     )?.workspaceRuntime ?? null;
     const projectPolicy = existing.projectId
       ? await db
-        .select({
-          executionWorkspacePolicy: projects.executionWorkspacePolicy,
-        })
-        .from(projects)
-        .where(
-          and(
-            eq(projects.id, existing.projectId),
-            eq(projects.companyId, existing.companyId),
-          ),
-        )
-        .then((rows) => parseProjectExecutionWorkspacePolicy(rows[0]?.executionWorkspacePolicy))
+          .select({
+            executionWorkspacePolicy: projects.executionWorkspacePolicy,
+          })
+          .from(projects)
+          .where(
+            and(
+              eq(projects.id, existing.projectId),
+              eq(projects.companyId, existing.companyId),
+            ),
+          )
+          .then((rows) => parseProjectExecutionWorkspacePolicy(rows[0]?.executionWorkspacePolicy))
       : null;
     const effectiveRuntimeConfig = existing.config?.workspaceRuntime ?? projectWorkspaceRuntime ?? null;
     const target = req.body as { workspaceCommandId?: string | null; runtimeServiceId?: string | null; serviceIndex?: number | null };
@@ -195,8 +213,8 @@ export function executionWorkspaceRoutes(db: Db) {
       executionWorkspaceId: existing.id,
     });
     let runtimeServiceCount = existing.runtimeServices?.length ?? 0;
-    const stdout: string[] = [];
-    const stderr: string[] = [];
+    let stdout = "";
+    let stderr = "";
 
     const operation = await recorder.recordOperation({
       phase: action === "stop" ? "workspace_teardown" : "workspace_provision",
@@ -242,10 +260,10 @@ export function executionWorkspaceRoutes(db: Db) {
             },
             issue: existing.sourceIssueId
               ? {
-                id: existing.sourceIssueId,
-                identifier: null,
-                title: existing.name,
-              }
+                  id: existing.sourceIssueId,
+                  identifier: null,
+                  title: existing.name,
+                }
               : null,
             agent: {
               id: actor.agentId ?? null,
@@ -271,10 +289,10 @@ export function executionWorkspaceRoutes(db: Db) {
             },
             issue: existing.sourceIssueId
               ? {
-                id: existing.sourceIssueId,
-                identifier: null,
-                title: existing.name,
-              }
+                  id: existing.sourceIssueId,
+                  identifier: null,
+                  title: existing.name,
+                }
               : null,
             workspace: availableWorkspace,
             command: workspaceCommand.rawConfig,
@@ -296,8 +314,8 @@ export function executionWorkspaceRoutes(db: Db) {
         }
 
         const onLog = async (stream: "stdout" | "stderr", chunk: string) => {
-          if (stream === "stdout") stdout.push(chunk);
-          else stderr.push(chunk);
+          if (stream === "stdout") stdout = appendWithCap(stdout, chunk, WORKSPACE_CONTROL_OUTPUT_MAX_CHARS);
+          else stderr = appendWithCap(stderr, chunk, WORKSPACE_CONTROL_OUTPUT_MAX_CHARS);
         };
 
         if (action === "stop" || action === "restart") {
@@ -323,10 +341,10 @@ export function executionWorkspaceRoutes(db: Db) {
             },
             issue: existing.sourceIssueId
               ? {
-                id: existing.sourceIssueId,
-                identifier: null,
-                title: existing.name,
-              }
+                  id: existing.sourceIssueId,
+                  identifier: null,
+                  title: existing.name,
+                }
               : null,
             workspace: availableWorkspace,
             executionWorkspaceId: existing.id,
@@ -340,20 +358,20 @@ export function executionWorkspaceRoutes(db: Db) {
           runtimeServiceCount = selectedRuntimeServiceId ? Math.max(0, (existing.runtimeServices?.length ?? 1) - 1) : 0;
         }
 
-        const currentDesiredState: "running" | "stopped" =
+        const currentDesiredState: WorkspaceRuntimeDesiredState =
           existing.config?.desiredState
           ?? ((existing.runtimeServices ?? []).some((service) => service.status === "starting" || service.status === "running")
             ? "running"
             : "stopped");
         const nextRuntimeState: {
-          desiredState: "running" | "stopped";
-          serviceStates: Record<string, "running" | "stopped"> | null | undefined;
+          desiredState: WorkspaceRuntimeDesiredState;
+          serviceStates: WorkspaceRuntimeServiceStateMap | null | undefined;
         } = selectedRuntimeServiceId && (selectedServiceIndex === undefined || selectedServiceIndex === null)
-            ? {
+          ? {
               desiredState: currentDesiredState,
               serviceStates: existing.config?.serviceStates ?? null,
             }
-            : buildWorkspaceRuntimeDesiredStatePatch({
+          : buildWorkspaceRuntimeDesiredStatePatch({
               config: { workspaceRuntime: effectiveRuntimeConfig },
               currentDesiredState,
               currentServiceStates: existing.config?.serviceStates ?? null,
@@ -368,8 +386,8 @@ export function executionWorkspaceRoutes(db: Db) {
 
         return {
           status: "succeeded",
-          stdout: stdout.join(""),
-          stderr: stderr.join(""),
+          stdout,
+          stderr,
           system:
             action === "stop"
               ? "Stopped execution workspace runtime services.\n"
@@ -428,6 +446,13 @@ export function executionWorkspaceRoutes(db: Db) {
       return;
     }
     assertCompanyAccess(req, existing.companyId);
+    assertNoAgentHostWorkspaceCommandMutation(
+      req,
+      collectExecutionWorkspaceCommandPaths({
+        config: req.body.config,
+        metadata: req.body.metadata,
+      }),
+    );
     const patch: Record<string, unknown> = {
       ...(req.body.name === undefined ? {} : { name: req.body.name }),
       ...(req.body.cwd === undefined ? {} : { cwd: req.body.cwd }),
@@ -506,27 +531,27 @@ export function executionWorkspaceRoutes(db: Db) {
         });
         const projectWorkspace = existing.projectWorkspaceId
           ? await db
-            .select({
-              cwd: projectWorkspaces.cwd,
-              cleanupCommand: projectWorkspaces.cleanupCommand,
-            })
-            .from(projectWorkspaces)
+              .select({
+                cwd: projectWorkspaces.cwd,
+                cleanupCommand: projectWorkspaces.cleanupCommand,
+              })
+              .from(projectWorkspaces)
             .where(
-              and(
-                eq(projectWorkspaces.id, existing.projectWorkspaceId),
-                eq(projectWorkspaces.companyId, existing.companyId),
-              ),
-            )
-            .then((rows) => rows[0] ?? null)
+                and(
+                  eq(projectWorkspaces.id, existing.projectWorkspaceId),
+                  eq(projectWorkspaces.companyId, existing.companyId),
+                ),
+              )
+              .then((rows) => rows[0] ?? null)
           : null;
         const projectPolicy = existing.projectId
           ? await db
-            .select({
-              executionWorkspacePolicy: projects.executionWorkspacePolicy,
-            })
-            .from(projects)
-            .where(and(eq(projects.id, existing.projectId), eq(projects.companyId, existing.companyId)))
-            .then((rows) => parseProjectExecutionWorkspacePolicy(rows[0]?.executionWorkspacePolicy))
+              .select({
+                executionWorkspacePolicy: projects.executionWorkspacePolicy,
+              })
+              .from(projects)
+              .where(and(eq(projects.id, existing.projectId), eq(projects.companyId, existing.companyId)))
+              .then((rows) => parseProjectExecutionWorkspacePolicy(rows[0]?.executionWorkspacePolicy))
           : null;
         const cleanupResult = await cleanupExecutionWorkspaceArtifacts({
           workspace: existing,
@@ -586,18 +611,6 @@ export function executionWorkspaceRoutes(db: Db) {
       },
     });
     res.json(workspace);
-  });
-
-  router.get("/execution-workspaces/:id/files", async (req, res) => {
-    const id = req.params.id as string;
-    const workspace = await svc.getById(id);
-    if (!workspace) {
-      res.status(404).json({ error: "Execution workspace not found" });
-      return;
-    }
-    assertCompanyAccess(req, workspace.companyId);
-    const files = await svc.listFiles(id);
-    res.json(files);
   });
 
   return router;

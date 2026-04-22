@@ -177,7 +177,7 @@ function stripAnsi(value: string): string {
 
 describe("codex_local cli formatter", () => {
   it("prints lifecycle, command execution, file change, and error events", () => {
-    const spy = vi.spyOn(console, "log").mockImplementation(() => { });
+    const spy = vi.spyOn(console, "log").mockImplementation(() => {});
 
     try {
       printCodexStreamEvent(JSON.stringify({ type: "turn.started" }), false);

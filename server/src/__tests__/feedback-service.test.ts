@@ -79,8 +79,8 @@ async function startTempDatabase() {
     port,
     persistent: true,
     initdbFlags: ["--encoding=UTF8", "--locale=C", "--lc-messages=C"],
-    onLog: () => { },
-    onError: () => { },
+    onLog: () => {},
+    onError: () => {},
   });
   await instance.initialise();
   await instance.start();

@@ -897,7 +897,7 @@ describe("realizeExecutionWorkspace", () => {
     await runGit(repoRoot, ["commit", "-m", "Add worktree provision script"]);
 
     try {
-      const workspace = await realizeExecutionWorkspace({
+      const workspaceInput = {
         base: {
           baseCwd: repoRoot,
           source: "project_primary",
@@ -923,7 +923,8 @@ describe("realizeExecutionWorkspace", () => {
           name: "Codex Coder",
           companyId: "company-1",
         },
-      });
+      } satisfies Parameters<typeof realizeExecutionWorkspace>[0];
+      const workspace = await realizeExecutionWorkspace(workspaceInput);
 
       const configPath = path.join(workspace.cwd, ".taskcore", "config.json");
       const envPath = path.join(workspace.cwd, ".taskcore", ".env");
@@ -954,6 +955,34 @@ describe("realizeExecutionWorkspace", () => {
 
       process.chdir(workspace.cwd);
       expect(resolveTaskcoreConfigPath()).toBe(configPath);
+
+      const preservedPort = 39999;
+      await fs.writeFile(
+        configPath,
+        JSON.stringify(
+          {
+            ...configContents,
+            server: {
+              ...configContents.server,
+              port: preservedPort,
+            },
+          },
+          null,
+          2,
+        ) + "\n",
+        "utf8",
+      );
+      await fs.writeFile(envPath, `${envContents}TASKCORE_WORKTREE_COLOR="#112233"\n`, "utf8");
+
+      const reusedWorkspace = await realizeExecutionWorkspace(workspaceInput);
+      const reusedConfigContents = JSON.parse(await fs.readFile(configPath, "utf8"));
+      const reusedEnvContents = await fs.readFile(envPath, "utf8");
+
+      expect(reusedWorkspace.cwd).toBe(workspace.cwd);
+      expect(reusedWorkspace.created).toBe(false);
+      expect(reusedConfigContents.server.port).toBe(preservedPort);
+      expect(reusedConfigContents.database.embeddedPostgresDataDir).toBe(path.join(expectedInstanceRoot, "db"));
+      expect(reusedEnvContents).toContain('TASKCORE_WORKTREE_COLOR="#112233"');
     } finally {
       process.chdir(previousCwd);
     }
@@ -962,103 +991,103 @@ describe("realizeExecutionWorkspace", () => {
   it(
     "provisions worktree-local pnpm node_modules instead of reusing base-repo links",
     async () => {
-      const repoRoot = await createTempRepo();
-      await fs.mkdir(path.join(repoRoot, "scripts"), { recursive: true });
-      await fs.mkdir(path.join(repoRoot, "packages", "shared"), { recursive: true });
-      await fs.mkdir(path.join(repoRoot, "server"), { recursive: true });
-      await fs.writeFile(
-        path.join(repoRoot, "package.json"),
-        JSON.stringify(
-          {
-            name: "workspace-root",
-            private: true,
-            packageManager: "pnpm@9.15.4",
+    const repoRoot = await createTempRepo();
+    await fs.mkdir(path.join(repoRoot, "scripts"), { recursive: true });
+    await fs.mkdir(path.join(repoRoot, "packages", "shared"), { recursive: true });
+    await fs.mkdir(path.join(repoRoot, "server"), { recursive: true });
+    await fs.writeFile(
+      path.join(repoRoot, "package.json"),
+      JSON.stringify(
+        {
+          name: "workspace-root",
+          private: true,
+          packageManager: "pnpm@9.15.4",
+        },
+        null,
+        2,
+      ),
+      "utf8",
+    );
+    await fs.writeFile(
+      path.join(repoRoot, "pnpm-workspace.yaml"),
+      ["packages:", "  - packages/*", "  - server", ""].join("\n"),
+      "utf8",
+    );
+    await fs.writeFile(
+      path.join(repoRoot, "packages", "shared", "package.json"),
+      JSON.stringify(
+        {
+          name: "@repo/shared",
+          version: "1.0.0",
+          private: true,
+          type: "module",
+          exports: "./index.js",
+        },
+        null,
+        2,
+      ),
+      "utf8",
+    );
+    await fs.writeFile(path.join(repoRoot, "packages", "shared", "index.js"), "export const value = 'shared';\n", "utf8");
+    await fs.writeFile(
+      path.join(repoRoot, "server", "package.json"),
+      JSON.stringify(
+        {
+          name: "server",
+          private: true,
+          type: "module",
+          dependencies: {
+            "@repo/shared": "workspace:*",
           },
-          null,
-          2,
-        ),
-        "utf8",
-      );
-      await fs.writeFile(
-        path.join(repoRoot, "pnpm-workspace.yaml"),
-        ["packages:", "  - packages/*", "  - server", ""].join("\n"),
-        "utf8",
-      );
-      await fs.writeFile(
-        path.join(repoRoot, "packages", "shared", "package.json"),
-        JSON.stringify(
-          {
-            name: "@repo/shared",
-            version: "1.0.0",
-            private: true,
-            type: "module",
-            exports: "./index.js",
-          },
-          null,
-          2,
-        ),
-        "utf8",
-      );
-      await fs.writeFile(path.join(repoRoot, "packages", "shared", "index.js"), "export const value = 'shared';\n", "utf8");
-      await fs.writeFile(
-        path.join(repoRoot, "server", "package.json"),
-        JSON.stringify(
-          {
-            name: "server",
-            private: true,
-            type: "module",
-            dependencies: {
-              "@repo/shared": "workspace:*",
-            },
-          },
-          null,
-          2,
-        ),
-        "utf8",
-      );
-      await fs.writeFile(path.join(repoRoot, "server", "index.js"), "export {};\n", "utf8");
-      await fs.copyFile(provisionWorktreeScriptPath, path.join(repoRoot, "scripts", "provision-worktree.sh"));
-      await fs.chmod(path.join(repoRoot, "scripts", "provision-worktree.sh"), 0o755);
-      await runPnpm(repoRoot, ["install"]);
-      await runGit(repoRoot, ["add", "."]);
-      await runGit(repoRoot, ["commit", "-m", "Add pnpm workspace fixture"]);
+        },
+        null,
+        2,
+      ),
+      "utf8",
+    );
+    await fs.writeFile(path.join(repoRoot, "server", "index.js"), "export {};\n", "utf8");
+    await fs.copyFile(provisionWorktreeScriptPath, path.join(repoRoot, "scripts", "provision-worktree.sh"));
+    await fs.chmod(path.join(repoRoot, "scripts", "provision-worktree.sh"), 0o755);
+    await runPnpm(repoRoot, ["install"]);
+    await runGit(repoRoot, ["add", "."]);
+    await runGit(repoRoot, ["commit", "-m", "Add pnpm workspace fixture"]);
 
-      const workspace = await realizeExecutionWorkspace({
-        base: {
-          baseCwd: repoRoot,
-          source: "project_primary",
-          projectId: "project-1",
-          workspaceId: "workspace-1",
-          repoUrl: null,
-          repoRef: "HEAD",
+    const workspace = await realizeExecutionWorkspace({
+      base: {
+        baseCwd: repoRoot,
+        source: "project_primary",
+        projectId: "project-1",
+        workspaceId: "workspace-1",
+        repoUrl: null,
+        repoRef: "HEAD",
+      },
+      config: {
+        workspaceStrategy: {
+          type: "git_worktree",
+          branchTemplate: "{{issue.identifier}}-{{slug}}",
+          provisionCommand: "bash ./scripts/provision-worktree.sh",
         },
-        config: {
-          workspaceStrategy: {
-            type: "git_worktree",
-            branchTemplate: "{{issue.identifier}}-{{slug}}",
-            provisionCommand: "bash ./scripts/provision-worktree.sh",
-          },
-        },
-        issue: {
-          id: "issue-1",
-          identifier: "PAP-551",
-          title: "Provision local workspace dependencies",
-        },
-        agent: {
-          id: "agent-1",
-          name: "Codex Coder",
-          companyId: "company-1",
-        },
-      });
+      },
+      issue: {
+        id: "issue-1",
+        identifier: "PAP-551",
+        title: "Provision local workspace dependencies",
+      },
+      agent: {
+        id: "agent-1",
+        name: "Codex Coder",
+        companyId: "company-1",
+      },
+    });
 
-      expect((await fs.lstat(path.join(workspace.cwd, "node_modules"))).isSymbolicLink()).toBe(false);
-      expect((await fs.lstat(path.join(workspace.cwd, "server", "node_modules"))).isSymbolicLink()).toBe(false);
-      await expect(fs.realpath(path.join(workspace.cwd, "server", "node_modules", "@repo", "shared"))).resolves.toBe(
-        await fs.realpath(path.join(workspace.cwd, "packages", "shared")),
-      );
-      await expect(fs.realpath(path.join(repoRoot, "server", "node_modules", "@repo", "shared"))).resolves.toBe(
-        await fs.realpath(path.join(repoRoot, "packages", "shared")),
-      );
+    expect((await fs.lstat(path.join(workspace.cwd, "node_modules"))).isSymbolicLink()).toBe(false);
+    expect((await fs.lstat(path.join(workspace.cwd, "server", "node_modules"))).isSymbolicLink()).toBe(false);
+    await expect(fs.realpath(path.join(workspace.cwd, "server", "node_modules", "@repo", "shared"))).resolves.toBe(
+      await fs.realpath(path.join(workspace.cwd, "packages", "shared")),
+    );
+    await expect(fs.realpath(path.join(repoRoot, "server", "node_modules", "@repo", "shared"))).resolves.toBe(
+      await fs.realpath(path.join(repoRoot, "packages", "shared")),
+    );
     },
     30_000,
   );
@@ -1270,103 +1299,103 @@ describe("realizeExecutionWorkspace", () => {
   it(
     "provisions worktree-local pnpm node_modules instead of reusing base-repo links",
     async () => {
-      const repoRoot = await createTempRepo();
-      await fs.mkdir(path.join(repoRoot, "scripts"), { recursive: true });
-      await fs.mkdir(path.join(repoRoot, "packages", "shared"), { recursive: true });
-      await fs.mkdir(path.join(repoRoot, "server"), { recursive: true });
-      await fs.writeFile(
-        path.join(repoRoot, "package.json"),
-        JSON.stringify(
-          {
-            name: "workspace-root",
-            private: true,
-            packageManager: "pnpm@9.15.4",
+    const repoRoot = await createTempRepo();
+    await fs.mkdir(path.join(repoRoot, "scripts"), { recursive: true });
+    await fs.mkdir(path.join(repoRoot, "packages", "shared"), { recursive: true });
+    await fs.mkdir(path.join(repoRoot, "server"), { recursive: true });
+    await fs.writeFile(
+      path.join(repoRoot, "package.json"),
+      JSON.stringify(
+        {
+          name: "workspace-root",
+          private: true,
+          packageManager: "pnpm@9.15.4",
+        },
+        null,
+        2,
+      ),
+      "utf8",
+    );
+    await fs.writeFile(
+      path.join(repoRoot, "pnpm-workspace.yaml"),
+      ["packages:", "  - packages/*", "  - server", ""].join("\n"),
+      "utf8",
+    );
+    await fs.writeFile(
+      path.join(repoRoot, "packages", "shared", "package.json"),
+      JSON.stringify(
+        {
+          name: "@repo/shared",
+          version: "1.0.0",
+          private: true,
+          type: "module",
+          exports: "./index.js",
+        },
+        null,
+        2,
+      ),
+      "utf8",
+    );
+    await fs.writeFile(path.join(repoRoot, "packages", "shared", "index.js"), "export const value = 'shared';\n", "utf8");
+    await fs.writeFile(
+      path.join(repoRoot, "server", "package.json"),
+      JSON.stringify(
+        {
+          name: "server",
+          private: true,
+          type: "module",
+          dependencies: {
+            "@repo/shared": "workspace:*",
           },
-          null,
-          2,
-        ),
-        "utf8",
-      );
-      await fs.writeFile(
-        path.join(repoRoot, "pnpm-workspace.yaml"),
-        ["packages:", "  - packages/*", "  - server", ""].join("\n"),
-        "utf8",
-      );
-      await fs.writeFile(
-        path.join(repoRoot, "packages", "shared", "package.json"),
-        JSON.stringify(
-          {
-            name: "@repo/shared",
-            version: "1.0.0",
-            private: true,
-            type: "module",
-            exports: "./index.js",
-          },
-          null,
-          2,
-        ),
-        "utf8",
-      );
-      await fs.writeFile(path.join(repoRoot, "packages", "shared", "index.js"), "export const value = 'shared';\n", "utf8");
-      await fs.writeFile(
-        path.join(repoRoot, "server", "package.json"),
-        JSON.stringify(
-          {
-            name: "server",
-            private: true,
-            type: "module",
-            dependencies: {
-              "@repo/shared": "workspace:*",
-            },
-          },
-          null,
-          2,
-        ),
-        "utf8",
-      );
-      await fs.writeFile(path.join(repoRoot, "server", "index.js"), "export {};\n", "utf8");
-      await fs.copyFile(provisionWorktreeScriptPath, path.join(repoRoot, "scripts", "provision-worktree.sh"));
-      await fs.chmod(path.join(repoRoot, "scripts", "provision-worktree.sh"), 0o755);
-      await runPnpm(repoRoot, ["install"]);
-      await runGit(repoRoot, ["add", "."]);
-      await runGit(repoRoot, ["commit", "-m", "Add pnpm workspace fixture"]);
+        },
+        null,
+        2,
+      ),
+      "utf8",
+    );
+    await fs.writeFile(path.join(repoRoot, "server", "index.js"), "export {};\n", "utf8");
+    await fs.copyFile(provisionWorktreeScriptPath, path.join(repoRoot, "scripts", "provision-worktree.sh"));
+    await fs.chmod(path.join(repoRoot, "scripts", "provision-worktree.sh"), 0o755);
+    await runPnpm(repoRoot, ["install"]);
+    await runGit(repoRoot, ["add", "."]);
+    await runGit(repoRoot, ["commit", "-m", "Add pnpm workspace fixture"]);
 
-      const workspace = await realizeExecutionWorkspace({
-        base: {
-          baseCwd: repoRoot,
-          source: "project_primary",
-          projectId: "project-1",
-          workspaceId: "workspace-1",
-          repoUrl: null,
-          repoRef: "HEAD",
+    const workspace = await realizeExecutionWorkspace({
+      base: {
+        baseCwd: repoRoot,
+        source: "project_primary",
+        projectId: "project-1",
+        workspaceId: "workspace-1",
+        repoUrl: null,
+        repoRef: "HEAD",
+      },
+      config: {
+        workspaceStrategy: {
+          type: "git_worktree",
+          branchTemplate: "{{issue.identifier}}-{{slug}}",
+          provisionCommand: "bash ./scripts/provision-worktree.sh",
         },
-        config: {
-          workspaceStrategy: {
-            type: "git_worktree",
-            branchTemplate: "{{issue.identifier}}-{{slug}}",
-            provisionCommand: "bash ./scripts/provision-worktree.sh",
-          },
-        },
-        issue: {
-          id: "issue-1",
-          identifier: "PAP-551",
-          title: "Provision local workspace dependencies",
-        },
-        agent: {
-          id: "agent-1",
-          name: "Codex Coder",
-          companyId: "company-1",
-        },
-      });
+      },
+      issue: {
+        id: "issue-1",
+        identifier: "PAP-551",
+        title: "Provision local workspace dependencies",
+      },
+      agent: {
+        id: "agent-1",
+        name: "Codex Coder",
+        companyId: "company-1",
+      },
+    });
 
-      expect((await fs.lstat(path.join(workspace.cwd, "node_modules"))).isSymbolicLink()).toBe(false);
-      expect((await fs.lstat(path.join(workspace.cwd, "server", "node_modules"))).isSymbolicLink()).toBe(false);
-      await expect(fs.realpath(path.join(workspace.cwd, "server", "node_modules", "@repo", "shared"))).resolves.toBe(
-        await fs.realpath(path.join(workspace.cwd, "packages", "shared")),
-      );
-      await expect(fs.realpath(path.join(repoRoot, "server", "node_modules", "@repo", "shared"))).resolves.toBe(
-        await fs.realpath(path.join(repoRoot, "packages", "shared")),
-      );
+    expect((await fs.lstat(path.join(workspace.cwd, "node_modules"))).isSymbolicLink()).toBe(false);
+    expect((await fs.lstat(path.join(workspace.cwd, "server", "node_modules"))).isSymbolicLink()).toBe(false);
+    await expect(fs.realpath(path.join(workspace.cwd, "server", "node_modules", "@repo", "shared"))).resolves.toBe(
+      await fs.realpath(path.join(workspace.cwd, "packages", "shared")),
+    );
+    await expect(fs.realpath(path.join(repoRoot, "server", "node_modules", "@repo", "shared"))).resolves.toBe(
+      await fs.realpath(path.join(repoRoot, "packages", "shared")),
+    );
     },
     15_000,
   );
@@ -2006,6 +2035,37 @@ describe("realizeExecutionWorkspace", () => {
 });
 
 describe("ensureRuntimeServicesForRun", () => {
+  it("leaves manual runtime services untouched during agent runs", async () => {
+    const workspaceRoot = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-runtime-manual-"));
+    const workspace = buildWorkspace(workspaceRoot);
+
+    const services = await ensureRuntimeServicesForRun({
+      runId: "run-manual",
+      agent: {
+        id: "agent-1",
+        name: "Codex Coder",
+        companyId: "company-1",
+      },
+      issue: null,
+      workspace,
+      config: {
+        desiredState: "manual",
+        workspaceRuntime: {
+          services: [
+            {
+              name: "web",
+              command: "node -e \"throw new Error('should not start')\"",
+              port: { type: "auto" },
+            },
+          ],
+        },
+      },
+      adapterEnv: {},
+    });
+
+    expect(services).toEqual([]);
+  });
+
   it("reuses shared runtime services across runs and starts a new service after release", async () => {
     const workspaceRoot = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-runtime-workspace-"));
     const workspace = buildWorkspace(workspaceRoot);
@@ -2572,6 +2632,41 @@ describe("buildWorkspaceRuntimeDesiredStatePatch", () => {
       serviceStates: {
         "0": "running",
         "1": "stopped",
+      },
+    });
+  });
+
+  it("preserves manual service state when manually starting or stopping services", () => {
+    const baseInput = {
+      config: {
+        workspaceRuntime: {
+          services: [
+            { name: "web", command: "pnpm dev" },
+          ],
+        },
+      },
+      currentDesiredState: "manual" as const,
+      currentServiceStates: null,
+      serviceIndex: 0,
+    };
+
+    expect(buildWorkspaceRuntimeDesiredStatePatch({
+      ...baseInput,
+      action: "start",
+    })).toEqual({
+      desiredState: "manual",
+      serviceStates: {
+        "0": "manual",
+      },
+    });
+
+    expect(buildWorkspaceRuntimeDesiredStatePatch({
+      ...baseInput,
+      action: "stop",
+    })).toEqual({
+      desiredState: "manual",
+      serviceStates: {
+        "0": "manual",
       },
     });
   });

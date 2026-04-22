@@ -62,7 +62,11 @@ export function boardAuthService(db: Db) {
         .where(eq(authUsers.id, userId))
         .then((rows) => rows[0] ?? null),
       db
-        .select({ companyId: companyMemberships.companyId })
+        .select({
+          companyId: companyMemberships.companyId,
+          membershipRole: companyMemberships.membershipRole,
+          status: companyMemberships.status,
+        })
         .from(companyMemberships)
         .where(
           and(
@@ -71,7 +75,7 @@ export function boardAuthService(db: Db) {
             eq(companyMemberships.status, "active"),
           ),
         )
-        .then((rows) => rows.map((row) => row.companyId)),
+        .then((rows) => rows),
       db
         .select({ id: instanceUserRoles.id })
         .from(instanceUserRoles)
@@ -81,7 +85,8 @@ export function boardAuthService(db: Db) {
 
     return {
       user,
-      companyIds: memberships,
+      companyIds: memberships.map((row) => row.companyId),
+      memberships,
       isInstanceAdmin: Boolean(adminRole),
     };
   }
@@ -214,17 +219,17 @@ export function boardAuthService(db: Db) {
     const [company, approvedBy] = await Promise.all([
       challenge.requestedCompanyId
         ? db
-          .select({ id: companies.id, name: companies.name })
-          .from(companies)
-          .where(eq(companies.id, challenge.requestedCompanyId))
-          .then((rows) => rows[0] ?? null)
+            .select({ id: companies.id, name: companies.name })
+            .from(companies)
+            .where(eq(companies.id, challenge.requestedCompanyId))
+            .then((rows) => rows[0] ?? null)
         : Promise.resolve(null),
       challenge.approvedByUserId
         ? db
-          .select({ id: authUsers.id, name: authUsers.name, email: authUsers.email })
-          .from(authUsers)
-          .where(eq(authUsers.id, challenge.approvedByUserId))
-          .then((rows) => rows[0] ?? null)
+            .select({ id: authUsers.id, name: authUsers.name, email: authUsers.email })
+            .from(authUsers)
+            .where(eq(authUsers.id, challenge.approvedByUserId))
+            .then((rows) => rows[0] ?? null)
         : Promise.resolve(null),
     ]);
 
@@ -241,10 +246,10 @@ export function boardAuthService(db: Db) {
       expiresAt: challenge.expiresAt.toISOString(),
       approvedByUser: approvedBy
         ? {
-          id: approvedBy.id,
-          name: approvedBy.name,
-          email: approvedBy.email,
-        }
+            id: approvedBy.id,
+            name: approvedBy.name,
+            email: approvedBy.email,
+          }
         : null,
     };
   }

@@ -144,7 +144,7 @@ function stripAnsi(value: string): string {
 
 describe("gemini_local cli formatter", () => {
   it("prints init, assistant, result, and error events", () => {
-    const spy = vi.spyOn(console, "log").mockImplementation(() => { });
+    const spy = vi.spyOn(console, "log").mockImplementation(() => {});
     let joined = "";
 
     try {

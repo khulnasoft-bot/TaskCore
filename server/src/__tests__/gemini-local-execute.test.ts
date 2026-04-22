@@ -84,7 +84,7 @@ describe("gemini execute", () => {
         },
         context: {},
         authToken: "run-jwt-token",
-        onLog: async () => { },
+        onLog: async () => {},
         onMeta: async (meta) => {
           invocationPrompt = meta.prompt ?? "";
         },
@@ -150,7 +150,7 @@ describe("gemini execute", () => {
         },
         context: {},
         authToken: "t",
-        onLog: async () => { },
+        onLog: async () => {},
       });
 
       const capture = JSON.parse(await fs.readFile(capturePath, "utf8")) as CapturePayload;
@@ -241,7 +241,7 @@ describe("gemini execute", () => {
           },
         },
         authToken: "run-jwt-token",
-        onLog: async () => { },
+        onLog: async () => {},
       });
 
       expect(result.exitCode).toBe(0);

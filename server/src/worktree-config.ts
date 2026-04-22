@@ -118,13 +118,21 @@ function resolveWorktreeRuntimeContext(
 
   const configPath = resolveTaskcoreConfigPath(overrideConfigPath);
   const envPath = resolveTaskcoreEnvPath(configPath);
+  const persistedEnv = readEnvEntries(envPath);
   const worktreeRoot = path.resolve(path.dirname(configPath), "..");
-  const worktreeName = nonEmpty(env.TASKCORE_WORKTREE_NAME) ?? path.basename(worktreeRoot);
-  const instanceId = nonEmpty(env.TASKCORE_INSTANCE_ID) ?? sanitizeWorktreeInstanceId(worktreeName);
+  const worktreeName =
+    nonEmpty(persistedEnv.TASKCORE_WORKTREE_NAME) ??
+    nonEmpty(env.TASKCORE_WORKTREE_NAME) ??
+    path.basename(worktreeRoot);
+  const instanceId =
+    nonEmpty(persistedEnv.TASKCORE_INSTANCE_ID) ??
+    nonEmpty(env.TASKCORE_INSTANCE_ID) ??
+    sanitizeWorktreeInstanceId(worktreeName);
   const homeDir = resolveHomeAwarePath(
-    nonEmpty(env.TASKCORE_HOME) ??
-    nonEmpty(env.TASKCORE_WORKTREES_DIR) ??
-    "~/.taskcore-worktrees",
+    nonEmpty(persistedEnv.TASKCORE_HOME) ??
+      nonEmpty(env.TASKCORE_HOME) ??
+      nonEmpty(env.TASKCORE_WORKTREES_DIR) ??
+      "~/.taskcore-worktrees",
   );
   const instanceRoot = path.resolve(homeDir, "instances", instanceId);
 
@@ -238,13 +246,13 @@ function buildIsolatedWorktreeConfig(
       ...config.database,
       ...(config.database.mode === "embedded-postgres"
         ? {
-          embeddedPostgresDataDir: context.embeddedPostgresDataDir,
-          embeddedPostgresPort: databasePort ?? config.database.embeddedPostgresPort,
-          backup: {
-            ...config.database.backup,
-            dir: context.backupDir,
-          },
-        }
+            embeddedPostgresDataDir: context.embeddedPostgresDataDir,
+            embeddedPostgresPort: databasePort ?? config.database.embeddedPostgresPort,
+            backup: {
+              ...config.database.backup,
+              dir: context.backupDir,
+            },
+          }
         : {}),
     },
     server: {
@@ -396,11 +404,11 @@ export function maybeRepairLegacyWorktreeConfigAndEnvFiles(): {
         const selectedDatabasePort =
           parsed.database.mode === "embedded-postgres"
             ? findNextUnclaimedPort(
-              parsed.database.embeddedPostgresPort === 54329
-                ? 54330
-                : parsed.database.embeddedPostgresPort,
-              new Set([...siblingPorts.databasePorts, selectedServerPort]),
-            )
+                parsed.database.embeddedPostgresPort === 54329
+                  ? 54330
+                  : parsed.database.embeddedPostgresPort,
+                new Set([...siblingPorts.databasePorts, selectedServerPort]),
+              )
             : undefined;
 
         writeConfigFile(

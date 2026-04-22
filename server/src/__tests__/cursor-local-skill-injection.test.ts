@@ -63,7 +63,7 @@ describe("cursor local adapter skill injection", () => {
     await fs.mkdir(existingTarget, { recursive: true });
     await fs.writeFile(path.join(existingTarget, "keep.txt"), "keep", "utf8");
 
-    await ensureCursorSkillsInjected(async () => { }, { skillsDir, skillsHome });
+    await ensureCursorSkillsInjected(async () => {}, { skillsDir, skillsHome });
 
     expect((await fs.lstat(existingTarget)).isDirectory()).toBe(true);
     expect(await fs.readFile(path.join(existingTarget, "keep.txt"), "utf8")).toBe("keep");

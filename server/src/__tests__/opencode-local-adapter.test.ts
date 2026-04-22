@@ -157,7 +157,7 @@ function stripAnsi(value: string): string {
 
 describe("opencode_local cli formatter", () => {
   it("prints step, assistant, tool, and result events", () => {
-    const spy = vi.spyOn(console, "log").mockImplementation(() => { });
+    const spy = vi.spyOn(console, "log").mockImplementation(() => {});
 
     try {
       printOpenCodeStreamEvent(

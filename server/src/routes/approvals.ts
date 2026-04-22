@@ -74,10 +74,10 @@ export function approvalRoutes(db: Db) {
     const normalizedPayload =
       approvalInput.type === "hire_agent"
         ? await secretsSvc.normalizeHireApprovalPayloadForPersistence(
-          companyId,
-          approvalInput.payload,
-          { strictMode: strictSecretsMode },
-        )
+            companyId,
+            approvalInput.payload,
+            { strictMode: strictSecretsMode },
+          )
         : approvalInput.payload;
 
     const actor = getActorInfo(req);
@@ -134,11 +134,8 @@ export function approvalRoutes(db: Db) {
       res.status(404).json({ error: "Approval not found" });
       return;
     }
-    const { approval, applied } = await svc.approve(
-      id,
-      req.body.decidedByUserId ?? "board",
-      req.body.decisionNote,
-    );
+    const decidedByUserId = req.actor.userId ?? "board";
+    const { approval, applied } = await svc.approve(id, decidedByUserId, req.body.decisionNote);
 
     if (applied) {
       const linkedIssues = await issueApprovalsSvc.listIssuesForApproval(approval.id);
@@ -233,11 +230,8 @@ export function approvalRoutes(db: Db) {
       res.status(404).json({ error: "Approval not found" });
       return;
     }
-    const { approval, applied } = await svc.reject(
-      id,
-      req.body.decidedByUserId ?? "board",
-      req.body.decisionNote,
-    );
+    const decidedByUserId = req.actor.userId ?? "board";
+    const { approval, applied } = await svc.reject(id, decidedByUserId, req.body.decisionNote);
 
     if (applied) {
       await logActivity(db, {
@@ -264,11 +258,8 @@ export function approvalRoutes(db: Db) {
         res.status(404).json({ error: "Approval not found" });
         return;
       }
-      const approval = await svc.requestRevision(
-        id,
-        req.body.decidedByUserId ?? "board",
-        req.body.decisionNote,
-      );
+      const decidedByUserId = req.actor.userId ?? "board";
+      const approval = await svc.requestRevision(id, decidedByUserId, req.body.decisionNote);
 
       await logActivity(db, {
         companyId: approval.companyId,
@@ -301,10 +292,10 @@ export function approvalRoutes(db: Db) {
     const normalizedPayload = req.body.payload
       ? existing.type === "hire_agent"
         ? await secretsSvc.normalizeHireApprovalPayloadForPersistence(
-          existing.companyId,
-          req.body.payload,
-          { strictMode: strictSecretsMode },
-        )
+            existing.companyId,
+            req.body.payload,
+            { strictMode: strictSecretsMode },
+          )
         : req.body.payload
       : undefined;
     const approval = await svc.resubmit(id, normalizedPayload);

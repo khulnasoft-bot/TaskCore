@@ -179,7 +179,7 @@ describe("project workspace skill discovery", () => {
       sources: [
         {
           kind: "github-dir",
-          repo: "khulnasoft/taskcore",
+          repo: "taskcore/taskcore",
           path: "skills/taskcore",
         },
       ],

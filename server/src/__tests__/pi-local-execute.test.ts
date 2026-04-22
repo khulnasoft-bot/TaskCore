@@ -62,7 +62,7 @@ describe("pi_local execute", () => {
         },
         context: {},
         authToken: "run-jwt-token",
-        onLog: async () => { },
+        onLog: async () => {},
       });
 
       expect(result.exitCode).toBe(1);
