@@ -468,10 +468,10 @@ export function buildWorktreeMergePlan(input: {
 
     const targetProjectWorkspaceId =
       targetProjectId
-        && targetProjectId === issue.projectId
-        && issue.projectWorkspaceId
-        && (targetProjectWorkspaceIds.has(issue.projectWorkspaceId)
-          || importedProjectWorkspaceIds.has(issue.projectWorkspaceId))
+      && targetProjectId === issue.projectId
+      && issue.projectWorkspaceId
+      && (targetProjectWorkspaceIds.has(issue.projectWorkspaceId)
+        || importedProjectWorkspaceIds.has(issue.projectWorkspaceId))
         ? issue.projectWorkspaceId
         : null;
     if (issue.projectWorkspaceId && !targetProjectWorkspaceId) {

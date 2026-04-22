@@ -4,15 +4,15 @@
 
 <p align="center">
   <a href="#quickstart"><strong>Quickstart</strong></a> &middot;
-  <a href="https://taskcore.khulnasoft.com/docs"><strong>Docs</strong></a> &middot;
+  <a href="https://taskcore.ing/docs"><strong>Docs</strong></a> &middot;
   <a href="https://github.com/khulnasoft/taskcore"><strong>GitHub</strong></a> &middot;
   <a href="https://discord.gg/m4HZY7xNG3"><strong>Discord</strong></a>
 </p>
 
 <p align="center">
   <a href="https://github.com/khulnasoft/taskcore/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT License" /></a>
-  <a href="https://github.com/khulnasoft/taskcore/stargazers"><img src="https://img.shields.io/github/stars/taskcore/taskcore?style=flat" alt="Stars" /></a>
-  <a href="https://discord.gg/m4HZY7xNG3"><img src="https://img.shields.io/badge/discord-join%20chat-5865F2?logo=discord&logoColor=white" alt="Discord" /></a>
+  <a href="https://github.com/khulnasoft/taskcore/stargazers"><img src="https://img.shields.io/github/stars/khulnasoft/taskcore?style=flat" alt="Stars" /></a>
+  <a href="https://discord.gg/m4HZY7xNG3"><img src="https://img.shields.io/discord/000000000?label=discord" alt="Discord" /></a>
 </p>
 
 <br/>
@@ -258,12 +258,16 @@ See [doc/DEVELOPING.md](https://github.com/khulnasoft/taskcore/blob/master/doc/D
 - ⚪ Artifacts & Deployments
 - ⚪ CEO Chat
 - ⚪ MAXIMIZER MODE
-- ⚪ Multiple Human Users
+- ✅ Multiple Human Users
 - ⚪ Cloud / Sandbox agents (e.g. Cursor / e2b agents)
 - ⚪ Cloud deployments
 - ⚪ Desktop App
 
 <br/>
+
+## Community & Plugins
+
+Find Plugins and more at [awesome-taskcore](https://github.com/gsxdsm/awesome-taskcore)
 
 ## Contributing
 
@@ -281,7 +285,7 @@ We welcome contributions. See the [contributing guide](https://github.com/khulna
 
 ## License
 
-MIT &copy; 2026 KhulnaSoft, Ltd
+MIT &copy; 2026 Taskcore
 
 ## Star History
 

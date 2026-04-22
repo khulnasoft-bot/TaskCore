@@ -192,13 +192,13 @@ async function importServerEntry(): Promise<StartedServer> {
     if (isModuleNotFoundError(err) && missingServerEntrypoint) {
       throw new Error(
         `Could not locate a Taskcore server entrypoint.\n` +
-        `Tried: ${devEntry}, @taskcore/server\n` +
-        `${formatError(err)}`,
+          `Tried: ${devEntry}, @taskcore/server\n` +
+          `${formatError(err)}`,
       );
     }
     throw new Error(
       `Taskcore server failed to start.\n` +
-      `${formatError(err)}`,
+        `${formatError(err)}`,
     );
   }
 }
