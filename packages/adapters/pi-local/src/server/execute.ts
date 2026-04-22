@@ -22,6 +22,7 @@ import {
   renderTemplate,
   renderTaskcoreWakePrompt,
   stringifyTaskcoreWakePayload,
+  DEFAULT_TASKCORE_AGENT_PROMPT_TEMPLATE,
   runChildProcess,
 } from "@taskcore/adapter-utils/server-utils";
 import { isPiUnknownSessionError, parsePiJsonl } from "./parse.js";
@@ -113,7 +114,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
 
   const promptTemplate = asString(
     config.promptTemplate,
-    "You are agent {{agent.id}} ({{agent.name}}). Continue your Taskcore work.",
+    DEFAULT_TASKCORE_AGENT_PROMPT_TEMPLATE,
   );
   const command = asString(config.command, "pi");
   const model = asString(config.model, "").trim();
@@ -132,18 +133,18 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   const agentHome = asString(workspaceContext.agentHome, "");
   const workspaceHints = Array.isArray(context.taskcoreWorkspaces)
     ? context.taskcoreWorkspaces.filter(
-      (value): value is Record<string, unknown> => typeof value === "object" && value !== null,
-    )
+        (value): value is Record<string, unknown> => typeof value === "object" && value !== null,
+      )
     : [];
   const configuredCwd = asString(config.cwd, "");
   const useConfiguredInsteadOfAgentHome = workspaceSource === "agent_home" && configuredCwd.length > 0;
   const effectiveWorkspaceCwd = useConfiguredInsteadOfAgentHome ? "" : workspaceCwd;
   const cwd = effectiveWorkspaceCwd || configuredCwd || process.cwd();
   await ensureAbsoluteDirectory(cwd, { createIfMissing: true });
-
+  
   // Ensure sessions directory exists
   await ensureSessionsDir();
-
+  
   // Inject skills
   const piSkillEntries = await readTaskcoreRuntimeSkillEntries(config, __moduleDir);
   const desiredPiSkillNames = resolveTaskcoreDesiredSkillNames(config, piSkillEntries);
@@ -155,7 +156,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     typeof envConfig.TASKCORE_API_KEY === "string" && envConfig.TASKCORE_API_KEY.trim().length > 0;
   const env: Record<string, string> = { ...buildTaskcoreEnv(agent) };
   env.TASKCORE_RUN_ID = runId;
-
+  
   const wakeTaskId =
     (typeof context.taskId === "string" && context.taskId.trim().length > 0 && context.taskId.trim()) ||
     (typeof context.issueId === "string" && context.issueId.trim().length > 0 && context.issueId.trim()) ||
@@ -180,7 +181,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     ? context.issueIds.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
     : [];
   const wakePayloadJson = stringifyTaskcoreWakePayload(context.taskcoreWake);
-
+    
   if (wakeTaskId) env.TASKCORE_TASK_ID = wakeTaskId;
   if (wakeReason) env.TASKCORE_WAKE_REASON = wakeReason;
   if (wakeCommentId) env.TASKCORE_WAKE_COMMENT_ID = wakeCommentId;
@@ -202,7 +203,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   if (!hasExplicitApiKey && authToken) {
     env.TASKCORE_API_KEY = authToken;
   }
-
+  
   const runtimeEnv = Object.fromEntries(
     Object.entries(ensurePathInEnv({ ...process.env, ...env })).filter(
       (entry): entry is [string, string] => typeof entry[1] === "string",
@@ -240,7 +241,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     runtimeSessionId.length > 0 &&
     (runtimeSessionCwd.length === 0 || path.resolve(runtimeSessionCwd) === path.resolve(cwd));
   const sessionPath = canResumeSession ? runtimeSessionId : buildSessionPath(agent.id, new Date().toISOString());
-
+  
   if (runtimeSessionId && !canResumeSession) {
     await onLog(
       "stdout",
@@ -266,7 +267,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     ? path.resolve(cwd, instructionsFilePath)
     : "";
   const instructionsFileDir = instructionsFilePath ? `${path.dirname(instructionsFilePath)}/` : "";
-
+  
   let systemPromptExtension = "";
   let instructionsReadFailed = false;
   if (resolvedInstructionsFilePath) {
@@ -276,7 +277,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
         `${instructionsContents}\n\n` +
         `The above agent instructions were loaded from ${resolvedInstructionsFilePath}. ` +
         `Resolve any relative file references from ${instructionsFileDir}.\n\n` +
-        `You are agent {{agent.id}} ({{agent.name}}). Continue your Taskcore work.`;
+        DEFAULT_TASKCORE_AGENT_PROMPT_TEMPLATE;
     } catch (err) {
       instructionsReadFailed = true;
       const reason = err instanceof Error ? err.message : String(err);
@@ -340,14 +341,14 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
 
   const buildArgs = (sessionFile: string): string[] => {
     const args: string[] = [];
-
+    
     // Use JSON mode for structured output with print mode (non-interactive)
     args.push("--mode", "json");
     args.push("-p"); // Non-interactive mode: process prompt and exit
-
+    
     // Use --append-system-prompt to extend Pi's default system prompt
     args.push("--append-system-prompt", renderedSystemPromptExtension);
-
+    
     if (provider) args.push("--provider", provider);
     if (modelId) args.push("--model", modelId);
     if (thinking) args.push("--thinking", thinking);
@@ -359,7 +360,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     args.push("--skill", PI_AGENT_SKILLS_DIR);
 
     if (extraArgs.length > 0) args.push(...extraArgs);
-
+    
     // Add the user prompt as the last argument
     args.push(userPrompt);
 
@@ -390,13 +391,13 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
         await onLog(stream, chunk);
         return;
       }
-
+      
       // Buffer stdout and emit only complete lines
       stdoutBuffer += chunk;
       const lines = stdoutBuffer.split("\n");
       // Keep the last (potentially incomplete) line in the buffer
       stdoutBuffer = lines.pop() || "";
-
+      
       // Emit complete lines
       for (const line of lines) {
         if (line) {
@@ -413,12 +414,12 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       onSpawn,
       onLog: bufferedOnLog,
     });
-
+    
     // Flush any remaining buffer content
     if (stdoutBuffer) {
       await onLog("stdout", stdoutBuffer);
     }
-
+    
     return {
       proc,
       rawStderr: proc.stderr,
@@ -485,7 +486,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   const initial = await runAttempt(sessionPath);
   const initialFailed =
     !initial.proc.timedOut && ((initial.proc.exitCode ?? 0) !== 0 || initial.parsed.errors.length > 0);
-
+  
   if (
     canResumeSession &&
     initialFailed &&

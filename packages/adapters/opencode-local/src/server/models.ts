@@ -13,7 +13,7 @@ const MODELS_DISCOVERY_TIMEOUT_MS = 20_000;
 function resolveOpenCodeCommand(input: unknown): string {
   const envOverride =
     typeof process.env.TASKCORE_OPENCODE_COMMAND === "string" &&
-      process.env.TASKCORE_OPENCODE_COMMAND.trim().length > 0
+    process.env.TASKCORE_OPENCODE_COMMAND.trim().length > 0
       ? process.env.TASKCORE_OPENCODE_COMMAND.trim()
       : "opencode";
   return asString(input, envOverride);
@@ -132,7 +132,7 @@ export async function discoverOpenCodeModels(input: {
       env: runtimeEnv,
       timeoutSec: MODELS_DISCOVERY_TIMEOUT_MS / 1000,
       graceSec: 3,
-      onLog: async () => { },
+      onLog: async () => {},
     },
   );
 

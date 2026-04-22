@@ -77,7 +77,7 @@ export async function syncCursorSkills(
     if (!available) continue;
     if (desiredSet.has(available.key)) continue;
     if (installedEntry.targetPath !== available.source) continue;
-    await fs.unlink(path.join(skillsHome, name)).catch(() => { });
+    await fs.unlink(path.join(skillsHome, name)).catch(() => {});
   }
 
   return buildCursorSkillSnapshot(ctx.config);

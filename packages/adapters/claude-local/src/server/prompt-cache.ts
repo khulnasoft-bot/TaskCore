@@ -125,7 +125,7 @@ async function ensureReadableFile(targetPath: string, contents: string): Promise
       throw err;
     }
   } finally {
-    await fs.rm(tempPath, { force: true }).catch(() => { });
+    await fs.rm(tempPath, { force: true }).catch(() => {});
   }
 }
 

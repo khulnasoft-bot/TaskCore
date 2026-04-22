@@ -197,8 +197,8 @@ export async function testEnvironment(
 
   if (canRunProbe && configuredModel) {
     // Parse model for probe
-    const provider = configuredModel.includes("/")
-      ? configuredModel.slice(0, configuredModel.indexOf("/"))
+    const provider = configuredModel.includes("/") 
+      ? configuredModel.slice(0, configuredModel.indexOf("/")) 
       : "";
     const modelId = configuredModel.includes("/")
       ? configuredModel.slice(configuredModel.indexOf("/") + 1)
@@ -227,7 +227,7 @@ export async function testEnvironment(
           env: runtimeEnv,
           timeoutSec: 60,
           graceSec: 5,
-          onLog: async () => { },
+          onLog: async () => {},
         },
       );
 
@@ -255,8 +255,8 @@ export async function testEnvironment(
           ...(hasHello
             ? {}
             : {
-              hint: "Run `pi --mode json` manually and prompt `Respond with hello` to inspect output.",
-            }),
+                hint: "Run `pi --mode json` manually and prompt `Respond with hello` to inspect output.",
+              }),
         });
       } else if (PI_AUTH_REQUIRED_RE.test(authEvidence)) {
         checks.push({

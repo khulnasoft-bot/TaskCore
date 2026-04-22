@@ -160,7 +160,7 @@ export async function testEnvironment(
           timeoutSec: 45,
           graceSec: 5,
           stdin: "Respond with hello.",
-          onLog: async () => { },
+          onLog: async () => {},
         },
       );
       const parsed = parseCodexJsonl(probe.stdout);
@@ -187,8 +187,8 @@ export async function testEnvironment(
           ...(hasHello
             ? {}
             : {
-              hint: "Try the probe manually (`codex exec --json -` then prompt: Respond with hello) to inspect full output.",
-            }),
+                hint: "Try the probe manually (`codex exec --json -` then prompt: Respond with hello) to inspect full output.",
+              }),
         });
       } else if (CODEX_AUTH_REQUIRED_RE.test(authEvidence)) {
         checks.push({

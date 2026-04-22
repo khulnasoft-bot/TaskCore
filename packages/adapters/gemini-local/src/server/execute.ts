@@ -24,6 +24,7 @@ import {
   renderTemplate,
   renderTaskcoreWakePrompt,
   stringifyTaskcoreWakePayload,
+  DEFAULT_TASKCORE_AGENT_PROMPT_TEMPLATE,
   runChildProcess,
 } from "@taskcore/adapter-utils/server-utils";
 import { DEFAULT_GEMINI_LOCAL_MODEL } from "../index.js";
@@ -140,7 +141,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
 
   const promptTemplate = asString(
     config.promptTemplate,
-    "You are agent {{agent.id}} ({{agent.name}}). Continue your Taskcore work.",
+    DEFAULT_TASKCORE_AGENT_PROMPT_TEMPLATE,
   );
   const command = asString(config.command, "gemini");
   const model = asString(config.model, DEFAULT_GEMINI_LOCAL_MODEL).trim();

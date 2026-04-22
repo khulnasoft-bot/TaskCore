@@ -109,8 +109,8 @@ export async function testEnvironment(
   if (hasBedrock) {
     const source =
       env.CLAUDE_CODE_USE_BEDROCK === "1" ||
-        env.CLAUDE_CODE_USE_BEDROCK === "true" ||
-        isNonEmpty(env.ANTHROPIC_BEDROCK_BASE_URL)
+      env.CLAUDE_CODE_USE_BEDROCK === "true" ||
+      isNonEmpty(env.ANTHROPIC_BEDROCK_BASE_URL)
         ? "adapter config env"
         : "server environment";
     checks.push({
@@ -182,7 +182,7 @@ export async function testEnvironment(
           timeoutSec: 45,
           graceSec: 5,
           stdin: "Respond with hello.",
-          onLog: async () => { },
+          onLog: async () => {},
         },
       );
 
@@ -225,8 +225,8 @@ export async function testEnvironment(
           ...(hasHello
             ? {}
             : {
-              hint: "Try the probe manually (`claude --print - --output-format stream-json --verbose`) and prompt `Respond with hello`.",
-            }),
+                hint: "Try the probe manually (`claude --print - --output-format stream-json --verbose`) and prompt `Respond with hello`.",
+              }),
         });
       } else {
         checks.push({

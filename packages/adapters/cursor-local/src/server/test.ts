@@ -201,7 +201,7 @@ export async function testEnvironment(
           env,
           timeoutSec: 45,
           graceSec: 5,
-          onLog: async () => { },
+          onLog: async () => {},
         },
       );
       const parsed = parseCursorJsonl(probe.stdout);
@@ -228,8 +228,8 @@ export async function testEnvironment(
           ...(hasHello
             ? {}
             : {
-              hint: "Try `agent -p --mode ask --output-format json \"Respond with hello.\"` manually to inspect full output.",
-            }),
+                hint: "Try `agent -p --mode ask --output-format json \"Respond with hello.\"` manually to inspect full output.",
+              }),
         });
       } else if (CURSOR_AUTH_REQUIRED_RE.test(authEvidence)) {
         checks.push({

@@ -40,7 +40,7 @@ export async function prepareOpenCodeRuntimeConfig(input: {
     return {
       env: input.env,
       notes: [],
-      cleanup: async () => { },
+      cleanup: async () => {},
     };
   }
 

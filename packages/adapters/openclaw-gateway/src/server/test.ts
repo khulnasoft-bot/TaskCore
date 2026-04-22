@@ -157,10 +157,10 @@ async function probeGateway(input: {
               scopes: input.scopes,
               ...(input.authToken
                 ? {
-                  auth: {
-                    token: input.authToken,
-                  },
-                }
+                    auth: {
+                      token: input.authToken,
+                    },
+                  }
                 : {}),
             },
           }),

@@ -22,11 +22,11 @@ import { getQuotaWindows } from "./quota.js";
 function createChildThatErrorsOnMicrotask(err: Error): ChildProcess {
   const child = new EventEmitter() as ChildProcess;
   const stream = Object.assign(new EventEmitter(), {
-    setEncoding: () => { },
+    setEncoding: () => {},
   });
   Object.assign(child, {
     stdout: stream,
-    stderr: Object.assign(new EventEmitter(), { setEncoding: () => { } }),
+    stderr: Object.assign(new EventEmitter(), { setEncoding: () => {} }),
     stdin: { write: vi.fn(), end: vi.fn() },
     kill: vi.fn(),
   });
