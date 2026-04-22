@@ -525,7 +525,7 @@ export function pluginRoutes(
     }
 
     if (req.actor.type === "board") {
-      return req.actor.companyIds ?? [];
+      return (req.actor.companyIds ?? []).filter((id): id is string => id !== null);
     }
 
     return [];

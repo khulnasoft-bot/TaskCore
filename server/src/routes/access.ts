@@ -2619,7 +2619,7 @@ export function accessRoutes(
     }
     const key = await boardAuth.assertCurrentBoardKey(
       req.actor.keyId,
-      req.actor.userId,
+      req.actor.userId ?? undefined,
     );
     await boardAuth.revokeBoardApiKey(key.id);
     const companyIds = await boardAuth.resolveBoardActivityCompanyIds({
