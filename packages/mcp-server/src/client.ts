@@ -49,7 +49,7 @@ async function parseResponseBody(response: Response): Promise<unknown> {
 }
 
 export class TaskcoreApiClient {
-  constructor(private readonly config: TaskcoreMcpConfig) { }
+  constructor(private readonly config: TaskcoreMcpConfig) {}
 
   get defaults() {
     return {

@@ -1,9 +1,9 @@
 {
-  "name": "@taskcore/plugin-authoring-smoke-example",
+  "name": "@taskcore/plugin-orchestration-smoke-example",
   "version": "0.1.0",
   "type": "module",
   "private": true,
-  "description": "A Taskcore plugin",
+  "description": "First-party smoke plugin for orchestration-grade Taskcore plugin APIs",
   "scripts": {
     "prebuild": "node ../../../../scripts/ensure-plugin-build-deps.mjs",
     "build": "node ./esbuild.config.mjs",
@@ -23,18 +23,19 @@
     "plugin",
     "connector"
   ],
-  "author": "Plugin Author",
+  "author": "Taskcore",
   "license": "MIT",
   "dependencies": {
     "@taskcore/plugin-sdk": "workspace:*"
   },
   "devDependencies": {
+    "@taskcore/shared": "workspace:*",
     "@rollup/plugin-node-resolve": "^16.0.1",
     "@rollup/plugin-typescript": "^12.1.2",
     "@types/node": "^24.6.0",
     "@types/react": "^19.0.8",
     "esbuild": "^0.27.3",
-    "rollup": "^4.59.0",
+    "rollup": "^4.38.0",
     "tslib": "^2.8.1",
     "typescript": "^5.7.3",
     "vitest": "^3.0.5"

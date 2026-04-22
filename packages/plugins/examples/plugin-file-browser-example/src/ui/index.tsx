@@ -279,8 +279,9 @@ function FileTreeNode({
     <li>
       <button
         type="button"
-        className={`block w-full rounded-none px-2 py-1.5 text-left text-sm transition-colors ${isSelected ? "bg-accent text-foreground" : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
-          }`}
+        className={`block w-full rounded-none px-2 py-1.5 text-left text-sm transition-colors ${
+          isSelected ? "bg-accent text-foreground" : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+        }`}
         style={{ paddingLeft: `${depth * 14 + 23}px` }}
         onClick={() => onSelect(entry.path)}
       >
@@ -388,10 +389,11 @@ export function FilesLink({ context }: PluginProjectSidebarItemProps) {
       href={href}
       onClick={handleClick}
       aria-current={isActive ? "page" : undefined}
-      className={`block px-3 py-1 text-[12px] truncate transition-colors ${isActive
-        ? "bg-accent text-foreground font-medium"
-        : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
-        }`}
+      className={`block px-3 py-1 text-[12px] truncate transition-colors ${
+        isActive
+          ? "bg-accent text-foreground font-medium"
+          : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+      }`}
     >
       Files
     </a>
