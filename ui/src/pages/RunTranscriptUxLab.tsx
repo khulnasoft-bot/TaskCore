@@ -17,28 +17,28 @@ const surfaceOptions: Array<{
   description: string;
   icon: typeof LayoutPanelLeft;
 }> = [
-    {
-      id: "detail",
-      label: "Run Detail",
-      eyebrow: "Full transcript",
-      description: "The long-form run page with the `Nice | Raw` toggle and the most inspectable transcript view.",
-      icon: MonitorCog,
-    },
-    {
-      id: "live",
-      label: "Issue Widget",
-      eyebrow: "Live stream",
-      description: "The issue-detail live run widget, optimized for following an active run without leaving the task page.",
-      icon: RadioTower,
-    },
-    {
-      id: "dashboard",
-      label: "Dashboard Card",
-      eyebrow: "Dense card",
-      description: "The active-agents dashboard card, tuned for compact scanning while keeping the same transcript language.",
-      icon: PanelsTopLeft,
-    },
-  ];
+  {
+    id: "detail",
+    label: "Run Detail",
+    eyebrow: "Full transcript",
+    description: "The long-form run page with the `Nice | Raw` toggle and the most inspectable transcript view.",
+    icon: MonitorCog,
+  },
+  {
+    id: "live",
+    label: "Issue Widget",
+    eyebrow: "Live stream",
+    description: "The issue-detail live run widget, optimized for following an active run without leaving the task page.",
+    icon: RadioTower,
+  },
+  {
+    id: "dashboard",
+    label: "Dashboard Card",
+    eyebrow: "Dense card",
+    description: "The active-agents dashboard card, tuned for compact scanning while keeping the same transcript language.",
+    icon: PanelsTopLeft,
+  },
+];
 
 function previewEntries(surface: SurfaceId) {
   if (surface === "dashboard") {

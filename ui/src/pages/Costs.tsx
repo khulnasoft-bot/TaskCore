@@ -539,82 +539,82 @@ export function Costs() {
   return (
     <div className="space-y-6">
       <div className="space-y-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight">Costs</h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-              Inference spend, platform fees, credits, and live quota windows.
-            </p>
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+                <h1 className="text-3xl font-semibold tracking-tight">Costs</h1>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+                  Inference spend, platform fees, credits, and live quota windows.
+                </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              {PRESET_KEYS.map((key) => (
+                <Button
+                  key={key}
+                  variant={preset === key ? "secondary" : "ghost"}
+                  size="sm"
+                  onClick={() => setPreset(key)}
+                >
+                  {PRESET_LABELS[key]}
+                </Button>
+              ))}
+            </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            {PRESET_KEYS.map((key) => (
-              <Button
-                key={key}
-                variant={preset === key ? "secondary" : "ghost"}
-                size="sm"
-                onClick={() => setPreset(key)}
-              >
-                {PRESET_LABELS[key]}
-              </Button>
-            ))}
-          </div>
-        </div>
+          {preset === "custom" ? (
+            <div className="flex flex-wrap items-center gap-2 border border-border p-3">
+              <input
+                type="date"
+                value={customFrom}
+                onChange={(event) => setCustomFrom(event.target.value)}
+                className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground"
+              />
+              <span className="text-sm text-muted-foreground">to</span>
+              <input
+                type="date"
+                value={customTo}
+                onChange={(event) => setCustomTo(event.target.value)}
+                className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground"
+              />
+            </div>
+          ) : null}
 
-        {preset === "custom" ? (
-          <div className="flex flex-wrap items-center gap-2 border border-border p-3">
-            <input
-              type="date"
-              value={customFrom}
-              onChange={(event) => setCustomFrom(event.target.value)}
-              className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground"
+          <div className="grid gap-3 lg:grid-cols-4">
+            <MetricTile
+              label="Inference spend"
+              value={formatCents(spendData?.summary.spendCents ?? 0)}
+              subtitle={`${formatTokens(inferenceTokenTotal)} tokens across request-scoped events`}
+              icon={DollarSign}
             />
-            <span className="text-sm text-muted-foreground">to</span>
-            <input
-              type="date"
-              value={customTo}
-              onChange={(event) => setCustomTo(event.target.value)}
-              className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground"
+            <MetricTile
+              label="Budget"
+              value={activeBudgetIncidents.length > 0 ? String(activeBudgetIncidents.length) : (
+                spendData?.summary.budgetCents && spendData.summary.budgetCents > 0
+                  ? `${spendData.summary.utilizationPercent}%`
+                  : "Open"
+              )}
+              subtitle={
+                activeBudgetIncidents.length > 0
+                  ? `${budgetData?.pausedAgentCount ?? 0} agents paused · ${budgetData?.pausedProjectCount ?? 0} projects paused`
+                  : spendData?.summary.budgetCents && spendData.summary.budgetCents > 0
+                    ? `${formatCents(spendData.summary.spendCents)} of ${formatCents(spendData.summary.budgetCents)}`
+                    : "No monthly cap configured"
+              }
+              icon={Coins}
+            />
+            <MetricTile
+              label="Finance net"
+              value={formatCents(financeData?.summary.netCents ?? 0)}
+              subtitle={`${formatCents(financeData?.summary.debitCents ?? 0)} debits · ${formatCents(financeData?.summary.creditCents ?? 0)} credits`}
+              icon={ReceiptText}
+            />
+            <MetricTile
+              label="Finance events"
+              value={String(financeData?.summary.eventCount ?? 0)}
+              subtitle={`${formatCents(financeData?.summary.estimatedDebitCents ?? 0)} estimated in range`}
+              icon={ArrowUpRight}
             />
           </div>
-        ) : null}
-
-        <div className="grid gap-3 lg:grid-cols-4">
-          <MetricTile
-            label="Inference spend"
-            value={formatCents(spendData?.summary.spendCents ?? 0)}
-            subtitle={`${formatTokens(inferenceTokenTotal)} tokens across request-scoped events`}
-            icon={DollarSign}
-          />
-          <MetricTile
-            label="Budget"
-            value={activeBudgetIncidents.length > 0 ? String(activeBudgetIncidents.length) : (
-              spendData?.summary.budgetCents && spendData.summary.budgetCents > 0
-                ? `${spendData.summary.utilizationPercent}%`
-                : "Open"
-            )}
-            subtitle={
-              activeBudgetIncidents.length > 0
-                ? `${budgetData?.pausedAgentCount ?? 0} agents paused · ${budgetData?.pausedProjectCount ?? 0} projects paused`
-                : spendData?.summary.budgetCents && spendData.summary.budgetCents > 0
-                  ? `${formatCents(spendData.summary.spendCents)} of ${formatCents(spendData.summary.budgetCents)}`
-                  : "No monthly cap configured"
-            }
-            icon={Coins}
-          />
-          <MetricTile
-            label="Finance net"
-            value={formatCents(financeData?.summary.netCents ?? 0)}
-            subtitle={`${formatCents(financeData?.summary.debitCents ?? 0)} debits · ${formatCents(financeData?.summary.creditCents ?? 0)} credits`}
-            icon={ReceiptText}
-          />
-          <MetricTile
-            label="Finance events"
-            value={String(financeData?.summary.eventCount ?? 0)}
-            subtitle={`${formatCents(financeData?.summary.estimatedDebitCents ?? 0)} estimated in range`}
-            icon={ArrowUpRight}
-          />
-        </div>
       </div>
 
       <Tabs value={mainTab} onValueChange={(value) => setMainTab(value as typeof mainTab)}>

@@ -429,7 +429,7 @@ function generateReadmeFromSelection(
 
   lines.push("## What's Inside");
   lines.push("");
-  lines.push("This is an [Agent Company](https://taskcore.khulnasoft.com) package.");
+  lines.push("This is an [Agent Company](https://taskcore.ing) package.");
   lines.push("");
 
   const counts: Array<[string, number]> = [];
@@ -476,10 +476,10 @@ function generateReadmeFromSelection(
   lines.push("pnpm taskcore company import this-github-url-or-folder");
   lines.push("```");
   lines.push("");
-  lines.push("See [Taskcore](https://taskcore.khulnasoft.com) for more information.");
+  lines.push("See [Taskcore](https://taskcore.ing) for more information.");
   lines.push("");
   lines.push("---");
-  lines.push(`Exported from [Taskcore](https://taskcore.khulnasoft.com) on ${new Date().toISOString().split("T")[0]}`);
+  lines.push(`Exported from [Taskcore](https://taskcore.ing) on ${new Date().toISOString().split("T")[0]}`);
   lines.push("");
 
   return lines.join("\n");
@@ -512,15 +512,15 @@ function ExportPreviewPane({
   // Resolve relative image paths within the export package (e.g. images/org-chart.png)
   const resolveImageSrc = isMarkdown
     ? (src: string) => {
-      // Skip absolute URLs and data URIs
-      if (/^(?:https?:|data:)/i.test(src)) return null;
-      // Resolve relative to the directory of the current markdown file
-      const dir = selectedFile.includes("/") ? selectedFile.slice(0, selectedFile.lastIndexOf("/") + 1) : "";
-      const resolved = dir + src;
-      const entry = allFiles[resolved] ?? allFiles[src];
-      if (!entry) return null;
-      return getPortableFileDataUrl(resolved in allFiles ? resolved : src, entry);
-    }
+        // Skip absolute URLs and data URIs
+        if (/^(?:https?:|data:)/i.test(src)) return null;
+        // Resolve relative to the directory of the current markdown file
+        const dir = selectedFile.includes("/") ? selectedFile.slice(0, selectedFile.lastIndexOf("/") + 1) : "";
+        const resolved = dir + src;
+        const entry = allFiles[resolved] ?? allFiles[src];
+        if (!entry) return null;
+        return getPortableFileDataUrl(resolved in allFiles ? resolved : src, entry);
+      }
     : undefined;
 
   return (
@@ -727,7 +727,7 @@ export function CompanyExport() {
 
   const downloadMutation = useMutation({
     mutationFn: () =>
-      companiesApi.exportPackage(selectedCompanyId!, {
+      companiesApi.exportBundle(selectedCompanyId!, {
         include: { company: true, agents: true, projects: true, issues: true },
         selectedFiles: Array.from(checkedFiles).sort(),
         sidebarOrder,
@@ -924,8 +924,8 @@ export function CompanyExport() {
 
   const previewContent = selectedFile
     ? (() => {
-      return effectiveFiles[selectedFile] ?? null;
-    })()
+        return effectiveFiles[selectedFile] ?? null;
+      })()
     : null;
 
   return (

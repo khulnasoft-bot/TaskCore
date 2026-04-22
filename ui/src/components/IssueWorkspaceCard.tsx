@@ -200,7 +200,7 @@ interface IssueWorkspaceCardProps {
   onUpdate: (data: Record<string, unknown>) => void;
   initialEditing?: boolean;
   livePreview?: boolean;
-  onDraftChange?: (data: Record<string, unknown>, meta: { canSave: boolean }) => void;
+  onDraftChange?: (data: Record<string, unknown>, meta: { canSave: boolean; workspaceBranchName?: string | null }) => void;
 }
 
 export function IssueWorkspaceCard({
@@ -263,10 +263,10 @@ export function IssueWorkspaceCard({
   const configuredSelection = shouldPresentExistingWorkspaceSelection(issue)
     ? "reuse_existing"
     : (
-      issue.executionWorkspacePreference
-      ?? issue.executionWorkspaceSettings?.mode
-      ?? defaultExecutionWorkspaceModeForProject(project)
-    );
+        issue.executionWorkspacePreference
+        ?? issue.executionWorkspaceSettings?.mode
+        ?? defaultExecutionWorkspaceModeForProject(project)
+      );
   const currentSelection = configuredSelection === "operator_branch" || configuredSelection === "agent_default"
     ? "shared_workspace"
     : configuredSelection;
@@ -298,6 +298,10 @@ export function IssueWorkspaceCard({
   });
 
   const canSaveWorkspaceConfig = draftSelection !== "reuse_existing" || draftExecutionWorkspaceId.length > 0;
+  const draftWorkspaceBranchName =
+    draftSelection === "reuse_existing" && configuredReusableWorkspace?.mode !== "shared_workspace"
+      ? configuredReusableWorkspace?.branchName ?? null
+      : null;
 
   const buildWorkspaceDraftUpdate = useCallback(() => ({
     executionWorkspacePreference: draftSelection,
@@ -316,8 +320,11 @@ export function IssueWorkspaceCard({
 
   useEffect(() => {
     if (!onDraftChange) return;
-    onDraftChange(buildWorkspaceDraftUpdate(), { canSave: canSaveWorkspaceConfig });
-  }, [buildWorkspaceDraftUpdate, canSaveWorkspaceConfig, onDraftChange]);
+    onDraftChange(buildWorkspaceDraftUpdate(), {
+      canSave: canSaveWorkspaceConfig,
+      workspaceBranchName: draftWorkspaceBranchName,
+    });
+  }, [buildWorkspaceDraftUpdate, canSaveWorkspaceConfig, draftWorkspaceBranchName, onDraftChange]);
 
   const handleSave = useCallback(() => {
     if (!canSaveWorkspaceConfig) return;

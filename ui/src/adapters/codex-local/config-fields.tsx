@@ -50,10 +50,10 @@ export function CodexLocalConfigFields({
                 isCreate
                   ? values!.instructionsFilePath ?? ""
                   : eff(
-                    "adapterConfig",
-                    "instructionsFilePath",
-                    String(config.instructionsFilePath ?? ""),
-                  )
+                      "adapterConfig",
+                      "instructionsFilePath",
+                      String(config.instructionsFilePath ?? ""),
+                    )
               }
               onCommit={(v) =>
                 isCreate
@@ -75,10 +75,10 @@ export function CodexLocalConfigFields({
           isCreate
             ? values!.dangerouslyBypassSandbox
             : eff(
-              "adapterConfig",
-              "dangerouslyBypassApprovalsAndSandbox",
-              bypassEnabled,
-            )
+                "adapterConfig",
+                "dangerouslyBypassApprovalsAndSandbox",
+                bypassEnabled,
+              )
         }
         onChange={(v) =>
           isCreate

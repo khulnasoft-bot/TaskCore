@@ -82,8 +82,9 @@ function KanbanColumn({
       </div>
       <div
         ref={setNodeRef}
-        className={`flex-1 min-h-[120px] rounded-md p-1 space-y-1 transition-colors ${isOver ? "bg-accent/40" : "bg-muted/20"
-          }`}
+        className={`flex-1 min-h-[120px] rounded-md p-1 space-y-1 transition-colors ${
+          isOver ? "bg-accent/40" : "bg-muted/20"
+        }`}
       >
         <SortableContext
           items={issues.map((i) => i.id)}
@@ -141,8 +142,9 @@ function KanbanCard({
       style={style}
       {...attributes}
       {...listeners}
-      className={`rounded-md border bg-card p-2.5 cursor-grab active:cursor-grabbing transition-shadow ${isDragging && !isOverlay ? "opacity-30" : ""
-        } ${isOverlay ? "shadow-lg ring-1 ring-primary/20" : "hover:shadow-sm"}`}
+      className={`rounded-md border bg-card p-2.5 cursor-grab active:cursor-grabbing transition-shadow ${
+        isDragging && !isOverlay ? "opacity-30" : ""
+      } ${isOverlay ? "shadow-lg ring-1 ring-primary/20" : "hover:shadow-sm"}`}
     >
       <Link
         to={`/issues/${issue.identifier ?? issue.id}`}

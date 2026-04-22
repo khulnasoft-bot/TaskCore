@@ -69,7 +69,7 @@ describe("CommentThread", () => {
     document.body.appendChild(container);
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-03-11T12:00:00.000Z"));
-    writeTextMock = vi.fn(async () => { });
+    writeTextMock = vi.fn(async () => {});
     execCommandMock = vi.fn(() => true);
     Object.assign(navigator, {
       clipboard: {
@@ -129,7 +129,7 @@ describe("CommentThread", () => {
               finishedAt: "2026-03-11T10:00:00.000Z",
             }]}
             agentMap={new Map([["agent-1", agent]])}
-            onAdd={async () => { }}
+            onAdd={async () => {}}
           />
         </MemoryRouter>,
       );
@@ -163,7 +163,7 @@ describe("CommentThread", () => {
           <CommentThread
             comments={[]}
             composerDisabledReason="Workspace is closed."
-            onAdd={async () => { }}
+            onAdd={async () => {}}
           />
         </MemoryRouter>,
       );
@@ -180,7 +180,7 @@ describe("CommentThread", () => {
 
   it("hides the reopen control and infers reopen for closed agent-assigned issues", async () => {
     const root = createRoot(container);
-    const onAdd = vi.fn(async () => { });
+    const onAdd = vi.fn(async () => {});
 
     act(() => {
       root.render(
@@ -275,9 +275,9 @@ describe("CommentThread", () => {
             comments={[]}
             linkedApprovals={[approval]}
             agentMap={new Map([["agent-1", agent]])}
-            onAdd={async () => { }}
-            onApproveApproval={async () => { }}
-            onRejectApproval={async () => { }}
+            onAdd={async () => {}}
+            onApproveApproval={async () => {}}
+            onRejectApproval={async () => {}}
           />
         </MemoryRouter>,
       );
@@ -312,7 +312,7 @@ describe("CommentThread", () => {
               createdAt: new Date("2026-03-11T11:00:00.000Z"),
               updatedAt: new Date("2026-03-11T11:00:00.000Z"),
             }]}
-            onAdd={async () => { }}
+            onAdd={async () => {}}
           />
         </MemoryRouter>,
       );

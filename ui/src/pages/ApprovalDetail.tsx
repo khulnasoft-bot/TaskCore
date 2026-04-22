@@ -154,21 +154,21 @@ export function ApprovalDetail() {
   const resolvedCta =
     primaryLinkedIssue
       ? {
-        label:
-          (linkedIssues?.length ?? 0) > 1
-            ? "Review linked issues"
-            : "Review linked issue",
-        to: `/issues/${primaryLinkedIssue.identifier ?? primaryLinkedIssue.id}`,
-      }
+          label:
+            (linkedIssues?.length ?? 0) > 1
+              ? "Review linked issues"
+              : "Review linked issue",
+          to: `/issues/${primaryLinkedIssue.identifier ?? primaryLinkedIssue.id}`,
+        }
       : linkedAgentId
         ? {
-          label: "Open hired agent",
-          to: `/agents/${linkedAgentId}`,
-        }
+            label: "Open hired agent",
+            to: `/agents/${linkedAgentId}`,
+          }
         : {
-          label: "Back to approvals",
-          to: "/approvals",
-        };
+            label: "Back to approvals",
+            to: "/approvals",
+          };
 
   return (
     <div className="space-y-6 max-w-3xl">

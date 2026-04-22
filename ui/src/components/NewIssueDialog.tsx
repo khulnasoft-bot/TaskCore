@@ -8,11 +8,14 @@ import { issuesApi } from "../api/issues";
 import { instanceSettingsApi } from "../api/instanceSettings";
 import { projectsApi } from "../api/projects";
 import { agentsApi } from "../api/agents";
+import { accessApi } from "../api/access";
 import { authApi } from "../api/auth";
 import { assetsApi } from "../api/assets";
+import { buildCompanyUserInlineOptions, buildMarkdownMentionOptions } from "../lib/company-members";
 import { queryKeys } from "../lib/queryKeys";
 import { useProjectOrder } from "../hooks/useProjectOrder";
 import { getRecentAssigneeIds, sortAgentsByRecency, trackRecentAssignee } from "../lib/recent-assignees";
+import { getRecentProjectIds, trackRecentProject } from "../lib/recent-projects";
 import { buildExecutionPolicy } from "../lib/issue-execution-policy";
 import { useToastActions } from "../context/ToastContext";
 import {
@@ -44,6 +47,7 @@ import {
   AlertTriangle,
   Tag,
   Calendar,
+  Taskcore,
   FileText,
   Loader2,
   ListTree,
@@ -51,7 +55,6 @@ import {
   Eye,
   ShieldCheck,
 } from "lucide-react";
-import { TaskcoreIcon } from "./TaskcoreIcon";
 import { cn } from "../lib/utils";
 import { extractProviderIdWithFallback } from "../lib/model-utils";
 import { issueStatusText, issueStatusTextDefault, priorityColor, priorityColorDefault } from "../lib/status-colors";
@@ -353,6 +356,11 @@ export function NewIssueDialog() {
     queryKey: queryKeys.auth.session,
     queryFn: () => authApi.getSession(),
   });
+  const { data: companyMembers } = useQuery({
+    queryKey: queryKeys.access.companyUserDirectory(effectiveCompanyId!),
+    queryFn: () => accessApi.listUserDirectory(effectiveCompanyId!),
+    enabled: Boolean(effectiveCompanyId) && newIssueOpen,
+  });
   const { data: experimentalSettings } = useQuery({
     queryKey: queryKeys.instance.experimentalSettings,
     queryFn: () => instanceSettingsApi.getExperimental(),
@@ -379,30 +387,12 @@ export function NewIssueDialog() {
     assigneeAdapterType && ISSUE_OVERRIDE_ADAPTER_TYPES.has(assigneeAdapterType),
   );
   const mentionOptions = useMemo<MentionOption[]>(() => {
-    const options: MentionOption[] = [];
-    const activeAgents = [...(agents ?? [])]
-      .filter((agent) => agent.status !== "terminated")
-      .sort((a, b) => a.name.localeCompare(b.name));
-    for (const agent of activeAgents) {
-      options.push({
-        id: `agent:${agent.id}`,
-        name: agent.name,
-        kind: "agent",
-        agentId: agent.id,
-        agentIcon: agent.icon,
-      });
-    }
-    for (const project of orderedProjects) {
-      options.push({
-        id: `project:${project.id}`,
-        name: project.name,
-        kind: "project",
-        projectId: project.id,
-        projectColor: project.color,
-      });
-    }
-    return options;
-  }, [agents, orderedProjects]);
+    return buildMarkdownMentionOptions({
+      agents,
+      projects: orderedProjects,
+      members: companyMembers?.users,
+    });
+  }, [agents, companyMembers?.users, orderedProjects]);
 
   const { data: assigneeAdapterModels } = useQuery({
     queryKey:
@@ -594,7 +584,7 @@ export function NewIssueDialog() {
       setAssigneeChrome(draft.assigneeChrome ?? false);
       setExecutionWorkspaceMode(
         draft.executionWorkspaceMode
-        ?? (draft.useIsolatedExecutionWorkspace ? "isolated_workspace" : defaultExecutionWorkspaceModeForProject(restoredProject)),
+          ?? (draft.useIsolatedExecutionWorkspace ? "isolated_workspace" : defaultExecutionWorkspaceModeForProject(restoredProject)),
       );
       setSelectedExecutionWorkspaceId(draft.selectedExecutionWorkspaceId ?? "");
       executionWorkspaceDefaultProjectId.current = restoredProjectId || null;
@@ -857,17 +847,23 @@ export function NewIssueDialog() {
         ? "Codex options"
         : assigneeAdapterType === "opencode_local"
           ? "OpenCode options"
-          : "Agent options";
+        : "Agent options";
   const thinkingEffortOptions =
     assigneeAdapterType === "codex_local"
       ? ISSUE_THINKING_EFFORT_OPTIONS.codex_local
       : assigneeAdapterType === "opencode_local"
         ? ISSUE_THINKING_EFFORT_OPTIONS.opencode_local
-        : ISSUE_THINKING_EFFORT_OPTIONS.claude_local;
+      : ISSUE_THINKING_EFFORT_OPTIONS.claude_local;
   const recentAssigneeIds = useMemo(() => getRecentAssigneeIds(), [newIssueOpen]);
+  const recentAssigneeOptionIds = useMemo(
+    () => recentAssigneeIds.map((id) => assigneeValueFromSelection({ assigneeAgentId: id })),
+    [recentAssigneeIds],
+  );
+  const recentProjectIds = useMemo(() => getRecentProjectIds(), [newIssueOpen]);
   const assigneeOptions = useMemo<InlineEntityOption[]>(
     () => [
       ...currentUserAssigneeOption(currentUserId),
+      ...buildCompanyUserInlineOptions(companyMembers?.users, { excludeUserIds: [currentUserId] }),
       ...sortAgentsByRecency(
         (agents ?? []).filter((agent) => agent.status !== "terminated"),
         recentAssigneeIds,
@@ -877,7 +873,7 @@ export function NewIssueDialog() {
         searchText: `${agent.name} ${agent.role} ${agent.title ?? ""}`,
       })),
     ],
-    [agents, currentUserId, recentAssigneeIds],
+    [agents, companyMembers?.users, currentUserId, recentAssigneeIds],
   );
   const projectOptions = useMemo<InlineEntityOption[]>(
     () =>
@@ -897,6 +893,7 @@ export function NewIssueDialog() {
   const stagedAttachments = stagedFiles.filter((file) => file.kind === "attachment");
 
   const handleProjectChange = useCallback((nextProjectId: string) => {
+    if (nextProjectId) trackRecentProject(nextProjectId);
     setProjectId(nextProjectId);
     const nextProject = orderedProjects.find((project) => project.id === nextProjectId);
     executionWorkspaceDefaultProjectId.current = nextProjectId || null;
@@ -988,9 +985,9 @@ export function NewIssueDialog() {
                   style={
                     dialogCompany?.brandColor
                       ? {
-                        backgroundColor: dialogCompany.brandColor,
-                        color: pickTextColorForSolidBg(dialogCompany.brandColor),
-                      }
+                          backgroundColor: dialogCompany.brandColor,
+                          color: pickTextColorForSolidBg(dialogCompany.brandColor),
+                        }
                       : undefined
                   }
                 >
@@ -1018,9 +1015,9 @@ export function NewIssueDialog() {
                       style={
                         c.brandColor
                           ? {
-                            backgroundColor: c.brandColor,
-                            color: pickTextColorForSolidBg(c.brandColor),
-                          }
+                              backgroundColor: c.brandColor,
+                              color: pickTextColorForSolidBg(c.brandColor),
+                            }
                           : undefined
                       }
                     >
@@ -1060,182 +1057,184 @@ export function NewIssueDialog() {
           {/* Title */}
           <div className="px-4 pt-4 pb-2">
             <textarea
-              className="w-full text-lg font-semibold bg-transparent outline-none resize-none overflow-hidden placeholder:text-muted-foreground/50"
-              placeholder="Issue title"
-              rows={1}
-              value={title}
-              onChange={(e) => {
-                setTitle(e.target.value);
-                e.target.style.height = "auto";
-                e.target.style.height = `${e.target.scrollHeight}px`;
-              }}
-              readOnly={createIssue.isPending}
-              onKeyDown={(e) => {
-                if (
-                  e.key === "Enter" &&
-                  !e.metaKey &&
-                  !e.ctrlKey &&
-                  !e.nativeEvent.isComposing
-                ) {
-                  e.preventDefault();
-                  descriptionEditorRef.current?.focus();
-                }
-                if (e.key === "Tab" && !e.shiftKey) {
-                  e.preventDefault();
-                  if (assigneeValue) {
-                    // Assignee already set — skip to project or description
-                    if (projectId) {
-                      descriptionEditorRef.current?.focus();
-                    } else {
-                      projectSelectorRef.current?.focus();
-                    }
+            className="w-full text-lg font-semibold bg-transparent outline-none resize-none overflow-hidden placeholder:text-muted-foreground/50"
+            placeholder="Issue title"
+            rows={1}
+            value={title}
+            onChange={(e) => {
+              setTitle(e.target.value);
+              e.target.style.height = "auto";
+              e.target.style.height = `${e.target.scrollHeight}px`;
+            }}
+            readOnly={createIssue.isPending}
+            onKeyDown={(e) => {
+              if (
+                e.key === "Enter" &&
+                !e.metaKey &&
+                !e.ctrlKey &&
+                !e.nativeEvent.isComposing
+              ) {
+                e.preventDefault();
+                descriptionEditorRef.current?.focus();
+              }
+              if (e.key === "Tab" && !e.shiftKey) {
+                e.preventDefault();
+                if (assigneeValue) {
+                  // Assignee already set — skip to project or description
+                  if (projectId) {
+                    descriptionEditorRef.current?.focus();
                   } else {
-                    assigneeSelectorRef.current?.focus();
+                    projectSelectorRef.current?.focus();
                   }
+                } else {
+                  assigneeSelectorRef.current?.focus();
                 }
-              }}
-              autoFocus
+              }
+            }}
+            autoFocus
             />
           </div>
 
           <div className="px-4 pb-2">
             <div className="overflow-x-auto overscroll-x-contain">
               <div className="inline-flex items-center gap-2 text-sm text-muted-foreground flex-wrap sm:flex-nowrap sm:min-w-max">
-                <span className="w-6 shrink-0 text-center">For</span>
-                <InlineEntitySelector
-                  ref={assigneeSelectorRef}
-                  value={assigneeValue}
-                  options={assigneeOptions}
-                  placeholder="Assignee"
-                  disablePortal
-                  noneLabel="No assignee"
-                  searchPlaceholder="Search assignees..."
-                  emptyMessage="No assignees found."
-                  onChange={(value) => {
-                    const nextAssignee = parseAssigneeValue(value);
-                    if (nextAssignee.assigneeAgentId) {
-                      trackRecentAssignee(nextAssignee.assigneeAgentId);
-                    }
-                    setAssigneeValue(value);
-                  }}
-                  onConfirm={() => {
-                    if (projectId) {
-                      descriptionEditorRef.current?.focus();
-                    } else {
-                      projectSelectorRef.current?.focus();
-                    }
-                  }}
-                  renderTriggerValue={(option) =>
-                    option ? (
-                      currentAssignee ? (
-                        <>
-                          <AgentIcon icon={currentAssignee.icon} className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                          <span className="truncate">{option.label}</span>
-                        </>
-                      ) : (
-                        <span className="truncate">{option.label}</span>
-                      )
-                    ) : (
-                      <span className="text-muted-foreground">Assignee</span>
-                    )
+              <span className="w-6 shrink-0 text-center">For</span>
+              <InlineEntitySelector
+                ref={assigneeSelectorRef}
+                value={assigneeValue}
+                options={assigneeOptions}
+                recentOptionIds={recentAssigneeOptionIds}
+                placeholder="Assignee"
+                disablePortal
+                noneLabel="No assignee"
+                searchPlaceholder="Search assignees..."
+                emptyMessage="No assignees found."
+                onChange={(value) => {
+                  const nextAssignee = parseAssigneeValue(value);
+                  if (nextAssignee.assigneeAgentId) {
+                    trackRecentAssignee(nextAssignee.assigneeAgentId);
                   }
-                  renderOption={(option) => {
-                    if (!option.id) return <span className="truncate">{option.label}</span>;
-                    const assignee = parseAssigneeValue(option.id).assigneeAgentId
-                      ? (agents ?? []).find((agent) => agent.id === parseAssigneeValue(option.id).assigneeAgentId)
-                      : null;
-                    return (
-                      <>
-                        {assignee ? <AgentIcon icon={assignee.icon} className="h-3.5 w-3.5 shrink-0 text-muted-foreground" /> : null}
-                        <span className="truncate">{option.label}</span>
-                      </>
-                    );
-                  }}
-                />
-                <span>in</span>
-                <InlineEntitySelector
-                  ref={projectSelectorRef}
-                  value={projectId}
-                  options={projectOptions}
-                  placeholder="Project"
-                  disablePortal
-                  noneLabel="No project"
-                  searchPlaceholder="Search projects..."
-                  emptyMessage="No projects found."
-                  onChange={handleProjectChange}
-                  onConfirm={() => {
+                  setAssigneeValue(value);
+                }}
+                onConfirm={() => {
+                  if (projectId) {
                     descriptionEditorRef.current?.focus();
-                  }}
-                  renderTriggerValue={(option) =>
-                    option && currentProject ? (
+                  } else {
+                    projectSelectorRef.current?.focus();
+                  }
+                }}
+                renderTriggerValue={(option) =>
+                  option ? (
+                    currentAssignee ? (
                       <>
-                        <span
-                          className="h-3.5 w-3.5 shrink-0 rounded-sm"
-                          style={{ backgroundColor: currentProject.color ?? "#6366f1" }}
-                        />
+                        <AgentIcon icon={currentAssignee.icon} className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                         <span className="truncate">{option.label}</span>
                       </>
                     ) : (
-                      <span className="text-muted-foreground">Project</span>
+                      <span className="truncate">{option.label}</span>
                     )
-                  }
-                  renderOption={(option) => {
-                    if (!option.id) return <span className="truncate">{option.label}</span>;
-                    const project = orderedProjects.find((item) => item.id === option.id);
-                    return (
-                      <>
-                        <span
-                          className="h-3.5 w-3.5 shrink-0 rounded-sm"
-                          style={{ backgroundColor: project?.color ?? "#6366f1" }}
-                        />
-                        <span className="truncate">{option.label}</span>
-                      </>
-                    );
-                  }}
-                />
+                  ) : (
+                    <span className="text-muted-foreground">Assignee</span>
+                  )
+                }
+                renderOption={(option) => {
+                  if (!option.id) return <span className="truncate">{option.label}</span>;
+                  const assignee = parseAssigneeValue(option.id).assigneeAgentId
+                    ? (agents ?? []).find((agent) => agent.id === parseAssigneeValue(option.id).assigneeAgentId)
+                    : null;
+                  return (
+                    <>
+                      {assignee ? <AgentIcon icon={assignee.icon} className="h-3.5 w-3.5 shrink-0 text-muted-foreground" /> : null}
+                      <span className="truncate">{option.label}</span>
+                    </>
+                  );
+                }}
+              />
+              <span>in</span>
+              <InlineEntitySelector
+                ref={projectSelectorRef}
+                value={projectId}
+                options={projectOptions}
+                recentOptionIds={recentProjectIds}
+                placeholder="Project"
+                disablePortal
+                noneLabel="No project"
+                searchPlaceholder="Search projects..."
+                emptyMessage="No projects found."
+                onChange={handleProjectChange}
+                onConfirm={() => {
+                  descriptionEditorRef.current?.focus();
+                }}
+                renderTriggerValue={(option) =>
+                  option && currentProject ? (
+                    <>
+                      <span
+                        className="h-3.5 w-3.5 shrink-0 rounded-sm"
+                        style={{ backgroundColor: currentProject.color ?? "#6366f1" }}
+                      />
+                      <span className="truncate">{option.label}</span>
+                    </>
+                  ) : (
+                    <span className="text-muted-foreground">Project</span>
+                  )
+                }
+                renderOption={(option) => {
+                  if (!option.id) return <span className="truncate">{option.label}</span>;
+                  const project = orderedProjects.find((item) => item.id === option.id);
+                  return (
+                    <>
+                      <span
+                        className="h-3.5 w-3.5 shrink-0 rounded-sm"
+                        style={{ backgroundColor: project?.color ?? "#6366f1" }}
+                      />
+                      <span className="truncate">{option.label}</span>
+                    </>
+                  );
+                }}
+              />
 
-                {/* Three-dot menu to add Reviewer / Approver rows */}
-                <Popover open={participantMenuOpen} onOpenChange={setParticipantMenuOpen}>
-                  <PopoverTrigger asChild>
-                    <button
-                      type="button"
-                      className="inline-flex items-center justify-center rounded-md p-1 text-muted-foreground hover:bg-accent/50 transition-colors"
-                      title="Add reviewer or approver"
-                    >
-                      <MoreHorizontal className="h-4 w-4" />
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-44 p-1" align="start">
-                    <button
-                      className={cn(
-                        "flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded hover:bg-accent/50",
-                        showReviewerRow && "bg-accent",
-                      )}
-                      onClick={() => {
-                        setShowReviewerRow((v) => !v);
-                        if (showReviewerRow) setReviewerValue("");
-                        setParticipantMenuOpen(false);
-                      }}
-                    >
-                      <Eye className="h-3 w-3" />
-                      Reviewer
-                    </button>
-                    <button
-                      className={cn(
-                        "flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded hover:bg-accent/50",
-                        showApproverRow && "bg-accent",
-                      )}
-                      onClick={() => {
-                        setShowApproverRow((v) => !v);
-                        if (showApproverRow) setApproverValue("");
-                        setParticipantMenuOpen(false);
-                      }}
-                    >
-                      <ShieldCheck className="h-3 w-3" />
-                      Approver
-                    </button>
-                  </PopoverContent>
-                </Popover>
+              {/* Three-dot menu to add Reviewer / Approver rows */}
+              <Popover open={participantMenuOpen} onOpenChange={setParticipantMenuOpen}>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    className="inline-flex items-center justify-center rounded-md p-1 text-muted-foreground hover:bg-accent/50 transition-colors"
+                    title="Add reviewer or approver"
+                  >
+                    <MoreHorizontal className="h-4 w-4" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-44 p-1" align="start">
+                  <button
+                    className={cn(
+                      "flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded hover:bg-accent/50",
+                      showReviewerRow && "bg-accent",
+                    )}
+                    onClick={() => {
+                      setShowReviewerRow((v) => !v);
+                      if (showReviewerRow) setReviewerValue("");
+                      setParticipantMenuOpen(false);
+                    }}
+                  >
+                    <Eye className="h-3 w-3" />
+                    Reviewer
+                  </button>
+                  <button
+                    className={cn(
+                      "flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded hover:bg-accent/50",
+                      showApproverRow && "bg-accent",
+                    )}
+                    onClick={() => {
+                      setShowApproverRow((v) => !v);
+                      if (showApproverRow) setApproverValue("");
+                      setParticipantMenuOpen(false);
+                    }}
+                  >
+                    <ShieldCheck className="h-3 w-3" />
+                    Approver
+                  </button>
+                </PopoverContent>
+              </Popover>
               </div>
             </div>
 
@@ -1244,41 +1243,42 @@ export function NewIssueDialog() {
               <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
                 <span className="w-6 shrink-0 flex items-center justify-center"><Eye className="h-3.5 w-3.5" /></span>
                 <InlineEntitySelector
-                  value={reviewerValue}
-                  options={assigneeOptions}
-                  placeholder="Reviewer"
-                  disablePortal
-                  noneLabel="No reviewer"
-                  searchPlaceholder="Search reviewers..."
-                  emptyMessage="No reviewers found."
-                  onChange={setReviewerValue}
-                  renderTriggerValue={(option) =>
-                    option ? (
-                      <>
-                        {(() => {
-                          const reviewer = parseAssigneeValue(option.id).assigneeAgentId
-                            ? (agents ?? []).find((a) => a.id === parseAssigneeValue(option.id).assigneeAgentId)
-                            : null;
-                          return reviewer ? <AgentIcon icon={reviewer.icon} className="h-3.5 w-3.5 shrink-0 text-muted-foreground" /> : null;
-                        })()}
-                        <span className="truncate">{option.label}</span>
-                      </>
-                    ) : (
-                      <span className="text-muted-foreground">Reviewer</span>
-                    )
-                  }
-                  renderOption={(option) => {
-                    if (!option.id) return <span className="truncate">{option.label}</span>;
-                    const reviewer = parseAssigneeValue(option.id).assigneeAgentId
-                      ? (agents ?? []).find((agent) => agent.id === parseAssigneeValue(option.id).assigneeAgentId)
-                      : null;
-                    return (
-                      <>
-                        {reviewer ? <AgentIcon icon={reviewer.icon} className="h-3.5 w-3.5 shrink-0 text-muted-foreground" /> : null}
-                        <span className="truncate">{option.label}</span>
-                      </>
-                    );
-                  }}
+                value={reviewerValue}
+                options={assigneeOptions}
+                recentOptionIds={recentAssigneeOptionIds}
+                placeholder="Reviewer"
+                disablePortal
+                noneLabel="No reviewer"
+                searchPlaceholder="Search reviewers..."
+                emptyMessage="No reviewers found."
+                onChange={setReviewerValue}
+                renderTriggerValue={(option) =>
+                  option ? (
+                    <>
+                      {(() => {
+                        const reviewer = parseAssigneeValue(option.id).assigneeAgentId
+                          ? (agents ?? []).find((a) => a.id === parseAssigneeValue(option.id).assigneeAgentId)
+                          : null;
+                        return reviewer ? <AgentIcon icon={reviewer.icon} className="h-3.5 w-3.5 shrink-0 text-muted-foreground" /> : null;
+                      })()}
+                      <span className="truncate">{option.label}</span>
+                    </>
+                  ) : (
+                    <span className="text-muted-foreground">Reviewer</span>
+                  )
+                }
+                renderOption={(option) => {
+                  if (!option.id) return <span className="truncate">{option.label}</span>;
+                  const reviewer = parseAssigneeValue(option.id).assigneeAgentId
+                    ? (agents ?? []).find((agent) => agent.id === parseAssigneeValue(option.id).assigneeAgentId)
+                    : null;
+                  return (
+                    <>
+                      {reviewer ? <AgentIcon icon={reviewer.icon} className="h-3.5 w-3.5 shrink-0 text-muted-foreground" /> : null}
+                      <span className="truncate">{option.label}</span>
+                    </>
+                  );
+                }}
                 />
               </div>
             )}
@@ -1288,41 +1288,42 @@ export function NewIssueDialog() {
               <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
                 <span className="w-6 shrink-0 flex items-center justify-center"><ShieldCheck className="h-3.5 w-3.5" /></span>
                 <InlineEntitySelector
-                  value={approverValue}
-                  options={assigneeOptions}
-                  placeholder="Approver"
-                  disablePortal
-                  noneLabel="No approver"
-                  searchPlaceholder="Search approvers..."
-                  emptyMessage="No approvers found."
-                  onChange={setApproverValue}
-                  renderTriggerValue={(option) =>
-                    option ? (
-                      <>
-                        {(() => {
-                          const approver = parseAssigneeValue(option.id).assigneeAgentId
-                            ? (agents ?? []).find((a) => a.id === parseAssigneeValue(option.id).assigneeAgentId)
-                            : null;
-                          return approver ? <AgentIcon icon={approver.icon} className="h-3.5 w-3.5 shrink-0 text-muted-foreground" /> : null;
-                        })()}
-                        <span className="truncate">{option.label}</span>
-                      </>
-                    ) : (
-                      <span className="text-muted-foreground">Approver</span>
-                    )
-                  }
-                  renderOption={(option) => {
-                    if (!option.id) return <span className="truncate">{option.label}</span>;
-                    const approver = parseAssigneeValue(option.id).assigneeAgentId
-                      ? (agents ?? []).find((agent) => agent.id === parseAssigneeValue(option.id).assigneeAgentId)
-                      : null;
-                    return (
-                      <>
-                        {approver ? <AgentIcon icon={approver.icon} className="h-3.5 w-3.5 shrink-0 text-muted-foreground" /> : null}
-                        <span className="truncate">{option.label}</span>
-                      </>
-                    );
-                  }}
+                value={approverValue}
+                options={assigneeOptions}
+                recentOptionIds={recentAssigneeOptionIds}
+                placeholder="Approver"
+                disablePortal
+                noneLabel="No approver"
+                searchPlaceholder="Search approvers..."
+                emptyMessage="No approvers found."
+                onChange={setApproverValue}
+                renderTriggerValue={(option) =>
+                  option ? (
+                    <>
+                      {(() => {
+                        const approver = parseAssigneeValue(option.id).assigneeAgentId
+                          ? (agents ?? []).find((a) => a.id === parseAssigneeValue(option.id).assigneeAgentId)
+                          : null;
+                        return approver ? <AgentIcon icon={approver.icon} className="h-3.5 w-3.5 shrink-0 text-muted-foreground" /> : null;
+                      })()}
+                      <span className="truncate">{option.label}</span>
+                    </>
+                  ) : (
+                    <span className="text-muted-foreground">Approver</span>
+                  )
+                }
+                renderOption={(option) => {
+                  if (!option.id) return <span className="truncate">{option.label}</span>;
+                  const approver = parseAssigneeValue(option.id).assigneeAgentId
+                    ? (agents ?? []).find((agent) => agent.id === parseAssigneeValue(option.id).assigneeAgentId)
+                    : null;
+                  return (
+                    <>
+                      {approver ? <AgentIcon icon={approver.icon} className="h-3.5 w-3.5 shrink-0 text-muted-foreground" /> : null}
+                      <span className="truncate">{option.label}</span>
+                    </>
+                  );
+                }}
                 />
               </div>
             )}
@@ -1330,124 +1331,124 @@ export function NewIssueDialog() {
 
           {isSubIssueMode ? (
             <div className="px-4 pb-2">
-              <div className="max-w-full rounded-md border border-border bg-muted/30 px-2.5 py-1.5 text-xs text-muted-foreground">
-                <div className="flex items-center gap-1.5">
-                  <ListTree className="h-3.5 w-3.5 shrink-0" />
-                  <span className="shrink-0">Sub-issue of</span>
-                  <span className="font-medium text-foreground">{parentIssueLabel}</span>
-                </div>
-                {newIssueDefaults.parentTitle ? (
-                  <div className="pl-5 text-foreground/80 truncate">
-                    {newIssueDefaults.parentTitle}
-                  </div>
-                ) : null}
+            <div className="max-w-full rounded-md border border-border bg-muted/30 px-2.5 py-1.5 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1.5">
+                <ListTree className="h-3.5 w-3.5 shrink-0" />
+                <span className="shrink-0">Sub-issue of</span>
+                <span className="font-medium text-foreground">{parentIssueLabel}</span>
               </div>
+              {newIssueDefaults.parentTitle ? (
+                <div className="pl-5 text-foreground/80 truncate">
+                  {newIssueDefaults.parentTitle}
+                </div>
+              ) : null}
+            </div>
             </div>
           ) : null}
 
           {currentProject && currentProjectSupportsExecutionWorkspace && (
             <div className="px-4 py-3 space-y-2">
-              <div className="space-y-1.5">
-                <div className="text-xs font-medium">Execution workspace</div>
-                <div className="text-[11px] text-muted-foreground">
-                  Control whether this issue runs in the shared workspace, a new isolated workspace, or an existing one.
-                </div>
+            <div className="space-y-1.5">
+              <div className="text-xs font-medium">Execution workspace</div>
+              <div className="text-[11px] text-muted-foreground">
+                Control whether this issue runs in the shared workspace, a new isolated workspace, or an existing one.
+              </div>
+              <select
+                className="w-full rounded border border-border bg-transparent px-2 py-1.5 text-xs outline-none"
+                value={executionWorkspaceMode}
+                onChange={(e) => {
+                  setExecutionWorkspaceMode(e.target.value);
+                  if (e.target.value !== "reuse_existing") {
+                    setSelectedExecutionWorkspaceId("");
+                  }
+                }}
+              >
+                {EXECUTION_WORKSPACE_MODES.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              {executionWorkspaceMode === "reuse_existing" && (
                 <select
                   className="w-full rounded border border-border bg-transparent px-2 py-1.5 text-xs outline-none"
-                  value={executionWorkspaceMode}
-                  onChange={(e) => {
-                    setExecutionWorkspaceMode(e.target.value);
-                    if (e.target.value !== "reuse_existing") {
-                      setSelectedExecutionWorkspaceId("");
-                    }
-                  }}
+                  value={selectedExecutionWorkspaceId}
+                  onChange={(e) => setSelectedExecutionWorkspaceId(e.target.value)}
                 >
-                  {EXECUTION_WORKSPACE_MODES.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
+                  <option value="">Choose an existing workspace</option>
+                  {deduplicatedReusableWorkspaces.map((workspace) => (
+                    <option key={workspace.id} value={workspace.id}>
+                      {workspace.name} · {workspace.status} · {workspace.branchName ?? workspace.cwd ?? workspace.id.slice(0, 8)}
                     </option>
                   ))}
                 </select>
-                {executionWorkspaceMode === "reuse_existing" && (
-                  <select
-                    className="w-full rounded border border-border bg-transparent px-2 py-1.5 text-xs outline-none"
-                    value={selectedExecutionWorkspaceId}
-                    onChange={(e) => setSelectedExecutionWorkspaceId(e.target.value)}
-                  >
-                    <option value="">Choose an existing workspace</option>
-                    {deduplicatedReusableWorkspaces.map((workspace) => (
-                      <option key={workspace.id} value={workspace.id}>
-                        {workspace.name} · {workspace.status} · {workspace.branchName ?? workspace.cwd ?? workspace.id.slice(0, 8)}
-                      </option>
-                    ))}
-                  </select>
-                )}
-                {executionWorkspaceMode === "reuse_existing" && selectedReusableExecutionWorkspace && (
-                  <div className="text-[11px] text-muted-foreground">
-                    Reusing {selectedReusableExecutionWorkspace.name} from {selectedReusableExecutionWorkspace.branchName ?? selectedReusableExecutionWorkspace.cwd ?? "existing execution workspace"}.
-                  </div>
-                )}
-                {showParentWorkspaceWarning ? (
-                  <div className="rounded-md border border-amber-300/60 bg-amber-50 px-2 py-1.5 text-[11px] text-amber-900 dark:border-amber-800/70 dark:bg-amber-950/30 dark:text-amber-100">
-                    Warning: this sub-issue will no longer use the parent issue workspace{parentExecutionWorkspaceLabel ? ` (${parentExecutionWorkspaceLabel})` : ""}.
-                  </div>
-                ) : null}
-              </div>
+              )}
+              {executionWorkspaceMode === "reuse_existing" && selectedReusableExecutionWorkspace && (
+                <div className="text-[11px] text-muted-foreground">
+                  Reusing {selectedReusableExecutionWorkspace.name} from {selectedReusableExecutionWorkspace.branchName ?? selectedReusableExecutionWorkspace.cwd ?? "existing execution workspace"}.
+                </div>
+              )}
+              {showParentWorkspaceWarning ? (
+                <div className="rounded-md border border-amber-300/60 bg-amber-50 px-2 py-1.5 text-[11px] text-amber-900 dark:border-amber-800/70 dark:bg-amber-950/30 dark:text-amber-100">
+                  Warning: this sub-issue will no longer use the parent issue workspace{parentExecutionWorkspaceLabel ? ` (${parentExecutionWorkspaceLabel})` : ""}.
+                </div>
+              ) : null}
+            </div>
             </div>
           )}
 
           {supportsAssigneeOverrides && (
             <div className="px-4 pb-2">
-              <button
-                className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
-                onClick={() => setAssigneeOptionsOpen((open) => !open)}
-              >
-                {assigneeOptionsOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-                {assigneeOptionsTitle}
-              </button>
-              {assigneeOptionsOpen && (
-                <div className="mt-2 rounded-md border border-border p-3 bg-muted/20 space-y-3">
-                  <div className="space-y-1.5">
-                    <div className="text-xs text-muted-foreground">Model</div>
-                    <InlineEntitySelector
-                      value={assigneeModelOverride}
-                      options={modelOverrideOptions}
-                      placeholder="Default model"
-                      disablePortal
-                      noneLabel="Default model"
-                      searchPlaceholder="Search models..."
-                      emptyMessage="No models found."
-                      onChange={setAssigneeModelOverride}
+            <button
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+              onClick={() => setAssigneeOptionsOpen((open) => !open)}
+            >
+              {assigneeOptionsOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+              {assigneeOptionsTitle}
+            </button>
+            {assigneeOptionsOpen && (
+              <div className="mt-2 rounded-md border border-border p-3 bg-muted/20 space-y-3">
+                <div className="space-y-1.5">
+                  <div className="text-xs text-muted-foreground">Model</div>
+                  <InlineEntitySelector
+                    value={assigneeModelOverride}
+                    options={modelOverrideOptions}
+                    placeholder="Default model"
+                    disablePortal
+                    noneLabel="Default model"
+                    searchPlaceholder="Search models..."
+                    emptyMessage="No models found."
+                    onChange={setAssigneeModelOverride}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <div className="text-xs text-muted-foreground">Thinking effort</div>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {thinkingEffortOptions.map((option) => (
+                      <button
+                        key={option.value || "default"}
+                        className={cn(
+                          "px-2 py-1 rounded-md text-xs border border-border hover:bg-accent/50 transition-colors",
+                          assigneeThinkingEffort === option.value && "bg-accent"
+                        )}
+                        onClick={() => setAssigneeThinkingEffort(option.value)}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {assigneeAdapterType === "claude_local" && (
+                  <div className="flex items-center justify-between rounded-md border border-border px-2 py-1.5">
+                    <div className="text-xs text-muted-foreground">Enable Chrome (--chrome)</div>
+                    <ToggleSwitch
+                      checked={assigneeChrome}
+                      onCheckedChange={() => setAssigneeChrome((value) => !value)}
                     />
                   </div>
-                  <div className="space-y-1.5">
-                    <div className="text-xs text-muted-foreground">Thinking effort</div>
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      {thinkingEffortOptions.map((option) => (
-                        <button
-                          key={option.value || "default"}
-                          className={cn(
-                            "px-2 py-1 rounded-md text-xs border border-border hover:bg-accent/50 transition-colors",
-                            assigneeThinkingEffort === option.value && "bg-accent"
-                          )}
-                          onClick={() => setAssigneeThinkingEffort(option.value)}
-                        >
-                          {option.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  {assigneeAdapterType === "claude_local" && (
-                    <div className="flex items-center justify-between rounded-md border border-border px-2 py-1.5">
-                      <div className="text-xs text-muted-foreground">Enable Chrome (--chrome)</div>
-                      <ToggleSwitch
-                        checked={assigneeChrome}
-                        onCheckedChange={() => setAssigneeChrome((value) => !value)}
-                      />
-                    </div>
-                  )}
-                </div>
-              )}
+                )}
+              </div>
+            )}
             </div>
           )}
 
@@ -1481,72 +1482,72 @@ export function NewIssueDialog() {
             </div>
             {stagedFiles.length > 0 ? (
               <div className="mt-4 space-y-3 rounded-lg border border-border/70 p-3">
-                {stagedDocuments.length > 0 ? (
+              {stagedDocuments.length > 0 ? (
+                <div className="space-y-2">
+                  <div className="text-xs font-medium text-muted-foreground">Documents</div>
                   <div className="space-y-2">
-                    <div className="text-xs font-medium text-muted-foreground">Documents</div>
-                    <div className="space-y-2">
-                      {stagedDocuments.map((file) => (
-                        <div key={file.id} className="flex items-start justify-between gap-3 rounded-md border border-border/70 px-3 py-2">
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="rounded-full border border-border px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-                                {file.documentKey}
-                              </span>
-                              <span className="truncate text-sm">{file.file.name}</span>
-                            </div>
-                            <div className="mt-1 flex items-center gap-2 text-[11px] text-muted-foreground">
-                              <FileText className="h-3.5 w-3.5" />
-                              <span>{file.title || file.file.name}</span>
-                              <span>•</span>
-                              <span>{formatFileSize(file.file)}</span>
-                            </div>
+                    {stagedDocuments.map((file) => (
+                      <div key={file.id} className="flex items-start justify-between gap-3 rounded-md border border-border/70 px-3 py-2">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="rounded-full border border-border px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                              {file.documentKey}
+                            </span>
+                            <span className="truncate text-sm">{file.file.name}</span>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="icon-xs"
-                            className="shrink-0 text-muted-foreground"
-                            onClick={() => removeStagedFile(file.id)}
-                            disabled={createIssue.isPending}
-                            title="Remove document"
-                          >
-                            <X className="h-3.5 w-3.5" />
-                          </Button>
+                          <div className="mt-1 flex items-center gap-2 text-[11px] text-muted-foreground">
+                            <FileText className="h-3.5 w-3.5" />
+                            <span>{file.title || file.file.name}</span>
+                            <span>•</span>
+                            <span>{formatFileSize(file.file)}</span>
+                          </div>
                         </div>
-                      ))}
-                    </div>
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          className="shrink-0 text-muted-foreground"
+                          onClick={() => removeStagedFile(file.id)}
+                          disabled={createIssue.isPending}
+                          title="Remove document"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    ))}
                   </div>
-                ) : null}
+                </div>
+              ) : null}
 
-                {stagedAttachments.length > 0 ? (
+              {stagedAttachments.length > 0 ? (
+                <div className="space-y-2">
+                  <div className="text-xs font-medium text-muted-foreground">Attachments</div>
                   <div className="space-y-2">
-                    <div className="text-xs font-medium text-muted-foreground">Attachments</div>
-                    <div className="space-y-2">
-                      {stagedAttachments.map((file) => (
-                        <div key={file.id} className="flex items-start justify-between gap-3 rounded-md border border-border/70 px-3 py-2">
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                              <TaskcoreIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                              <span className="truncate text-sm">{file.file.name}</span>
-                            </div>
-                            <div className="mt-1 text-[11px] text-muted-foreground">
-                              {file.file.type || "application/octet-stream"} • {formatFileSize(file.file)}
-                            </div>
+                    {stagedAttachments.map((file) => (
+                      <div key={file.id} className="flex items-start justify-between gap-3 rounded-md border border-border/70 px-3 py-2">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <Taskcore className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                            <span className="truncate text-sm">{file.file.name}</span>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="icon-xs"
-                            className="shrink-0 text-muted-foreground"
-                            onClick={() => removeStagedFile(file.id)}
-                            disabled={createIssue.isPending}
-                            title="Remove attachment"
-                          >
-                            <X className="h-3.5 w-3.5" />
-                          </Button>
+                          <div className="mt-1 text-[11px] text-muted-foreground">
+                            {file.file.type || "application/octet-stream"} • {formatFileSize(file.file)}
+                          </div>
                         </div>
-                      ))}
-                    </div>
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          className="shrink-0 text-muted-foreground"
+                          onClick={() => removeStagedFile(file.id)}
+                          disabled={createIssue.isPending}
+                          title="Remove attachment"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    ))}
                   </div>
-                ) : null}
+                </div>
+              ) : null}
               </div>
             ) : null}
           </div>
@@ -1632,7 +1633,7 @@ export function NewIssueDialog() {
             onClick={() => stageFileInputRef.current?.click()}
             disabled={createIssue.isPending}
           >
-            <TaskcoreIcon className="h-3 w-3" />
+            <Taskcore className="h-3 w-3" />
             Upload
           </button>
 

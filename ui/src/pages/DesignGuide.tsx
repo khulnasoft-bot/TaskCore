@@ -123,6 +123,7 @@ import { FilterBar, type FilterValue } from "@/components/FilterBar";
 import { InlineEditor } from "@/components/InlineEditor";
 import { PageSkeleton } from "@/components/PageSkeleton";
 import { Identity } from "@/components/Identity";
+import { IssueReferencePill } from "@/components/IssueReferencePill";
 
 /* ------------------------------------------------------------------ */
 /*  Section wrapper                                                    */
@@ -464,6 +465,21 @@ export function DesignGuide() {
                 {label}
               </span>
             ))}
+          </div>
+        </SubSection>
+
+        <SubSection title="IssueReferencePill">
+          <p className="text-xs text-muted-foreground">
+            Used wherever a task is referenced — in markdown, the Related Work tab, and activity summaries.
+            Pass <code className="font-mono">status</code> to show the target issue&apos;s state at a glance.
+            Use <code className="font-mono">strikethrough</code> for &quot;removed&quot; contexts.
+          </p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <IssueReferencePill issue={{ id: "demo-1", identifier: "PAP-123", title: "Identifier only — no status yet" }} />
+            <IssueReferencePill issue={{ id: "demo-2", identifier: "PAP-456", title: "With in_progress status", status: "in_progress" }} />
+            <IssueReferencePill issue={{ id: "demo-3", identifier: "PAP-789", title: "Done status", status: "done" }} />
+            <IssueReferencePill issue={{ id: "demo-4", identifier: "PAP-101", title: "Blocked status", status: "blocked" }} />
+            <IssueReferencePill strikethrough issue={{ id: "demo-5", identifier: "PAP-202", title: "Removed (strikethrough)", status: "todo" }} />
           </div>
         </SubSection>
       </Section>
@@ -839,7 +855,7 @@ export function DesignGuide() {
             title="Implement authentication flow"
             subtitle="Assigned to Agent Alpha"
             trailing={<StatusBadge status="in_progress" />}
-            onClick={() => { }}
+            onClick={() => {}}
           />
           <EntityRow
             leading={
@@ -852,7 +868,7 @@ export function DesignGuide() {
             title="Set up CI/CD pipeline"
             subtitle="Completed 2 days ago"
             trailing={<StatusBadge status="done" />}
-            onClick={() => { }}
+            onClick={() => {}}
           />
           <EntityRow
             leading={
@@ -864,7 +880,7 @@ export function DesignGuide() {
             identifier="PAP-003"
             title="Write API documentation"
             trailing={<StatusBadge status="todo" />}
-            onClick={() => { }}
+            onClick={() => {}}
           />
           <EntityRow
             leading={
@@ -1016,7 +1032,7 @@ export function DesignGuide() {
             icon={Inbox}
             message="No items to show. Create your first one to get started."
             action="Create Item"
-            onAction={() => { }}
+            onAction={() => {}}
           />
         </div>
       </Section>
@@ -1153,13 +1169,13 @@ export function DesignGuide() {
               leading={<PriorityIcon priority="high" />}
               identifier="PAP-101"
               title="Build agent heartbeat system"
-              onClick={() => { }}
+              onClick={() => {}}
             />
             <EntityRow
               leading={<PriorityIcon priority="medium" />}
               identifier="PAP-102"
               title="Add cost tracking dashboard"
-              onClick={() => { }}
+              onClick={() => {}}
             />
           </div>
         </div>

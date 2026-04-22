@@ -90,12 +90,12 @@ export interface PluginModalBoundsRequest {
 
 export interface PluginRenderCloseEvent {
   reason:
-  | "escapeKey"
-  | "backdrop"
-  | "hostNavigation"
-  | "programmatic"
-  | "submit"
-  | "unknown";
+    | "escapeKey"
+    | "backdrop"
+    | "hostNavigation"
+    | "programmatic"
+    | "submit"
+    | "unknown";
   nativeEvent?: unknown;
 }
 
@@ -144,7 +144,7 @@ function usePluginBridgeContext(): PluginBridgeContextValue {
   if (!ctx) {
     throw new Error(
       "Plugin bridge hook called outside of a <PluginBridgeContext.Provider>. " +
-      "Ensure the plugin component is rendered within a PluginBridgeScope.",
+        "Ensure the plugin component is rendered within a PluginBridgeScope.",
     );
   }
   return ctx;

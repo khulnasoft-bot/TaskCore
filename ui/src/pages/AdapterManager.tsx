@@ -596,7 +596,7 @@ export function AdapterManager() {
                 adapter={adapter}
                 canRemove={false}
                 onToggle={(type, disabled) => toggleMutation.mutate({ type, disabled })}
-                onRemove={() => { }}
+                onRemove={() => {}}
                 isToggling={isMutating}
               />
             ))}
@@ -610,10 +610,16 @@ export function AdapterManager() {
                   modelsCount: 0,
                   loaded: true,
                   disabled: virtual.menuDisabled,
+                  capabilities: {
+                    supportsInstructionsBundle: false,
+                    supportsSkills: false,
+                    supportsLocalAgentJwt: false,
+                    requiresMaterializedRuntimeSkills: false,
+                  },
                 }}
                 canRemove={false}
                 onToggle={(type, disabled) => toggleMutation.mutate({ type, disabled })}
-                onRemove={() => { }}
+                onRemove={() => {}}
                 isToggling={isMutating}
                 overriddenBy={virtual.overridePaused ? undefined : virtual.overriddenBy}
               />

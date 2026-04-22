@@ -6,6 +6,7 @@ import type {
   CompanySecret,
   EnvBinding,
 } from "@taskcore/shared";
+import { AGENT_DEFAULT_MAX_CONCURRENT_RUNS } from "@taskcore/shared";
 import type { AdapterModel } from "../api/agents";
 import { agentsApi } from "../api/agents";
 import { secretsApi } from "../api/secrets";
@@ -50,6 +51,7 @@ import { listAdapterOptions, listVisibleAdapterTypes } from "../adapters/metadat
 import { getAdapterLabel } from "../adapters/adapter-display-registry";
 import { useDisabledAdaptersSync } from "../adapters/use-disabled-adapters";
 import { buildAgentUpdatePatch, type AgentConfigOverlay } from "../lib/agent-config-patch";
+import { useAdapterCapabilities } from "../adapters/use-adapter-capabilities";
 
 /* ---- Create mode values ---- */
 
@@ -75,18 +77,18 @@ type AgentConfigFormProps = {
   /** "cards" renders each section as heading + bordered card (for settings pages). Default: "inline" (border-b dividers). */
   sectionLayout?: "inline" | "cards";
 } & (
-    | {
+  | {
       mode: "create";
       values: CreateConfigValues;
       onChange: (patch: Partial<CreateConfigValues>) => void;
     }
-    | {
+  | {
       mode: "edit";
       agent: Agent;
       onSave: (patch: Record<string, unknown>) => void;
       isSaving?: boolean;
     }
-  );
+);
 
 /* ---- Edit mode overlay (dirty tracking) ---- */
 
@@ -269,9 +271,10 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
   const adapterType = isCreate
     ? props.values.adapterType
     : overlay.adapterType ?? props.agent.adapterType;
-  const NONLOCAL_TYPES = new Set(["process", "http", "openclaw_gateway"]);
-  const isLocal = !NONLOCAL_TYPES.has(adapterType);
-
+  const getCapabilities = useAdapterCapabilities();
+  const adapterCaps = getCapabilities(adapterType);
+  const isLocal = adapterCaps.supportsInstructionsBundle || adapterCaps.supportsSkills || adapterCaps.supportsLocalAgentJwt;
+  
   const showLegacyWorkingDirectoryField =
     isLocal && shouldShowLegacyWorkingDirectoryField({ isCreate, adapterConfig: config });
   const uiAdapter = useMemo(() => getUIAdapter(adapterType), [adapterType]);
@@ -288,6 +291,8 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
     enabled: Boolean(selectedCompanyId),
   });
   const models = fetchedModels ?? externalModels ?? [];
+  const adapterCommandField =
+    adapterType === "hermes_local" ? "hermesCommand" : "command";
   const {
     data: detectedModelData,
     refetch: refetchDetectedModel,
@@ -343,7 +348,19 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
       return uiAdapter.buildAdapterConfig(val!);
     }
     const base = config as Record<string, unknown>;
-    return { ...base, ...overlay.adapterConfig };
+    const next = { ...base, ...overlay.adapterConfig };
+    if (adapterType === "hermes_local") {
+      const hermesCommand =
+        typeof next.hermesCommand === "string" && next.hermesCommand.length > 0
+          ? next.hermesCommand
+          : typeof next.command === "string" && next.command.length > 0
+            ? next.command
+            : undefined;
+      if (hermesCommand) {
+        next.hermesCommand = hermesCommand;
+      }
+    }
+    return next;
   }
 
   const testEnvironment = useMutation({
@@ -382,15 +399,15 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
     ? val!.thinkingEffort
     : adapterType === "codex_local"
       ? eff(
-        "adapterConfig",
-        "modelReasoningEffort",
-        String(config.modelReasoningEffort ?? config.reasoningEffort ?? ""),
-      )
+          "adapterConfig",
+          "modelReasoningEffort",
+          String(config.modelReasoningEffort ?? config.reasoningEffort ?? ""),
+        )
       : adapterType === "cursor"
         ? eff("adapterConfig", "mode", String(config.mode ?? ""))
-        : adapterType === "opencode_local"
-          ? eff("adapterConfig", "variant", String(config.variant ?? ""))
-          : eff("adapterConfig", "effort", String(config.effort ?? ""));
+      : adapterType === "opencode_local"
+        ? eff("adapterConfig", "variant", String(config.variant ?? ""))
+      : eff("adapterConfig", "effort", String(config.effort ?? ""));
   const showThinkingEffort = adapterType !== "gemini_local";
   const codexSearchEnabled = adapterType === "codex_local"
     ? (isCreate ? Boolean(val!.search) : eff("adapterConfig", "search", Boolean(config.search)))
@@ -566,18 +583,18 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
                             ? DEFAULT_CODEX_LOCAL_MODEL
                             : t === "gemini_local"
                               ? DEFAULT_GEMINI_LOCAL_MODEL
-                              : t === "cursor"
-                                ? DEFAULT_CURSOR_LOCAL_MODEL
-                                : "",
+                            : t === "cursor"
+                              ? DEFAULT_CURSOR_LOCAL_MODEL
+                            : "",
                         effort: "",
                         modelReasoningEffort: "",
                         variant: "",
                         mode: "",
                         ...(t === "codex_local"
                           ? {
-                            dangerouslyBypassApprovalsAndSandbox:
-                              DEFAULT_CODEX_LOCAL_BYPASS_APPROVALS_AND_SANDBOX,
-                          }
+                              dangerouslyBypassApprovalsAndSandbox:
+                                DEFAULT_CODEX_LOCAL_BYPASS_APPROVALS_AND_SANDBOX,
+                            }
                           : {}),
                       },
                     }));
@@ -659,185 +676,193 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
             : <div className="px-4 py-2 text-xs font-medium text-muted-foreground">Permissions &amp; Configuration</div>
           }
           <div className={cn(cards ? "border border-border rounded-lg p-4 space-y-3" : "px-4 pb-3 space-y-3")}>
-            <Field label="Command" hint={help.localCommand}>
-              <DraftInput
-                value={
-                  isCreate
-                    ? val!.command
-                    : eff("adapterConfig", "command", String(config.command ?? ""))
-                }
-                onCommit={(v) =>
-                  isCreate
-                    ? set!({ command: v })
-                    : mark("adapterConfig", "command", v || null)
-                }
-                immediate
-                className={inputClass}
-                placeholder={
-                  ({
-                    claude_local: "claude",
-                    codex_local: "codex",
-                    gemini_local: "gemini",
-                    pi_local: "pi",
-                    cursor: "agent",
-                    opencode_local: "opencode",
-                  } as Record<string, string>)[adapterType] ?? adapterType.replace(/_local$/, "")
-                }
-              />
-            </Field>
-
-            <ModelDropdown
-              models={models}
-              value={currentModelId}
-              onChange={(v) =>
-                isCreate
-                  ? set!({ model: v })
-                  : mark("adapterConfig", "model", v || undefined)
-              }
-              open={modelOpen}
-              onOpenChange={setModelOpen}
-              allowDefault={adapterType !== "opencode_local"}
-              required={adapterType === "opencode_local"}
-              groupByProvider={adapterType === "opencode_local"}
-              creatable
-              detectedModel={detectedModel}
-              detectedModelCandidates={[]}
-              onDetectModel={async () => {
-                const result = await refetchDetectedModel();
-                return result.data?.model ?? null;
-              }}
-              detectModelLabel="Detect model"
-              emptyDetectHint="No model detected. Select or enter one manually."
-            />
-            {fetchedModelsError && (
-              <p className="text-xs text-destructive">
-                {fetchedModelsError instanceof Error
-                  ? fetchedModelsError.message
-                  : "Failed to load adapter models."}
-              </p>
-            )}
-
-            {showThinkingEffort && (
-              <>
-                <ThinkingEffortDropdown
-                  value={currentThinkingEffort}
-                  options={thinkingEffortOptions}
-                  onChange={(v) =>
+              <Field label="Command" hint={help.localCommand}>
+                <DraftInput
+                  value={
                     isCreate
-                      ? set!({ thinkingEffort: v })
-                      : mark("adapterConfig", thinkingEffortKey, v || undefined)
+                      ? val!.command
+                      : eff(
+                          "adapterConfig",
+                          adapterCommandField,
+                          String(
+                            (adapterType === "hermes_local"
+                              ? config.hermesCommand ?? config.command
+                              : config.command) ?? "",
+                          ),
+                        )
                   }
-                  open={thinkingEffortOpen}
-                  onOpenChange={setThinkingEffortOpen}
+                  onCommit={(v) =>
+                    isCreate
+                      ? set!({ command: v })
+                      : mark("adapterConfig", adapterCommandField, v || null)
+                  }
+                  immediate
+                  className={inputClass}
+                  placeholder={
+                    ({
+                      claude_local: "claude",
+                      codex_local: "codex",
+                      gemini_local: "gemini",
+                      pi_local: "pi",
+                      cursor: "agent",
+                      opencode_local: "opencode",
+                    } as Record<string, string>)[adapterType] ?? adapterType.replace(/_local$/, "")
+                  }
                 />
-                {adapterType === "codex_local" &&
-                  codexSearchEnabled &&
-                  currentThinkingEffort === "minimal" && (
-                    <p className="text-xs text-amber-400">
-                      Codex may reject `minimal` thinking when search is enabled.
-                    </p>
-                  )}
-              </>
-            )}
-            {!isCreate && typeof config.bootstrapPromptTemplate === "string" && config.bootstrapPromptTemplate && (
-              <>
-                <Field label="Bootstrap prompt (legacy)" hint={help.bootstrapPrompt}>
-                  <MarkdownEditor
-                    value={eff(
-                      "adapterConfig",
-                      "bootstrapPromptTemplate",
-                      String(config.bootstrapPromptTemplate ?? ""),
-                    )}
-                    onChange={(v) =>
-                      mark("adapterConfig", "bootstrapPromptTemplate", v || undefined)
-                    }
-                    placeholder="Optional initial setup prompt for the first run"
-                    contentClassName="min-h-[44px] text-sm font-mono"
-                    imageUploadHandler={async (file) => {
-                      const namespace = `agents/${props.agent.id}/bootstrap-prompt`;
-                      const asset = await uploadMarkdownImage.mutateAsync({ file, namespace });
-                      return asset.contentPath;
-                    }}
-                  />
-                </Field>
-                <div className="rounded-md border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
-                  Bootstrap prompt is legacy and will be removed in a future release. Consider moving this content into the agent&apos;s prompt template or instructions file instead.
-                </div>
-              </>
-            )}
-            {adapterType === "claude_local" && (
-              <ClaudeLocalAdvancedFields {...adapterFieldProps} />
-            )}
-            <uiAdapter.ConfigFields {...adapterFieldProps} />
+              </Field>
 
-            <Field label="Extra args (comma-separated)" hint={help.extraArgs}>
-              <DraftInput
-                value={
+              <ModelDropdown
+                models={models}
+                value={currentModelId}
+                onChange={(v) =>
                   isCreate
-                    ? val!.extraArgs
-                    : eff("adapterConfig", "extraArgs", formatArgList(config.extraArgs))
+                    ? set!({ model: v })
+                    : mark("adapterConfig", "model", v || undefined)
                 }
-                onCommit={(v) =>
-                  isCreate
-                    ? set!({ extraArgs: v })
-                    : mark("adapterConfig", "extraArgs", v?.trim() ? parseCommaArgs(v) : null)
-                }
-                immediate
-                className={inputClass}
-                placeholder="e.g. --verbose, --foo=bar"
-              />
-            </Field>
-
-            <Field label="Environment variables" hint={help.envVars}>
-              <EnvVarEditor
-                value={
-                  isCreate
-                    ? ((val!.envBindings ?? EMPTY_ENV) as Record<string, EnvBinding>)
-                    : ((eff("adapterConfig", "env", (config.env ?? EMPTY_ENV) as Record<string, EnvBinding>))
-                    )
-                }
-                secrets={availableSecrets}
-                onCreateSecret={async (name, value) => {
-                  const created = await createSecret.mutateAsync({ name, value });
-                  return created;
+                open={modelOpen}
+                onOpenChange={setModelOpen}
+                allowDefault={adapterType !== "opencode_local"}
+                required={adapterType === "opencode_local"}
+                groupByProvider={adapterType === "opencode_local"}
+                creatable
+                detectedModel={detectedModel}
+                detectedModelCandidates={[]}
+                onDetectModel={async () => {
+                  const result = await refetchDetectedModel();
+                  return result.data?.model ?? null;
                 }}
-                onChange={(env) =>
-                  isCreate
-                    ? set!({ envBindings: env ?? {}, envVars: "" })
-                    : mark("adapterConfig", "env", env)
-                }
+                detectModelLabel="Detect model"
+                emptyDetectHint="No model detected. Select or enter one manually."
               />
-            </Field>
+              {fetchedModelsError && (
+                <p className="text-xs text-destructive">
+                  {fetchedModelsError instanceof Error
+                    ? fetchedModelsError.message
+                    : "Failed to load adapter models."}
+                </p>
+              )}
 
-            {/* Edit-only: timeout + grace period */}
-            {!isCreate && (
-              <>
-                <Field label="Timeout (sec)" hint={help.timeoutSec}>
-                  <DraftNumberInput
-                    value={eff(
-                      "adapterConfig",
-                      "timeoutSec",
-                      Number(config.timeoutSec ?? 0),
-                    )}
-                    onCommit={(v) => mark("adapterConfig", "timeoutSec", v)}
-                    immediate
-                    className={inputClass}
+              {showThinkingEffort && (
+                <>
+                  <ThinkingEffortDropdown
+                    value={currentThinkingEffort}
+                    options={thinkingEffortOptions}
+                    onChange={(v) =>
+                      isCreate
+                        ? set!({ thinkingEffort: v })
+                        : mark("adapterConfig", thinkingEffortKey, v || undefined)
+                    }
+                    open={thinkingEffortOpen}
+                    onOpenChange={setThinkingEffortOpen}
                   />
-                </Field>
-                <Field label="Interrupt grace period (sec)" hint={help.graceSec}>
-                  <DraftNumberInput
-                    value={eff(
-                      "adapterConfig",
-                      "graceSec",
-                      Number(config.graceSec ?? 15),
+                  {adapterType === "codex_local" &&
+                    codexSearchEnabled &&
+                    currentThinkingEffort === "minimal" && (
+                      <p className="text-xs text-amber-400">
+                        Codex may reject `minimal` thinking when search is enabled.
+                      </p>
                     )}
-                    onCommit={(v) => mark("adapterConfig", "graceSec", v)}
-                    immediate
-                    className={inputClass}
-                  />
-                </Field>
-              </>
-            )}
+                </>
+              )}
+              {!isCreate && typeof config.bootstrapPromptTemplate === "string" && config.bootstrapPromptTemplate && (
+                <>
+                  <Field label="Bootstrap prompt (legacy)" hint={help.bootstrapPrompt}>
+                    <MarkdownEditor
+                      value={eff(
+                        "adapterConfig",
+                        "bootstrapPromptTemplate",
+                        String(config.bootstrapPromptTemplate ?? ""),
+                      )}
+                      onChange={(v) =>
+                        mark("adapterConfig", "bootstrapPromptTemplate", v || undefined)
+                      }
+                      placeholder="Optional initial setup prompt for the first run"
+                      contentClassName="min-h-[44px] text-sm font-mono"
+                      imageUploadHandler={async (file) => {
+                        const namespace = `agents/${props.agent.id}/bootstrap-prompt`;
+                        const asset = await uploadMarkdownImage.mutateAsync({ file, namespace });
+                        return asset.contentPath;
+                      }}
+                    />
+                  </Field>
+                  <div className="rounded-md border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                    Bootstrap prompt is legacy and will be removed in a future release. Consider moving this content into the agent&apos;s prompt template or instructions file instead.
+                  </div>
+                </>
+              )}
+              {adapterType === "claude_local" && (
+                <ClaudeLocalAdvancedFields {...adapterFieldProps} />
+              )}
+              <uiAdapter.ConfigFields {...adapterFieldProps} />
+
+              <Field label="Extra args (comma-separated)" hint={help.extraArgs}>
+                <DraftInput
+                  value={
+                    isCreate
+                      ? val!.extraArgs
+                      : eff("adapterConfig", "extraArgs", formatArgList(config.extraArgs))
+                  }
+                  onCommit={(v) =>
+                    isCreate
+                      ? set!({ extraArgs: v })
+                      : mark("adapterConfig", "extraArgs", v?.trim() ? parseCommaArgs(v) : null)
+                  }
+                  immediate
+                  className={inputClass}
+                  placeholder="e.g. --verbose, --foo=bar"
+                />
+              </Field>
+
+              <Field label="Environment variables" hint={help.envVars}>
+                <EnvVarEditor
+                  value={
+                    isCreate
+                      ? ((val!.envBindings ?? EMPTY_ENV) as Record<string, EnvBinding>)
+                      : ((eff("adapterConfig", "env", (config.env ?? EMPTY_ENV) as Record<string, EnvBinding>))
+                      )
+                  }
+                  secrets={availableSecrets}
+                  onCreateSecret={async (name, value) => {
+                    const created = await createSecret.mutateAsync({ name, value });
+                    return created;
+                  }}
+                  onChange={(env) =>
+                    isCreate
+                      ? set!({ envBindings: env ?? {}, envVars: "" })
+                      : mark("adapterConfig", "env", env)
+                  }
+                />
+              </Field>
+
+              {/* Edit-only: timeout + grace period */}
+              {!isCreate && (
+                <>
+                  <Field label="Timeout (sec)" hint={help.timeoutSec}>
+                    <DraftNumberInput
+                      value={eff(
+                        "adapterConfig",
+                        "timeoutSec",
+                        Number(config.timeoutSec ?? 0),
+                      )}
+                      onCommit={(v) => mark("adapterConfig", "timeoutSec", v)}
+                      immediate
+                      className={inputClass}
+                    />
+                  </Field>
+                  <Field label="Interrupt grace period (sec)" hint={help.graceSec}>
+                    <DraftNumberInput
+                      value={eff(
+                        "adapterConfig",
+                        "graceSec",
+                        Number(config.graceSec ?? 15),
+                      )}
+                      onCommit={(v) => mark("adapterConfig", "graceSec", v)}
+                      immediate
+                      className={inputClass}
+                    />
+                  </Field>
+                </>
+              )}
           </div>
         </div>
       )}
@@ -891,43 +916,43 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
               open={runPolicyAdvancedOpen}
               onToggle={() => setRunPolicyAdvancedOpen(!runPolicyAdvancedOpen)}
             >
-              <div className="space-y-3">
-                <ToggleField
-                  label="Wake on demand"
-                  hint={help.wakeOnDemand}
-                  checked={eff(
+            <div className="space-y-3">
+              <ToggleField
+                label="Wake on demand"
+                hint={help.wakeOnDemand}
+                checked={eff(
+                  "heartbeat",
+                  "wakeOnDemand",
+                  heartbeat.wakeOnDemand !== false,
+                )}
+                onChange={(v) => mark("heartbeat", "wakeOnDemand", v)}
+              />
+              <Field label="Cooldown (sec)" hint={help.cooldownSec}>
+                <DraftNumberInput
+                  value={eff(
                     "heartbeat",
-                    "wakeOnDemand",
-                    heartbeat.wakeOnDemand !== false,
+                    "cooldownSec",
+                    Number(heartbeat.cooldownSec ?? 10),
                   )}
-                  onChange={(v) => mark("heartbeat", "wakeOnDemand", v)}
+                  onCommit={(v) => mark("heartbeat", "cooldownSec", v)}
+                  immediate
+                  className={inputClass}
                 />
-                <Field label="Cooldown (sec)" hint={help.cooldownSec}>
-                  <DraftNumberInput
-                    value={eff(
-                      "heartbeat",
-                      "cooldownSec",
-                      Number(heartbeat.cooldownSec ?? 10),
-                    )}
-                    onCommit={(v) => mark("heartbeat", "cooldownSec", v)}
-                    immediate
-                    className={inputClass}
-                  />
-                </Field>
-                <Field label="Max concurrent runs" hint={help.maxConcurrentRuns}>
-                  <DraftNumberInput
-                    value={eff(
-                      "heartbeat",
-                      "maxConcurrentRuns",
-                      Number(heartbeat.maxConcurrentRuns ?? 1),
-                    )}
-                    onCommit={(v) => mark("heartbeat", "maxConcurrentRuns", v)}
-                    immediate
-                    className={inputClass}
-                  />
-                </Field>
-              </div>
-            </CollapsibleSection>
+              </Field>
+              <Field label="Max concurrent runs" hint={help.maxConcurrentRuns}>
+                <DraftNumberInput
+                  value={eff(
+                    "heartbeat",
+                    "maxConcurrentRuns",
+                    Number(heartbeat.maxConcurrentRuns ?? AGENT_DEFAULT_MAX_CONCURRENT_RUNS),
+                  )}
+                  onCommit={(v) => mark("heartbeat", "maxConcurrentRuns", v)}
+                  immediate
+                  className={inputClass}
+                />
+              </Field>
+            </div>
+          </CollapsibleSection>
           </div>
         </div>
       ) : null}
@@ -1072,8 +1097,8 @@ function ModelDropdown({
   const manualModel = modelSearch.trim();
   const canCreateManualModel = Boolean(
     creatable &&
-    manualModel &&
-    !models.some((m) => m.id.toLowerCase() === manualModel.toLowerCase()),
+      manualModel &&
+      !models.some((m) => m.id.toLowerCase() === manualModel.toLowerCase()),
   );
   // Model IDs already shown as detected/candidate badges — exclude from regular list
   const promotedModelIds = useMemo(() => {

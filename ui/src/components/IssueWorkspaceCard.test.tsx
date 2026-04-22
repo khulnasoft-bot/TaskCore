@@ -126,7 +126,7 @@ function renderCard(container: HTMLDivElement) {
   act(() => {
     root.render(
       <QueryClientProvider client={queryClient}>
-        <IssueWorkspaceCard issue={createIssue()} project={createProject()} onUpdate={() => { }} />
+        <IssueWorkspaceCard issue={createIssue()} project={createProject()} onUpdate={() => {}} />
       </QueryClientProvider>,
     );
   });
@@ -155,7 +155,7 @@ describe("IssueWorkspaceCard", () => {
   });
 
   it("renders a stable skeleton while workspace settings are still loading", async () => {
-    mockInstanceSettingsApi.getExperimental.mockImplementation(() => new Promise(() => { }));
+    mockInstanceSettingsApi.getExperimental.mockImplementation(() => new Promise(() => {}));
 
     const root = renderCard(container);
     await flush();

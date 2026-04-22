@@ -26,6 +26,7 @@ import { AgentConfigForm } from "../components/AgentConfigForm";
 import { PageTabBar } from "../components/PageTabBar";
 import { adapterLabels, roleLabels, help } from "../components/agent-config-primitives";
 import { ToggleSwitch } from "@/components/ui/toggle-switch";
+import { useAdapterCapabilities } from "@/adapters/use-adapter-capabilities";
 import { MarkdownEditor } from "../components/MarkdownEditor";
 import { assetsApi } from "../api/assets";
 import { getUIAdapter, buildTranscript, onAdapterChange } from "../adapters";
@@ -42,6 +43,7 @@ import { PackageFileTree, buildFileTree } from "../components/PackageFileTree";
 import { ScrollToBottom } from "../components/ScrollToBottom";
 import { formatCents, formatDate, relativeTime, formatTokens, visibleRunCostUsd } from "../lib/utils";
 import { cn } from "../lib/utils";
+import { describeRunRetryState } from "../lib/runRetryState";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs } from "@/components/ui/tabs";
@@ -103,6 +105,7 @@ const runStatusIcons: Record<string, { icon: typeof CheckCircle2; color: string 
   failed: { icon: XCircle, color: "text-red-600 dark:text-red-400" },
   running: { icon: Loader2, color: "text-cyan-600 dark:text-cyan-400" },
   queued: { icon: Clock, color: "text-yellow-600 dark:text-yellow-400" },
+  scheduled_retry: { icon: Clock, color: "text-sky-600 dark:text-sky-400" },
   timed_out: { icon: Timer, color: "text-orange-600 dark:text-orange-400" },
   cancelled: { icon: Slash, color: "text-neutral-500 dark:text-neutral-400" },
 };
@@ -559,24 +562,24 @@ function WorkspaceOperationsSection({
                 || asNonEmptyString(metadata?.worktreePath)
                 || asNonEmptyString(metadata?.repoRoot)
                 || asNonEmptyString(metadata?.cleanupAction)) && (
-                  <div className="grid gap-1 text-xs sm:grid-cols-2">
-                    {asNonEmptyString(metadata?.branchName) && (
-                      <div><span className="text-muted-foreground">Branch: </span><span className="font-mono">{metadata?.branchName as string}</span></div>
-                    )}
-                    {asNonEmptyString(metadata?.baseRef) && (
-                      <div><span className="text-muted-foreground">Base ref: </span><span className="font-mono">{metadata?.baseRef as string}</span></div>
-                    )}
-                    {asNonEmptyString(metadata?.worktreePath) && (
-                      <div className="break-all"><span className="text-muted-foreground">Worktree: </span><span className="font-mono">{metadata?.worktreePath as string}</span></div>
-                    )}
-                    {asNonEmptyString(metadata?.repoRoot) && (
-                      <div className="break-all"><span className="text-muted-foreground">Repo root: </span><span className="font-mono">{metadata?.repoRoot as string}</span></div>
-                    )}
-                    {asNonEmptyString(metadata?.cleanupAction) && (
-                      <div><span className="text-muted-foreground">Cleanup: </span><span className="font-mono">{metadata?.cleanupAction as string}</span></div>
-                    )}
-                  </div>
-                )}
+                <div className="grid gap-1 text-xs sm:grid-cols-2">
+                  {asNonEmptyString(metadata?.branchName) && (
+                    <div><span className="text-muted-foreground">Branch: </span><span className="font-mono">{metadata?.branchName as string}</span></div>
+                  )}
+                  {asNonEmptyString(metadata?.baseRef) && (
+                    <div><span className="text-muted-foreground">Base ref: </span><span className="font-mono">{metadata?.baseRef as string}</span></div>
+                  )}
+                  {asNonEmptyString(metadata?.worktreePath) && (
+                    <div className="break-all"><span className="text-muted-foreground">Worktree: </span><span className="font-mono">{metadata?.worktreePath as string}</span></div>
+                  )}
+                  {asNonEmptyString(metadata?.repoRoot) && (
+                    <div className="break-all"><span className="text-muted-foreground">Repo root: </span><span className="font-mono">{metadata?.repoRoot as string}</span></div>
+                  )}
+                  {asNonEmptyString(metadata?.cleanupAction) && (
+                    <div><span className="text-muted-foreground">Cleanup: </span><span className="font-mono">{metadata?.cleanupAction as string}</span></div>
+                  )}
+                </div>
+              )}
               {typeof metadata?.created === "boolean" && (
                 <div className="text-xs text-muted-foreground">
                   {metadata.created ? "Created by this run" : "Reused existing workspace"}
@@ -748,7 +751,7 @@ export function AgentDetail() {
               ? "runs"
               : activeView === "budget"
                 ? "budget"
-                : "dashboard";
+              : "dashboard";
     if (routeAgentRef !== canonicalAgentRef || urlTab !== canonicalTab) {
       navigate(`/agents/${canonicalAgentRef}/${canonicalTab}`, { replace: true });
       return;
@@ -761,12 +764,13 @@ export function AgentDetail() {
   }, [agent?.companyId, selectedCompanyId, setSelectedCompanyId]);
 
   const agentAction = useMutation({
-    mutationFn: async (action: "invoke" | "pause" | "resume" | "terminate") => {
+    mutationFn: async (action: "invoke" | "pause" | "resume" | "approve" | "terminate") => {
       if (!agentLookupRef) return Promise.reject(new Error("No agent reference"));
       switch (action) {
         case "invoke": return agentsApi.invoke(agentLookupRef, resolvedCompanyId ?? undefined);
         case "pause": return agentsApi.pause(agentLookupRef, resolvedCompanyId ?? undefined);
         case "resume": return agentsApi.resume(agentLookupRef, resolvedCompanyId ?? undefined);
+        case "approve": return agentsApi.approve(agentLookupRef, resolvedCompanyId ?? undefined);
         case "terminate": return agentsApi.terminate(agentLookupRef, resolvedCompanyId ?? undefined);
       }
     },
@@ -865,8 +869,8 @@ export function AgentDetail() {
         crumbs.push({ label: "Instructions" });
       } else if (activeView === "configuration") {
         crumbs.push({ label: "Configuration" });
-        // } else if (activeView === "skills") { // TODO: bring back later
-        //   crumbs.push({ label: "Skills" });
+      // } else if (activeView === "skills") { // TODO: bring back later
+      //   crumbs.push({ label: "Skills" });
       } else if (activeView === "runs") {
         crumbs.push({ label: "Runs" });
       } else if (activeView === "budget") {
@@ -1020,21 +1024,23 @@ export function AgentDetail() {
 
       {actionError && <p className="text-sm text-destructive">{actionError}</p>}
       {isPendingApproval && (
-        <p className="text-sm text-amber-500">
-          This agent is pending board approval and cannot be invoked yet.
-        </p>
+        <div className="flex flex-wrap items-center gap-3 rounded-md border border-amber-300/60 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-400/40 dark:bg-amber-950/30 dark:text-amber-200">
+          <span>This agent is pending board approval and cannot be invoked yet.</span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => agentAction.mutate("approve")}
+            disabled={agentAction.isPending}
+          >
+            <CheckCircle2 className="h-3.5 w-3.5 sm:mr-1" />
+            <span>Approve agent</span>
+          </Button>
+        </div>
       )}
 
       {/* Floating Save/Cancel (desktop) */}
-      {!isMobile && (
-        <div
-          className={cn(
-            "sticky top-6 z-10 float-right transition-opacity duration-150",
-            showConfigActionBar
-              ? "opacity-100"
-              : "opacity-0 pointer-events-none"
-          )}
-        >
+      {!isMobile && showConfigActionBar && (
+        <div className="fixed bottom-6 right-6 z-30">
           <div className="flex items-center gap-2 bg-background/90 backdrop-blur-sm border border-border rounded-lg px-3 py-1.5 shadow-lg">
             <Button
               variant="ghost"
@@ -1230,8 +1236,8 @@ function LatestRunCard({ runs, agentId }: { runs: HeartbeatRun[]; agentId: strin
             "inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium",
             run.invocationSource === "timer" ? "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
               : run.invocationSource === "assignment" ? "bg-violet-100 text-violet-700 dark:bg-violet-900/50 dark:text-violet-300"
-                : run.invocationSource === "on_demand" ? "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/50 dark:text-cyan-300"
-                  : "bg-muted text-muted-foreground"
+              : run.invocationSource === "on_demand" ? "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/50 dark:text-cyan-300"
+              : "bg-muted text-muted-foreground"
           )}>
             {sourceLabels[run.invocationSource] ?? run.invocationSource}
           </span>
@@ -1696,6 +1702,7 @@ function PromptsTab({
   const [pendingFiles, setPendingFiles] = useState<string[]>([]);
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set());
   const [filePanelWidth, setFilePanelWidth] = useState(260);
+  const [instructionPaneWidth, setInstructionPaneWidth] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [awaitingRefresh, setAwaitingRefresh] = useState(false);
   const lastFileVersionRef = useRef<string | null>(null);
@@ -1719,13 +1726,8 @@ function PromptsTab({
     externalBundleRef.current = null;
   }, [agent.id]);
 
-  const isLocal =
-    agent.adapterType === "claude_local" ||
-    agent.adapterType === "codex_local" ||
-    agent.adapterType === "opencode_local" ||
-    agent.adapterType === "pi_local" ||
-    agent.adapterType === "hermes_local" ||
-    agent.adapterType === "cursor";
+  const getCapabilities = useAdapterCapabilities();
+  const isLocal = getCapabilities(agent.adapterType).supportsInstructionsBundle;
 
   const { data: bundle, isLoading: bundleLoading } = useQuery({
     queryKey: queryKeys.agents.instructionsBundle(agent.id),
@@ -1849,6 +1851,26 @@ function PromptsTab({
   }, [visibleFilePaths]);
 
   useEffect(() => {
+    if (isMobile) {
+      setInstructionPaneWidth(null);
+      return;
+    }
+    const element = containerRef.current;
+    if (!element) return;
+
+    const updateWidth = () => setInstructionPaneWidth(element.getBoundingClientRect().width);
+    updateWidth();
+
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (entry) setInstructionPaneWidth(entry.contentRect.width);
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [bundleLoading, isMobile, visibleFilePaths.length]);
+
+  useEffect(() => {
     const versionKey = selectedFileExists && selectedFileDetail
       ? `${selectedFileDetail.path}:${selectedFileDetail.content}`
       : `draft:${currentMode}:${currentRootPath}:${selectedOrEntryFile}`;
@@ -1890,11 +1912,11 @@ function PromptsTab({
   const displayValue = draft ?? currentContent;
   const bundleDirty = Boolean(
     bundleDraft &&
-    (
-      bundleDraft.mode !== persistedMode ||
-      bundleDraft.rootPath !== persistedRootPath ||
-      bundleDraft.entryFile !== (bundle?.entryFile ?? "AGENTS.md")
-    ),
+      (
+        bundleDraft.mode !== persistedMode ||
+        bundleDraft.rootPath !== persistedRootPath ||
+        bundleDraft.entryFile !== (bundle?.entryFile ?? "AGENTS.md")
+      ),
   );
   const fileDirty = draft !== null && draft !== currentContent;
   const isDirty = bundleDirty || fileDirty;
@@ -1972,6 +1994,9 @@ function PromptsTab({
     document.body.style.userSelect = "none";
   }, [filePanelWidth]);
 
+  const instructionsSideBySide =
+    !isMobile && instructionPaneWidth !== null && instructionPaneWidth >= filePanelWidth + 520;
+
   if (!isLocal) {
     return (
       <div className="max-w-3xl">
@@ -2005,8 +2030,8 @@ function PromptsTab({
         </CollapsibleTrigger>
         <CollapsibleContent className="pt-4 pb-6">
           <TooltipProvider>
-            <div className="grid gap-x-6 gap-y-4 sm:grid-cols-[auto_1fr_1fr]">
-              <label className="space-y-1.5">
+            <div className="grid gap-x-6 gap-y-4 md:grid-cols-[auto_minmax(0,1fr)_minmax(12rem,0.65fr)]">
+              <label className="space-y-1.5 min-w-0">
                 <span className="text-xs font-medium text-muted-foreground flex items-center gap-1">
                   Mode
                   <Tooltip>
@@ -2151,12 +2176,20 @@ function PromptsTab({
         </CollapsibleContent>
       </Collapsible>
 
-      <div ref={containerRef} className={cn("flex gap-0", isMobile && "flex-col gap-3")}>
+      <div
+        ref={containerRef}
+        className="grid min-w-0 gap-3"
+        style={
+          instructionsSideBySide
+            ? { gridTemplateColumns: `${filePanelWidth}px 0.5rem minmax(0, 1fr)` }
+            : undefined
+        }
+      >
         <div className={cn(
-          "border border-border rounded-lg p-3 space-y-3 shrink-0",
+          "min-w-0 w-full border border-border rounded-lg p-3 space-y-3",
           isMobile && showFilePanel && "block",
           isMobile && !showFilePanel && "hidden",
-        )} style={isMobile ? undefined : { width: filePanelWidth }}>
+        )}>
           <div className="flex items-center justify-between">
             <h4 className="text-sm font-medium">Files</h4>
             <div className="flex items-center gap-1">
@@ -2249,8 +2282,9 @@ function PromptsTab({
               if (!fileOptions.includes(filePath)) setDraft("");
               if (isMobile) setShowFilePanel(false);
             }}
-            onToggleCheck={() => { }}
+            onToggleCheck={() => {}}
             showCheckboxes={false}
+            wrapLabels
             renderFileExtra={(node) => {
               const file = bundle?.files.find((entry) => entry.path === node.path);
               if (!file) return null;
@@ -2278,14 +2312,14 @@ function PromptsTab({
         </div>
 
         {/* Draggable separator */}
-        {!isMobile && (
+        {instructionsSideBySide && (
           <div
-            className="w-1 shrink-0 cursor-col-resize hover:bg-border active:bg-primary/50 rounded transition-colors mx-1"
+            className="w-1 cursor-col-resize rounded transition-colors hover:bg-border active:bg-primary/50"
             onMouseDown={handleSeparatorDrag}
           />
         )}
 
-        <div className={cn("border border-border rounded-lg p-4 space-y-3 min-w-0 flex-1", isMobile && showFilePanel && "hidden")}>
+        <div className={cn("min-w-0 w-full overflow-hidden border border-border rounded-lg p-4 space-y-3", isMobile && showFilePanel && "hidden")}>
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 min-w-0">
               {isMobile && (
@@ -2310,26 +2344,39 @@ function PromptsTab({
                 </p>
               </div>
             </div>
-            {selectedFileExists && !selectedFileSummary?.deprecated && selectedOrEntryFile !== currentEntryFile && (
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  if (confirm(`Delete ${selectedOrEntryFile}?`)) {
-                    deleteFile.mutate(selectedOrEntryFile, {
-                      onSuccess: () => {
-                        setSelectedFile(currentEntryFile);
-                        setDraft(null);
-                      },
-                    });
-                  }
-                }}
-                disabled={deleteFile.isPending}
-              >
-                Delete
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+              {!fileLoading && (
+                <CopyText
+                  text={displayValue}
+                  ariaLabel="Copy instructions file as markdown"
+                  title="Copy as markdown"
+                  copiedLabel="Copied"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border text-muted-foreground hover:bg-accent hover:text-foreground"
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                </CopyText>
+              )}
+              {selectedFileExists && !selectedFileSummary?.deprecated && selectedOrEntryFile !== currentEntryFile && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    if (confirm(`Delete ${selectedOrEntryFile}?`)) {
+                      deleteFile.mutate(selectedOrEntryFile, {
+                        onSuccess: () => {
+                          setSelectedFile(currentEntryFile);
+                          setDraft(null);
+                        },
+                      });
+                    }
+                  }}
+                  disabled={deleteFile.isPending}
+                >
+                  Delete
+                </Button>
+              )}
+            </div>
           </div>
 
           {selectedFileExists && fileLoading && !selectedFileDetail ? (
@@ -2340,7 +2387,8 @@ function PromptsTab({
               value={displayValue}
               onChange={(value) => setDraft(value ?? "")}
               placeholder="# Agent instructions"
-              contentClassName="min-h-[420px] text-sm font-mono"
+              className="min-w-0 overflow-hidden"
+              contentClassName="min-h-[420px] max-w-full break-words text-sm font-mono"
               imageUploadHandler={async (file) => {
                 const namespace = `agents/${agent.id}/instructions/${selectedOrEntryFile.replaceAll("/", "-")}`;
                 const asset = await uploadMarkdownImage.mutateAsync({ file, namespace });
@@ -2351,7 +2399,7 @@ function PromptsTab({
             <textarea
               value={displayValue}
               onChange={(event) => setDraft(event.target.value)}
-              className="min-h-[420px] w-full rounded-md border border-border bg-transparent px-3 py-2 font-mono text-sm outline-none"
+              className="min-h-[420px] w-full min-w-0 rounded-md border border-border bg-transparent px-3 py-2 font-mono text-sm outline-none"
               placeholder="File contents"
             />
           )}
@@ -2852,8 +2900,8 @@ function RunListItem({ run, isSelected, agentId }: { run: HeartbeatRun; isSelect
           "inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium shrink-0",
           run.invocationSource === "timer" ? "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
             : run.invocationSource === "assignment" ? "bg-violet-100 text-violet-700 dark:bg-violet-900/50 dark:text-violet-300"
-              : run.invocationSource === "on_demand" ? "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/50 dark:text-cyan-300"
-                : "bg-muted text-muted-foreground"
+            : run.invocationSource === "on_demand" ? "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/50 dark:text-cyan-300"
+            : "bg-muted text-muted-foreground"
         )}>
           {sourceLabels[run.invocationSource] ?? run.invocationSource}
         </span>
@@ -2942,9 +2990,9 @@ function RunsTab({
         selectedRun ? "w-72" : "w-full",
       )}>
         <div className="sticky top-4 overflow-y-auto" style={{ maxHeight: "calc(100vh - 2rem)" }}>
-          {sorted.map((run) => (
-            <RunListItem key={run.id} run={run} isSelected={run.id === effectiveRunId} agentId={agentRouteId} />
-          ))}
+        {sorted.map((run) => (
+          <RunListItem key={run.id} run={run} isSelected={run.id === effectiveRunId} agentId={agentRouteId} />
+        ))}
         </div>
       </div>
 
@@ -3108,6 +3156,7 @@ function RunDetail({ run: initialRun, agentRouteId, adapterType, adapterConfig }
   const sessionChanged = run.sessionIdBefore && run.sessionIdAfter && run.sessionIdBefore !== run.sessionIdAfter;
   const sessionId = run.sessionIdAfter || run.sessionIdBefore;
   const hasNonZeroExit = run.exitCode !== null && run.exitCode !== 0;
+  const retryState = describeRunRetryState(run);
 
   return (
     <div className="space-y-4 min-w-0">
@@ -3260,6 +3309,30 @@ function RunDetail({ run: initialRun, agentRouteId, adapterType, adapterConfig }
               <div className="text-xs text-red-600 dark:text-red-400">
                 Exit code {run.exitCode}
                 {run.signal && <span className="text-muted-foreground ml-1">(signal: {run.signal})</span>}
+              </div>
+            )}
+            {retryState && (
+              <div className="rounded-md border border-border/70 bg-accent/20 px-3 py-2 text-xs leading-5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span
+                    className={cn(
+                      "rounded-md border px-1.5 py-0.5 text-[11px] font-medium",
+                      retryState.tone,
+                    )}
+                  >
+                    {retryState.badgeLabel}
+                  </span>
+                  {retryState.retryOfRunId ? (
+                    <Link
+                      to={`/agents/${agentRouteId}/runs/${retryState.retryOfRunId}`}
+                      className="font-mono text-foreground hover:underline"
+                    >
+                      {retryState.retryOfRunId.slice(0, 8)}
+                    </Link>
+                  ) : null}
+                </div>
+                {retryState.detail ? <p className="mt-2 text-muted-foreground">{retryState.detail}</p> : null}
+                {retryState.secondary ? <p className="text-muted-foreground">{retryState.secondary}</p> : null}
               </div>
             )}
           </div>

@@ -8,6 +8,7 @@ import type {
   Issue,
   IssueDocument,
 } from "@taskcore/shared";
+import { isSystemIssueDocumentKey } from "@taskcore/shared";
 import { useLocation } from "@/lib/router";
 import { ApiError } from "../api/client";
 import { issuesApi } from "../api/issues";
@@ -204,6 +205,7 @@ export function IssueDocumentsSection({
   }, [issue.id, queryClient]);
 
   const syncDocumentCaches = useCallback((document: IssueDocument) => {
+    if (isSystemIssueDocumentKey(document.key)) return;
     queryClient.setQueryData<IssueDocument[] | undefined>(
       queryKeys.issues.documents(issue.id),
       (current) => {
@@ -273,7 +275,7 @@ export function IssueDocumentsSection({
   });
 
   const sortedDocuments = useMemo(() => {
-    return [...(documents ?? [])].sort((a, b) => {
+    return (documents ?? []).filter((doc) => !isSystemIssueDocumentKey(doc.key)).sort((a, b) => {
       if (a.key === "plan" && b.key !== "plan") return -1;
       if (a.key !== "plan" && b.key === "plan") return 1;
       return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
@@ -921,7 +923,7 @@ export function IssueDocumentsSection({
                         <MoreHorizontal className="h-3.5 w-3.5" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
+                      <DropdownMenuContent align="end">
                       {!isHistoricalPreview ? (
                         <DropdownMenuItem onClick={() => beginEdit(doc.key)}>
                           <FilePenLine className="h-3.5 w-3.5" />
@@ -961,17 +963,17 @@ export function IssueDocumentsSection({
                   className="mt-3 space-y-3"
                   onBlurCapture={!isHistoricalPreview
                     ? async (event) => {
-                      if (activeDraft) {
-                        await handleDraftBlur(event);
+                        if (activeDraft) {
+                          await handleDraftBlur(event);
+                        }
                       }
-                    }
                     : undefined}
                   onKeyDown={!isHistoricalPreview
                     ? async (event) => {
-                      if (activeDraft) {
-                        await handleDraftKeyDown(event);
+                        if (activeDraft) {
+                          await handleDraftKeyDown(event);
+                        }
                       }
-                    }
                     : undefined}
                 >
                   {isHistoricalPreview && selectedHistoricalRevision && (
@@ -1081,8 +1083,9 @@ export function IssueDocumentsSection({
                     />
                   )}
                   <div
-                    className={`${documentBodyShellClassName} ${documentBodyPaddingClassName} ${activeDraft || isHistoricalPreview ? "" : "hover:bg-accent/10"
-                      }`}
+                    className={`${documentBodyShellClassName} ${documentBodyPaddingClassName} ${
+                      activeDraft || isHistoricalPreview ? "" : "hover:bg-accent/10"
+                    }`}
                   >
                     {isHistoricalPreview ? (
                       <div className="rounded-md border border-amber-500/20 bg-background/50 p-3">
@@ -1116,29 +1119,30 @@ export function IssueDocumentsSection({
                   </div>
                   <div className="flex min-h-4 items-center justify-end px-1">
                     <span
-                      className={`text-[11px] transition-opacity duration-150 ${isHistoricalPreview
-                        ? "text-amber-300"
-                        : activeConflict
+                      className={`text-[11px] transition-opacity duration-150 ${
+                        isHistoricalPreview
+                          ? "text-amber-300"
+                          : activeConflict
                           ? "text-amber-300"
                           : autosaveState === "error"
                             ? "text-destructive"
                             : "text-muted-foreground"
-                        } ${activeDraft || isHistoricalPreview ? "opacity-100" : "opacity-0"}`}
+                      } ${activeDraft || isHistoricalPreview ? "opacity-100" : "opacity-0"}`}
                     >
                       {isHistoricalPreview
                         ? "Viewing historical revision"
                         : activeDraft
                           ? activeConflict
-                            ? "Out of date"
-                            : autosaveDocumentKey === doc.key
-                              ? autosaveState === "saving"
-                                ? "Autosaving..."
-                                : autosaveState === "saved"
-                                  ? "Saved"
-                                  : autosaveState === "error"
-                                    ? "Could not save"
-                                    : ""
-                              : ""
+                          ? "Out of date"
+                          : autosaveDocumentKey === doc.key
+                            ? autosaveState === "saving"
+                              ? "Autosaving..."
+                              : autosaveState === "saved"
+                                ? "Saved"
+                                : autosaveState === "error"
+                                  ? "Could not save"
+                                  : ""
+                            : ""
                           : ""}
                     </span>
                   </div>

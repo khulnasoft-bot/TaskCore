@@ -24,7 +24,7 @@ type AgentSnippetInput = {
   testResolutionUrl?: string | null;
 };
 
-const FEEDBACK_TERMS_URL = import.meta.env.VITE_FEEDBACK_TERMS_URL?.trim() || "https://taskcore.khulnasoft.com/tos";
+const FEEDBACK_TERMS_URL = import.meta.env.VITE_FEEDBACK_TERMS_URL?.trim() || "https://taskcore.ing/tos";
 
 export function CompanySettings() {
   const {
@@ -394,8 +394,8 @@ export function CompanySettings() {
           {generalMutation.isError && (
             <span className="text-xs text-destructive">
               {generalMutation.error instanceof Error
-                ? generalMutation.error.message
-                : "Failed to save"}
+                  ? generalMutation.error.message
+                  : "Failed to save"}
             </span>
           )}
         </div>
@@ -603,8 +603,8 @@ export function CompanySettings() {
               {archiveMutation.isPending
                 ? "Archiving..."
                 : selectedCompany.status === "archived"
-                  ? "Already archived"
-                  : "Archive company"}
+                ? "Already archived"
+                : "Archive company"}
             </Button>
             {archiveMutation.isError && (
               <span className="text-xs text-destructive">

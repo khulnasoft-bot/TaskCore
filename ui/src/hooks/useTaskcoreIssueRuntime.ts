@@ -65,13 +65,13 @@ export function useTaskcoreIssueRuntime({
       const reassignmentRecord = asRecord(custom?.reassignment);
       const reassignment =
         reassignmentRecord &&
-          ("assigneeAgentId" in reassignmentRecord || "assigneeUserId" in reassignmentRecord)
+        ("assigneeAgentId" in reassignmentRecord || "assigneeUserId" in reassignmentRecord)
           ? {
-            assigneeAgentId:
-              typeof reassignmentRecord.assigneeAgentId === "string" ? reassignmentRecord.assigneeAgentId : null,
-            assigneeUserId:
-              typeof reassignmentRecord.assigneeUserId === "string" ? reassignmentRecord.assigneeUserId : null,
-          }
+              assigneeAgentId:
+                typeof reassignmentRecord.assigneeAgentId === "string" ? reassignmentRecord.assigneeAgentId : null,
+              assigneeUserId:
+                typeof reassignmentRecord.assigneeUserId === "string" ? reassignmentRecord.assigneeUserId : null,
+            }
           : undefined;
 
       await onSendRef.current({

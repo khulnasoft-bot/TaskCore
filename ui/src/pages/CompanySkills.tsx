@@ -46,6 +46,7 @@ import {
   Github,
   Link2,
   ExternalLink,
+  Taskcore,
   Pencil,
   Plus,
   RefreshCw,
@@ -53,7 +54,6 @@ import {
   Search,
   Trash2,
 } from "lucide-react";
-import { TaskcoreIcon } from "../components/TaskcoreIcon";
 
 type SkillTreeNode = {
   name: string;
@@ -160,7 +160,7 @@ function sourceMeta(sourceBadge: CompanySkillSourceBadge, sourceLabel: string | 
     case "local":
       return { icon: Folder, label: sourceLabel ?? "Folder", managedLabel: "Folder managed" };
     case "taskcore":
-      return { icon: TaskcoreIcon, label: sourceLabel ?? "Taskcore", managedLabel: "Taskcore managed" };
+      return { icon: Taskcore, label: sourceLabel ?? "Taskcore", managedLabel: "Taskcore managed" };
     default:
       return { icon: Boxes, label: sourceLabel ?? "Catalog", managedLabel: "Catalog managed" };
   }
@@ -1259,7 +1259,7 @@ export function CompanySkills() {
                 });
               }}
               onSelectSkill={(currentSkillId) => setExpandedSkillId(currentSkillId)}
-              onSelectPath={() => { }}
+              onSelectPath={() => {}}
             />
           )}
         </aside>

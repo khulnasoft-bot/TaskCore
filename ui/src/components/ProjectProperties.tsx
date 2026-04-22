@@ -273,9 +273,9 @@ export function ProjectProperties({ project, onUpdate, onFieldUpdate, getFieldSa
   const linkedGoals = project.goals.length > 0
     ? project.goals
     : linkedGoalIds.map((id) => ({
-      id,
-      title: allGoals?.find((g) => g.id === id)?.title ?? id.slice(0, 8),
-    }));
+        id,
+        title: allGoals?.find((g) => g.id === id)?.title ?? id.slice(0, 8),
+      }));
 
   const availableGoals = (allGoals ?? []).filter((g) => !linkedGoalIds.includes(g.id));
   const workspaces = project.workspaces ?? [];
