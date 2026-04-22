@@ -2,7 +2,8 @@
   "extends": "../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "dist",
-    "rootDir": "src"
+    "rootDir": "src",
+    "types": ["express", "express-serve-static-core", "node", "ws", "multer", "jsdom", "supertest"]
   },
   "include": ["src"],
   "exclude": ["src/__tests__"]
