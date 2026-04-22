@@ -20,11 +20,6 @@ export interface BudgetPolicy {
   hardStopEnabled: boolean;
   notifyEnabled: boolean;
   isActive: boolean;
-  circuitBreaker?: {
-    failureThreshold: number;
-    windowMs: number;
-    autoPause: boolean;
-  } | null;
   createdByUserId: string | null;
   updatedByUserId: string | null;
   createdAt: Date;
