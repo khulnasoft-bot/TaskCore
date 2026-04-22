@@ -17,6 +17,7 @@ import { useBreadcrumbs } from "../context/BreadcrumbContext";
 import { useToastActions } from "../context/ToastContext";
 import { queryKeys } from "../lib/queryKeys";
 import { EmptyState } from "../components/EmptyState";
+import { TaskcoreIcon } from "../components/TaskcoreIcon";
 import { MarkdownBody } from "../components/MarkdownBody";
 import { MarkdownEditor } from "../components/MarkdownEditor";
 import { PageSkeleton } from "../components/PageSkeleton";
@@ -46,7 +47,6 @@ import {
   Github,
   Link2,
   ExternalLink,
-  Taskcore,
   Pencil,
   Plus,
   RefreshCw,
@@ -160,7 +160,7 @@ function sourceMeta(sourceBadge: CompanySkillSourceBadge, sourceLabel: string | 
     case "local":
       return { icon: Folder, label: sourceLabel ?? "Folder", managedLabel: "Folder managed" };
     case "taskcore":
-      return { icon: Taskcore, label: sourceLabel ?? "Taskcore", managedLabel: "Taskcore managed" };
+      return { icon: TaskcoreIcon, label: sourceLabel ?? "Taskcore", managedLabel: "Taskcore managed" };
     default:
       return { icon: Boxes, label: sourceLabel ?? "Catalog", managedLabel: "Catalog managed" };
   }

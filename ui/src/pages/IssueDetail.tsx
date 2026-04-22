@@ -79,6 +79,7 @@ import { Identity } from "../components/Identity";
 import { PluginSlotMount, PluginSlotOutlet, usePluginSlots } from "@/plugins/slots";
 import { PluginLauncherOutlet } from "@/plugins/launchers";
 import { Separator } from "@/components/ui/separator";
+import { TaskcoreIcon } from "../components/TaskcoreIcon";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -102,7 +103,6 @@ import {
   MessageSquare,
   MoreHorizontal,
   MoreVertical,
-  Taskcore,
   Plus,
   Repeat,
   SlidersHorizontal,
@@ -2427,7 +2427,7 @@ export function IssueDetail() {
           attachmentDragActive && "border-primary bg-primary/5",
         )}
       >
-        <Taskcore className="h-3.5 w-3.5 mr-1.5" />
+        <TaskcoreIcon className="h-3.5 w-3.5 mr-1.5" />
         {uploadAttachment.isPending || importMarkdownDocument.isPending ? "Uploading..." : (
           <>
             <span className="hidden sm:inline">Upload attachment</span>
