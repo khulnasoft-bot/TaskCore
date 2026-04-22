@@ -16,7 +16,7 @@
   "topbarLinks": [
     {
       "name": "GitHub",
-      "url": "https://github.com/taskcore-ai/taskcore"
+      "url": "https://github.com/khulnasoft-ai/taskcore"
     }
   ],
   "navigation": {
@@ -46,6 +46,8 @@
               "guides/board-operator/managing-agents",
               "guides/board-operator/org-structure",
               "guides/board-operator/managing-tasks",
+              "guides/board-operator/execution-workspaces-and-runtime-services",
+              "guides/board-operator/delegation",
               "guides/board-operator/execution-workspaces-and-runtime-services",
               "guides/board-operator/delegation",
               "guides/board-operator/approvals",
@@ -142,6 +144,6 @@
     ]
   },
   "footerSocials": {
-    "github": "https://github.com/taskcore-ai/taskcore"
+    "github": "https://github.com/khulnasoft-ai/taskcore"
   }
 }

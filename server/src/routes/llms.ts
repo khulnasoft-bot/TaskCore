@@ -78,7 +78,7 @@ export function llmRoutes(db: Db) {
       .type("text/plain")
       .send(
         adapter.agentConfigurationDoc ??
-        `# ${adapterType} agent configuration\n\nNo adapter-specific documentation registered.`,
+          `# ${adapterType} agent configuration\n\nNo adapter-specific documentation registered.`,
       );
   });
 

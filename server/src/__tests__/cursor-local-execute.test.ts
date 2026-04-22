@@ -93,7 +93,7 @@ describe("cursor execute", () => {
         },
         context: {},
         authToken: "run-jwt-token",
-        onLog: async () => { },
+        onLog: async () => {},
         onMeta: async (meta) => {
           invocationPrompt = meta.prompt ?? "";
         },
@@ -168,7 +168,7 @@ describe("cursor execute", () => {
         },
         context: {},
         authToken: "run-jwt-token",
-        onLog: async () => { },
+        onLog: async () => {},
       });
 
       expect(result.exitCode).toBe(0);
@@ -240,8 +240,8 @@ describe("cursor execute", () => {
         },
         context: {},
         authToken: "run-jwt-token",
-        onLog: async () => { },
-        onMeta: async () => { },
+        onLog: async () => {},
+        onMeta: async () => {},
       });
 
       expect(result.exitCode).toBe(0);

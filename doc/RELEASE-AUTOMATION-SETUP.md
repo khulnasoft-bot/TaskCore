@@ -44,7 +44,7 @@ For each package:
 
 1. open npm as an owner of the package
 2. go to the package settings / publishing access area
-3. add a trusted publisher for the GitHub repository `taskcore/taskcore`
+3. add a trusted publisher for the GitHub repository `khulnasoft/taskcore`
 
 ### 2.2. Add one trusted publisher entry per package
 

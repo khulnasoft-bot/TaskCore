@@ -18,6 +18,7 @@ All environment variables that Taskcore uses for server configuration.
 | `TASKCORE_INSTANCE_ID` | `default` | Instance identifier (for multiple local instances) |
 | `TASKCORE_DEPLOYMENT_MODE` | `local_trusted` | Runtime mode override |
 | `TASKCORE_DEPLOYMENT_EXPOSURE` | `private` | Exposure policy when deployment mode is `authenticated` |
+| `TASKCORE_API_URL` | (auto-derived) | Taskcore API base URL. When set externally (e.g., via Kubernetes ConfigMap, load balancer, or reverse proxy), the server preserves the value instead of deriving it from the listen host and port. Useful for deployments where the public-facing URL differs from the local bind address. |
 
 ## Secrets
 
@@ -35,7 +36,7 @@ These are set automatically by the server when invoking agents:
 |----------|-------------|
 | `TASKCORE_AGENT_ID` | Agent's unique ID |
 | `TASKCORE_COMPANY_ID` | Company ID |
-| `TASKCORE_API_URL` | Taskcore API base URL |
+| `TASKCORE_API_URL` | Taskcore API base URL (inherits the server-level value; see Server Configuration above) |
 | `TASKCORE_API_KEY` | Short-lived JWT for API auth |
 | `TASKCORE_RUN_ID` | Current heartbeat run ID |
 | `TASKCORE_TASK_ID` | Issue that triggered this wake |

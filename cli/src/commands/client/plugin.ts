@@ -136,10 +136,10 @@ export function registerPluginCommands(program: Command): void {
       .command("install <package>")
       .description(
         "Install a plugin from a local path or npm package.\n" +
-        "  Examples:\n" +
-        "    taskcore plugin install ./my-plugin              # local path\n" +
-        "    taskcore plugin install @acme/plugin-linear      # npm package\n" +
-        "    taskcore plugin install @acme/plugin-linear@1.2  # pinned version",
+          "  Examples:\n" +
+          "    taskcore plugin install ./my-plugin              # local path\n" +
+          "    taskcore plugin install @acme/plugin-linear      # npm package\n" +
+          "    taskcore plugin install @acme/plugin-linear@1.2  # pinned version",
       )
       .option("-l, --local", "Treat <package> as a local filesystem path", false)
       .option("--version <version>", "Specific npm version to install (npm packages only)")
@@ -206,7 +206,7 @@ export function registerPluginCommands(program: Command): void {
       .command("uninstall <pluginKey>")
       .description(
         "Uninstall a plugin by its plugin key or database ID.\n" +
-        "  Use --force to hard-purge all state and config.",
+          "  Use --force to hard-purge all state and config.",
       )
       .option("--force", "Purge all plugin state and config (hard delete)", false)
       .action(async (pluginKey: string, opts: PluginUninstallOptions) => {
@@ -362,8 +362,8 @@ export function registerPluginCommands(program: Command): void {
           for (const ex of rows) {
             console.log(
               `${pc.bold(ex.displayName)}  ${pc.dim(ex.pluginKey)}\n` +
-              `  ${ex.description}\n` +
-              `  ${pc.cyan(`taskcore plugin install ${ex.localPath}`)}`,
+                `  ${ex.description}\n` +
+                `  ${pc.cyan(`taskcore plugin install ${ex.localPath}`)}`,
             );
           }
         } catch (err) {

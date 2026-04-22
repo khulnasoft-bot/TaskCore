@@ -206,13 +206,13 @@ function ImportPreviewPane({
   // Resolve relative image paths within the import package
   const resolveImageSrc = isMarkdown
     ? (src: string) => {
-      if (/^(?:https?:|data:)/i.test(src)) return null;
-      const dir = selectedFile.includes("/") ? selectedFile.slice(0, selectedFile.lastIndexOf("/") + 1) : "";
-      const resolved = dir + src;
-      const entry = allFiles[resolved] ?? allFiles[src];
-      if (!entry) return null;
-      return getPortableFileDataUrl(resolved in allFiles ? resolved : src, entry);
-    }
+        if (/^(?:https?:|data:)/i.test(src)) return null;
+        const dir = selectedFile.includes("/") ? selectedFile.slice(0, selectedFile.lastIndexOf("/") + 1) : "";
+        const resolved = dir + src;
+        const entry = allFiles[resolved] ?? allFiles[src];
+        if (!entry) return null;
+        return getPortableFileDataUrl(resolved in allFiles ? resolved : src, entry);
+      }
     : undefined;
 
   return (
@@ -1080,8 +1080,8 @@ export function CompanyImport() {
 
   const previewContent = selectedFile && importPreview
     ? (() => {
-      return importPreview.files[selectedFile] ?? null;
-    })()
+        return importPreview.files[selectedFile] ?? null;
+      })()
     : null;
   const selectedAction = selectedFile ? (actionMap.get(selectedFile) ?? null) : null;
 

@@ -82,8 +82,8 @@ describe("useTaskcoreIssueRuntime", () => {
     document.body.appendChild(container);
     const root = createRoot(container);
     const messages: ThreadMessage[] = [createUserMessage("message-1", "hello")];
-    const firstOnSend = vi.fn(async () => { });
-    const secondOnSend = vi.fn(async () => { });
+    const firstOnSend = vi.fn(async () => {});
+    const secondOnSend = vi.fn(async () => {});
 
     act(() => {
       root.render(
@@ -137,7 +137,7 @@ describe("useTaskcoreIssueRuntime", () => {
     const container = document.createElement("div");
     document.body.appendChild(container);
     const root = createRoot(container);
-    const onSend = vi.fn(async () => { });
+    const onSend = vi.fn(async () => {});
     const firstMessages: ThreadMessage[] = [createUserMessage("message-1", "hello")];
     const secondMessages: ThreadMessage[] = [...firstMessages, createAssistantMessage("message-2", "world")];
 

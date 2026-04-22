@@ -123,7 +123,7 @@ async function ensureEmbeddedPostgres(dataDir: string, preferredPort: number): P
     return {
       port: readPidFilePort(postmasterPidFile) ?? preferredPort,
       startedByThisProcess: false,
-      stop: async () => { },
+      stop: async () => {},
     };
   }
 
@@ -326,7 +326,7 @@ export async function disableAllRoutinesCommand(options: RoutinesDisableAllOptio
 
   console.log(
     `Paused ${result.pausedCount} routine(s) for company ${result.companyId} ` +
-    `(${result.alreadyPausedCount} already paused, ${result.archivedCount} archived).`,
+      `(${result.alreadyPausedCount} already paused, ${result.archivedCount} archived).`,
   );
 }
 

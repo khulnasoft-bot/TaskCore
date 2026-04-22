@@ -47,6 +47,8 @@ Read tools:
 - `taskcoreListDocumentRevisions`
 - `taskcoreListProjects`
 - `taskcoreGetProject`
+- `taskcoreGetIssueWorkspaceRuntime`
+- `taskcoreWaitForIssueWorkspaceService`
 - `taskcoreListGoals`
 - `taskcoreGetGoal`
 - `taskcoreListApprovals`
@@ -61,8 +63,12 @@ Write tools:
 - `taskcoreCheckoutIssue`
 - `taskcoreReleaseIssue`
 - `taskcoreAddComment`
+- `taskcoreSuggestTasks`
+- `taskcoreAskUserQuestions`
+- `taskcoreRequestConfirmation`
 - `taskcoreUpsertIssueDocument`
 - `taskcoreRestoreIssueDocumentRevision`
+- `taskcoreControlIssueWorkspaceServices`
 - `taskcoreCreateApproval`
 - `taskcoreLinkIssueApproval`
 - `taskcoreUnlinkIssueApproval`

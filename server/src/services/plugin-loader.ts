@@ -48,6 +48,7 @@ import type { PluginJobScheduler } from "./plugin-job-scheduler.js";
 import type { PluginJobStore } from "./plugin-job-store.js";
 import type { PluginToolDispatcher } from "./plugin-tool-dispatcher.js";
 import type { PluginLifecycleManager } from "./plugin-lifecycle.js";
+import { pluginDatabaseService } from "./plugin-database.js";
 
 const execFileAsync = promisify(execFile);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -146,6 +147,9 @@ export interface PluginLoaderOptions {
    * Defaults to ~/.taskcore/plugins/
    */
   localPluginDir?: string;
+
+  /** Optional direct Postgres connection used for plugin DDL migrations. */
+  migrationDb?: Db;
 
   /**
    * Whether to scan the local filesystem directory for plugins.
@@ -735,6 +739,7 @@ export function pluginLoader(
 ): PluginLoader {
   const {
     localPluginDir = DEFAULT_LOCAL_PLUGIN_DIR,
+    migrationDb = db,
     enableLocalFilesystem = true,
     enableNpmDiscovery = true,
   } = options;
@@ -878,7 +883,7 @@ export function pluginLoader(
     if (!manifestValidator.getSupportedVersions().includes(manifest.apiVersion)) {
       throw new Error(
         `Plugin ${manifest.id} declares apiVersion ${manifest.apiVersion} which is not supported by this host. ` +
-        `Supported versions: ${manifestValidator.getSupportedVersions().join(", ")}`,
+          `Supported versions: ${manifestValidator.getSupportedVersions().join(", ")}`,
       );
     }
 
@@ -887,7 +892,7 @@ export function pluginLoader(
     if (!capResult.allowed) {
       throw new Error(
         `Plugin ${manifest.id} manifest has inconsistent capabilities. ` +
-        `Missing required capabilities for declared features: ${capResult.missing.join(", ")}`,
+          `Missing required capabilities for declared features: ${capResult.missing.join(", ")}`,
       );
     }
 
@@ -899,7 +904,7 @@ export function pluginLoader(
       if (compareSemver(hostVersion, minimumHostVersion) < 0) {
         throw new Error(
           `Plugin ${manifest.id} requires host version ${minimumHostVersion} or newer, ` +
-          `but this server is running ${hostVersion}`,
+            `but this server is running ${hostVersion}`,
         );
       }
     }
@@ -1351,8 +1356,8 @@ export function pluginLoader(
         );
         throw new Error(
           `Upgrade for "${pluginId}" introduces new capabilities that require approval: ${escalated.join(", ")}. ` +
-          `The previous version declared [${[...oldCaps].join(", ")}]. ` +
-          `Please review and approve the capability escalation before upgrading.`,
+            `The previous version declared [${[...oldCaps].join(", ")}]. ` +
+            `Please review and approve the capability escalation before upgrading.`,
         );
       }
 
@@ -1456,7 +1461,7 @@ export function pluginLoader(
       if (!runtimeServices) {
         throw new Error(
           "Cannot loadAll: no PluginRuntimeServices provided. " +
-          "Pass runtime services as the third argument to pluginLoader().",
+            "Pass runtime services as the third argument to pluginLoader().",
         );
       }
 
@@ -1528,7 +1533,7 @@ export function pluginLoader(
       if (!runtimeServices) {
         throw new Error(
           "Cannot loadSingle: no PluginRuntimeServices provided. " +
-          "Pass runtime services as the third argument to pluginLoader().",
+            "Pass runtime services as the third argument to pluginLoader().",
         );
       }
 
@@ -1556,7 +1561,7 @@ export function pluginLoader(
       if (plugin.status !== "ready") {
         throw new Error(
           `Cannot load plugin in status '${plugin.status}'. ` +
-          `Plugin must be in 'installed' or 'ready' status.`,
+            `Plugin must be in 'installed' or 'ready' status.`,
         );
       }
 
@@ -1701,14 +1706,22 @@ export function pluginLoader(
       // 1. Resolve worker entrypoint
       // ------------------------------------------------------------------
       const workerEntrypoint = resolveWorkerEntrypoint(plugin, localPluginDir);
+      const packageRoot = resolvePluginPackageRoot(plugin, localPluginDir);
 
       // ------------------------------------------------------------------
-      // 2. Build host handlers for this plugin
+      // 2. Apply restricted database migrations before worker startup
+      // ------------------------------------------------------------------
+      const databaseNamespace = manifest.database
+        ? (await pluginDatabaseService(migrationDb).applyMigrations(pluginId, manifest, packageRoot))?.namespaceName ?? null
+        : null;
+
+      // ------------------------------------------------------------------
+      // 3. Build host handlers for this plugin
       // ------------------------------------------------------------------
       const hostHandlers = buildHostHandlers(pluginId, manifest);
 
       // ------------------------------------------------------------------
-      // 3. Retrieve plugin config (if any)
+      // 4. Retrieve plugin config (if any)
       // ------------------------------------------------------------------
       let config: Record<string, unknown> = {};
       try {
@@ -1722,7 +1735,7 @@ export function pluginLoader(
       }
 
       // ------------------------------------------------------------------
-      // 4. Spawn worker process
+      // 5. Spawn worker process
       // ------------------------------------------------------------------
       const workerOptions: WorkerStartOptions = {
         entrypointPath: workerEntrypoint,
@@ -1730,6 +1743,7 @@ export function pluginLoader(
         config,
         instanceInfo,
         apiVersion: manifest.apiVersion,
+        databaseNamespace,
         hostHandlers,
         autoRestart: true,
       };
@@ -1750,7 +1764,7 @@ export function pluginLoader(
       );
 
       // ------------------------------------------------------------------
-      // 5. Sync job declarations and register with scheduler
+      // 6. Sync job declarations and register with scheduler
       // ------------------------------------------------------------------
       const jobDeclarations = manifest.jobs ?? [];
       if (jobDeclarations.length > 0) {
@@ -1934,9 +1948,29 @@ function resolveWorkerEntrypoint(
 
   throw new Error(
     `Worker entrypoint not found for plugin "${plugin.pluginKey}". ` +
-    `Checked: ${path.resolve(packageDir, workerRelPath)}, ` +
-    `${path.resolve(directDir, workerRelPath)}`,
+      `Checked: ${path.resolve(packageDir, workerRelPath)}, ` +
+      `${path.resolve(directDir, workerRelPath)}`,
   );
+}
+
+function resolvePluginPackageRoot(
+  plugin: PluginRecord & { packagePath?: string | null },
+  localPluginDir: string,
+): string {
+  if (plugin.packagePath && existsSync(plugin.packagePath)) {
+    return path.resolve(plugin.packagePath);
+  }
+
+  const packageName = plugin.packageName;
+  const packageDir = packageName.startsWith("@")
+    ? path.join(localPluginDir, "node_modules", ...packageName.split("/"))
+    : path.join(localPluginDir, "node_modules", packageName);
+  if (existsSync(packageDir)) return packageDir;
+
+  const directDir = path.join(localPluginDir, packageName);
+  if (existsSync(directDir)) return directDir;
+
+  throw new Error(`Package root not found for plugin "${plugin.pluginKey}"`);
 }
 
 function resolveManagedInstallPackageDir(localPluginDir: string, packageName: string): string {

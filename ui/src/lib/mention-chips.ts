@@ -1,28 +1,50 @@
 import type { CSSProperties } from "react";
-import { parseAgentMentionHref, parseProjectMentionHref, parseSkillMentionHref } from "@taskcore/shared";
+import {
+  parseAgentMentionHref,
+  parseIssueReferenceHref,
+  parseProjectMentionHref,
+  parseSkillMentionHref,
+  parseUserMentionHref,
+} from "@taskcore/shared";
 import { getAgentIcon } from "./agent-icons";
 import { hexToRgb, pickTextColorForPillBg } from "./color-contrast";
 
 export type ParsedMentionChip =
   | {
-    kind: "agent";
-    agentId: string;
-    icon: string | null;
-  }
+      kind: "agent";
+      agentId: string;
+      icon: string | null;
+    }
   | {
-    kind: "project";
-    projectId: string;
-    color: string | null;
-  }
+      kind: "issue";
+      identifier: string;
+    }
   | {
-    kind: "skill";
-    skillId: string;
-    slug: string | null;
-  };
+      kind: "project";
+      projectId: string;
+      color: string | null;
+    }
+  | {
+      kind: "user";
+      userId: string;
+    }
+  | {
+      kind: "skill";
+      skillId: string;
+      slug: string | null;
+    };
 
 const iconMaskCache = new Map<string, string>();
 
 export function parseMentionChipHref(href: string): ParsedMentionChip | null {
+  const issue = parseIssueReferenceHref(href);
+  if (issue) {
+    return {
+      kind: "issue",
+      identifier: issue.identifier,
+    };
+  }
+
   const agent = parseAgentMentionHref(href);
   if (agent) {
     return {
@@ -38,6 +60,14 @@ export function parseMentionChipHref(href: string): ParsedMentionChip | null {
       kind: "project",
       projectId: project.projectId,
       color: project.color,
+    };
+  }
+
+  const user = parseUserMentionHref(href);
+  if (user) {
+    return {
+      kind: "user",
+      userId: user.userId,
     };
   }
 
@@ -99,7 +129,9 @@ export function clearMentionChipDecoration(element: HTMLElement) {
   element.classList.remove(
     "taskcore-mention-chip",
     "taskcore-mention-chip--agent",
+    "taskcore-mention-chip--issue",
     "taskcore-mention-chip--project",
+    "taskcore-mention-chip--user",
     "taskcore-mention-chip--skill",
     "taskcore-project-mention-chip",
   );

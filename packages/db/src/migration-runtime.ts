@@ -116,7 +116,7 @@ async function ensureEmbeddedPostgresConnection(
       return {
         connectionString: `postgres://taskcore:taskcore@127.0.0.1:${preferredPort}/taskcore`,
         source: `embedded-postgres@${preferredPort}`,
-        stop: async () => { },
+        stop: async () => {},
       };
     } catch {
       // Fall through and attempt to start the configured embedded cluster.
@@ -130,7 +130,7 @@ async function ensureEmbeddedPostgresConnection(
     return {
       connectionString: `postgres://taskcore:taskcore@127.0.0.1:${port}/taskcore`,
       source: `embedded-postgres@${port}`,
-      stop: async () => { },
+      stop: async () => {},
     };
   }
 
@@ -186,7 +186,7 @@ export async function resolveMigrationConnection(): Promise<MigrationConnection>
     return {
       connectionString: target.connectionString,
       source: target.source,
-      stop: async () => { },
+      stop: async () => {},
     };
   }
 

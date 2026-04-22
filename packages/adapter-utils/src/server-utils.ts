@@ -16,6 +16,11 @@ export interface RunProcessResult {
   startedAt: string | null;
 }
 
+export interface TerminalResultCleanupOptions {
+  hasTerminalResult: (output: { stdout: string; stderr: string }) => boolean;
+  graceMs?: number;
+}
+
 interface RunningProcess {
   child: ChildProcess;
   graceSec: number;
@@ -29,6 +34,10 @@ interface SpawnTarget {
 
 type ChildProcessWithEvents = ChildProcess & {
   on(event: "error", listener: (err: Error) => void): ChildProcess;
+  on(
+    event: "exit",
+    listener: (code: number | null, signal: NodeJS.Signals | null) => void,
+  ): ChildProcess;
   on(
     event: "close",
     listener: (code: number | null, signal: NodeJS.Signals | null) => void,
@@ -60,11 +69,27 @@ function signalRunningProcess(
 export const runningProcesses = new Map<string, RunningProcess>();
 export const MAX_CAPTURE_BYTES = 4 * 1024 * 1024;
 export const MAX_EXCERPT_BYTES = 32 * 1024;
+const TERMINAL_RESULT_SCAN_OVERLAP_CHARS = 64 * 1024;
 const SENSITIVE_ENV_KEY = /(key|token|secret|password|passwd|authorization|cookie)/i;
 const TASKCORE_SKILL_ROOT_RELATIVE_CANDIDATES = [
   "../../skills",
   "../../../../../skills",
 ];
+
+export const DEFAULT_TASKCORE_AGENT_PROMPT_TEMPLATE = [
+  "You are agent {{agent.id}} ({{agent.name}}). Continue your Taskcore work.",
+  "",
+  "Execution contract:",
+  "- Start actionable work in this heartbeat; do not stop at a plan unless the issue asks for planning.",
+  "- Leave durable progress in comments, documents, or work products with a clear next action.",
+  "- Use child issues for parallel or long delegated work instead of polling agents, sessions, or processes.",
+  "- If woken by a human comment on a dependency-blocked issue, respond or triage the comment without treating the blocked deliverable work as unblocked.",
+  "- Create child issues directly when you know what needs to be done; use issue-thread interactions when the board/user must choose suggested tasks, answer structured questions, or confirm a proposal.",
+  "- To ask for that input, create an interaction on the current issue with POST /api/issues/{issueId}/interactions using kind suggest_tasks, ask_user_questions, or request_confirmation. Use continuationPolicy wake_assignee when you need to resume after a response; for request_confirmation this resumes only after acceptance.",
+  "- For plan approval, update the plan document first, then create request_confirmation targeting the latest plan revision with idempotencyKey confirmation:{issueId}:plan:{revisionId}. Wait for acceptance before creating implementation subtasks, and create a fresh confirmation after superseding board/user comments if approval is still needed.",
+  "- If blocked, mark the issue blocked and name the unblock owner and action.",
+  "- Respect budget, pause/cancel, approval gates, and company boundaries.",
+].join("\n");
 
 export interface TaskcoreSkillEntry {
   key: string;
@@ -180,6 +205,22 @@ export function appendWithCap(prev: string, chunk: string, cap = MAX_CAPTURE_BYT
   return combined.length > cap ? combined.slice(combined.length - cap) : combined;
 }
 
+export function appendWithByteCap(prev: string, chunk: string, cap = MAX_CAPTURE_BYTES) {
+  const combined = prev + chunk;
+  const bytes = Buffer.byteLength(combined, "utf8");
+  if (bytes <= cap) return combined;
+
+  const buffer = Buffer.from(combined, "utf8");
+  let start = Math.max(0, bytes - cap);
+  while (start < buffer.length && (buffer[start]! & 0xc0) === 0x80) start += 1;
+  return buffer.subarray(start).toString("utf8");
+}
+
+function resumeReadable(readable: { resume: () => unknown; destroyed?: boolean } | null | undefined) {
+  if (!readable || readable.destroyed) return;
+  readable.resume();
+}
+
 export function resolvePathValue(obj: Record<string, unknown>, dottedPath: string) {
   const parts = dottedPath.split(".");
   let cursor: unknown = obj;
@@ -250,11 +291,52 @@ type TaskcoreWakeComment = {
   authorId: string | null;
 };
 
+type TaskcoreWakeContinuationSummary = {
+  key: string | null;
+  title: string | null;
+  body: string;
+  bodyTruncated: boolean;
+  updatedAt: string | null;
+};
+
+type TaskcoreWakeLivenessContinuation = {
+  attempt: number | null;
+  maxAttempts: number | null;
+  sourceRunId: string | null;
+  state: string | null;
+  reason: string | null;
+  instruction: string | null;
+};
+
+type TaskcoreWakeChildIssueSummary = {
+  id: string | null;
+  identifier: string | null;
+  title: string | null;
+  status: string | null;
+  priority: string | null;
+  summary: string | null;
+};
+
+type TaskcoreWakeBlockerSummary = {
+  id: string | null;
+  identifier: string | null;
+  title: string | null;
+  status: string | null;
+  priority: string | null;
+};
+
 type TaskcoreWakePayload = {
   reason: string | null;
   issue: TaskcoreWakeIssue | null;
   checkedOutByHarness: boolean;
+  dependencyBlockedInteraction: boolean;
+  unresolvedBlockerIssueIds: string[];
+  unresolvedBlockerSummaries: TaskcoreWakeBlockerSummary[];
   executionStage: TaskcoreWakeExecutionStage | null;
+  continuationSummary: TaskcoreWakeContinuationSummary | null;
+  livenessContinuation: TaskcoreWakeLivenessContinuation | null;
+  childIssueSummaries: TaskcoreWakeChildIssueSummary[];
+  childIssueSummaryTruncated: boolean;
   commentIds: string[];
   latestCommentId: string | null;
   comments: TaskcoreWakeComment[];
@@ -298,6 +380,61 @@ function normalizeTaskcoreWakeComment(value: unknown): TaskcoreWakeComment | nul
   };
 }
 
+function normalizeTaskcoreWakeContinuationSummary(value: unknown): TaskcoreWakeContinuationSummary | null {
+  const summary = parseObject(value);
+  const body = asString(summary.body, "").trim();
+  if (!body) return null;
+  return {
+    key: asString(summary.key, "").trim() || null,
+    title: asString(summary.title, "").trim() || null,
+    body,
+    bodyTruncated: asBoolean(summary.bodyTruncated, false),
+    updatedAt: asString(summary.updatedAt, "").trim() || null,
+  };
+}
+
+function normalizeTaskcoreWakeLivenessContinuation(value: unknown): TaskcoreWakeLivenessContinuation | null {
+  const continuation = parseObject(value);
+  const attempt = asNumber(continuation.attempt, 0);
+  const maxAttempts = asNumber(continuation.maxAttempts, 0);
+  const sourceRunId = asString(continuation.sourceRunId, "").trim() || null;
+  const state = asString(continuation.state, "").trim() || null;
+  const reason = asString(continuation.reason, "").trim() || null;
+  const instruction = asString(continuation.instruction, "").trim() || null;
+  if (!attempt && !maxAttempts && !sourceRunId && !state && !reason && !instruction) return null;
+  return {
+    attempt: attempt > 0 ? attempt : null,
+    maxAttempts: maxAttempts > 0 ? maxAttempts : null,
+    sourceRunId,
+    state,
+    reason,
+    instruction,
+  };
+}
+
+function normalizeTaskcoreWakeChildIssueSummary(value: unknown): TaskcoreWakeChildIssueSummary | null {
+  const child = parseObject(value);
+  const id = asString(child.id, "").trim() || null;
+  const identifier = asString(child.identifier, "").trim() || null;
+  const title = asString(child.title, "").trim() || null;
+  const status = asString(child.status, "").trim() || null;
+  const priority = asString(child.priority, "").trim() || null;
+  const summary = asString(child.summary, "").trim() || null;
+  if (!id && !identifier && !title && !status && !summary) return null;
+  return { id, identifier, title, status, priority, summary };
+}
+
+function normalizeTaskcoreWakeBlockerSummary(value: unknown): TaskcoreWakeBlockerSummary | null {
+  const blocker = parseObject(value);
+  const id = asString(blocker.id, "").trim() || null;
+  const identifier = asString(blocker.identifier, "").trim() || null;
+  const title = asString(blocker.title, "").trim() || null;
+  const status = asString(blocker.status, "").trim() || null;
+  const priority = asString(blocker.priority, "").trim() || null;
+  if (!id && !identifier && !title && !status) return null;
+  return { id, identifier, title, status, priority };
+}
+
 function normalizeTaskcoreWakeExecutionPrincipal(value: unknown): TaskcoreWakeExecutionPrincipal | null {
   const principal = parseObject(value);
   const typeRaw = asString(principal.type, "").trim().toLowerCase();
@@ -318,8 +455,8 @@ function normalizeTaskcoreWakeExecutionStage(value: unknown): TaskcoreWakeExecut
       : null;
   const allowedActions = Array.isArray(stage.allowedActions)
     ? stage.allowedActions
-      .filter((entry): entry is string => typeof entry === "string" && entry.trim().length > 0)
-      .map((entry) => entry.trim())
+        .filter((entry): entry is string => typeof entry === "string" && entry.trim().length > 0)
+        .map((entry) => entry.trim())
     : [];
   const currentParticipant = normalizeTaskcoreWakeExecutionPrincipal(stage.currentParticipant);
   const returnAssignee = normalizeTaskcoreWakeExecutionPrincipal(stage.returnAssignee);
@@ -346,18 +483,35 @@ export function normalizeTaskcoreWakePayload(value: unknown): TaskcoreWakePayloa
   const payload = parseObject(value);
   const comments = Array.isArray(payload.comments)
     ? payload.comments
-      .map((entry) => normalizeTaskcoreWakeComment(entry))
-      .filter((entry): entry is TaskcoreWakeComment => Boolean(entry))
+        .map((entry) => normalizeTaskcoreWakeComment(entry))
+        .filter((entry): entry is TaskcoreWakeComment => Boolean(entry))
     : [];
   const commentWindow = parseObject(payload.commentWindow);
   const commentIds = Array.isArray(payload.commentIds)
     ? payload.commentIds
-      .filter((entry): entry is string => typeof entry === "string" && entry.trim().length > 0)
-      .map((entry) => entry.trim())
+        .filter((entry): entry is string => typeof entry === "string" && entry.trim().length > 0)
+        .map((entry) => entry.trim())
     : [];
   const executionStage = normalizeTaskcoreWakeExecutionStage(payload.executionStage);
+  const continuationSummary = normalizeTaskcoreWakeContinuationSummary(payload.continuationSummary);
+  const livenessContinuation = normalizeTaskcoreWakeLivenessContinuation(payload.livenessContinuation);
+  const childIssueSummaries = Array.isArray(payload.childIssueSummaries)
+    ? payload.childIssueSummaries
+        .map((entry) => normalizeTaskcoreWakeChildIssueSummary(entry))
+        .filter((entry): entry is TaskcoreWakeChildIssueSummary => Boolean(entry))
+    : [];
+  const unresolvedBlockerIssueIds = Array.isArray(payload.unresolvedBlockerIssueIds)
+    ? payload.unresolvedBlockerIssueIds
+        .map((entry) => asString(entry, "").trim())
+        .filter(Boolean)
+    : [];
+  const unresolvedBlockerSummaries = Array.isArray(payload.unresolvedBlockerSummaries)
+    ? payload.unresolvedBlockerSummaries
+        .map((entry) => normalizeTaskcoreWakeBlockerSummary(entry))
+        .filter((entry): entry is TaskcoreWakeBlockerSummary => Boolean(entry))
+    : [];
 
-  if (comments.length === 0 && commentIds.length === 0 && !executionStage && !normalizeTaskcoreWakeIssue(payload.issue)) {
+  if (comments.length === 0 && commentIds.length === 0 && childIssueSummaries.length === 0 && unresolvedBlockerIssueIds.length === 0 && unresolvedBlockerSummaries.length === 0 && !executionStage && !continuationSummary && !livenessContinuation && !normalizeTaskcoreWakeIssue(payload.issue)) {
     return null;
   }
 
@@ -365,7 +519,14 @@ export function normalizeTaskcoreWakePayload(value: unknown): TaskcoreWakePayloa
     reason: asString(payload.reason, "").trim() || null,
     issue: normalizeTaskcoreWakeIssue(payload.issue),
     checkedOutByHarness: asBoolean(payload.checkedOutByHarness, false),
+    dependencyBlockedInteraction: asBoolean(payload.dependencyBlockedInteraction, false),
+    unresolvedBlockerIssueIds,
+    unresolvedBlockerSummaries,
     executionStage,
+    continuationSummary,
+    livenessContinuation,
+    childIssueSummaries,
+    childIssueSummaryTruncated: asBoolean(payload.childIssueSummaryTruncated, false),
     commentIds,
     latestCommentId: asString(payload.latestCommentId, "").trim() || null,
     comments,
@@ -398,35 +559,39 @@ export function renderTaskcoreWakePrompt(
   };
 
   const lines = resumedSession
-    ? [
-      "## Taskcore Resume Delta",
-      "",
-      "You are resuming an existing Taskcore session.",
-      "This heartbeat is scoped to the issue below. Do not switch to another issue until you have handled this wake.",
-      "Focus on the new wake delta below and continue the current task without restating the full heartbeat boilerplate.",
-      "Fetch the API thread only when `fallbackFetchNeeded` is true or you need broader history than this batch.",
-      "",
-      `- reason: ${normalized.reason ?? "unknown"}`,
-      `- issue: ${normalized.issue?.identifier ?? normalized.issue?.id ?? "unknown"}${normalized.issue?.title ? ` ${normalized.issue.title}` : ""}`,
-      `- pending comments: ${normalized.includedCount}/${normalized.requestedCount}`,
-      `- latest comment id: ${normalized.latestCommentId ?? "unknown"}`,
-      `- fallback fetch needed: ${normalized.fallbackFetchNeeded ? "yes" : "no"}`,
-    ]
+      ? [
+        "## Taskcore Resume Delta",
+        "",
+        "You are resuming an existing Taskcore session.",
+        "This heartbeat is scoped to the issue below. Do not switch to another issue until you have handled this wake.",
+        "Focus on the new wake delta below and continue the current task without restating the full heartbeat boilerplate.",
+        "Fetch the API thread only when `fallbackFetchNeeded` is true or you need broader history than this batch.",
+        "",
+        "Execution contract: take concrete action in this heartbeat when the issue is actionable; do not stop at a plan unless planning was requested. Leave durable progress with a clear next action, use child issues instead of polling for long or parallel work, and mark blocked work with the unblock owner/action.",
+        "",
+        `- reason: ${normalized.reason ?? "unknown"}`,
+        `- issue: ${normalized.issue?.identifier ?? normalized.issue?.id ?? "unknown"}${normalized.issue?.title ? ` ${normalized.issue.title}` : ""}`,
+        `- pending comments: ${normalized.includedCount}/${normalized.requestedCount}`,
+        `- latest comment id: ${normalized.latestCommentId ?? "unknown"}`,
+        `- fallback fetch needed: ${normalized.fallbackFetchNeeded ? "yes" : "no"}`,
+      ]
     : [
-      "## Taskcore Wake Payload",
-      "",
-      "Treat this wake payload as the highest-priority change for the current heartbeat.",
-      "This heartbeat is scoped to the issue below. Do not switch to another issue until you have handled this wake.",
-      "Before generic repo exploration or boilerplate heartbeat updates, acknowledge the latest comment and explain how it changes your next action.",
-      "Use this inline wake data first before refetching the issue thread.",
-      "Only fetch the API thread when `fallbackFetchNeeded` is true or you need broader history than this batch.",
-      "",
-      `- reason: ${normalized.reason ?? "unknown"}`,
-      `- issue: ${normalized.issue?.identifier ?? normalized.issue?.id ?? "unknown"}${normalized.issue?.title ? ` ${normalized.issue.title}` : ""}`,
-      `- pending comments: ${normalized.includedCount}/${normalized.requestedCount}`,
-      `- latest comment id: ${normalized.latestCommentId ?? "unknown"}`,
-      `- fallback fetch needed: ${normalized.fallbackFetchNeeded ? "yes" : "no"}`,
-    ];
+        "## Taskcore Wake Payload",
+        "",
+        "Treat this wake payload as the highest-priority change for the current heartbeat.",
+        "This heartbeat is scoped to the issue below. Do not switch to another issue until you have handled this wake.",
+        "Before generic repo exploration or boilerplate heartbeat updates, acknowledge the latest comment and explain how it changes your next action.",
+        "Use this inline wake data first before refetching the issue thread.",
+        "Only fetch the API thread when `fallbackFetchNeeded` is true or you need broader history than this batch.",
+        "",
+        "Execution contract: take concrete action in this heartbeat when the issue is actionable; do not stop at a plan unless planning was requested. Leave durable progress with a clear next action, use child issues instead of polling for long or parallel work, and mark blocked work with the unblock owner/action.",
+        "",
+        `- reason: ${normalized.reason ?? "unknown"}`,
+        `- issue: ${normalized.issue?.identifier ?? normalized.issue?.id ?? "unknown"}${normalized.issue?.title ? ` ${normalized.issue.title}` : ""}`,
+        `- pending comments: ${normalized.includedCount}/${normalized.requestedCount}`,
+        `- latest comment id: ${normalized.latestCommentId ?? "unknown"}`,
+        `- fallback fetch needed: ${normalized.fallbackFetchNeeded ? "yes" : "no"}`,
+      ];
 
   if (normalized.issue?.status) {
     lines.push(`- issue status: ${normalized.issue.status}`);
@@ -436,6 +601,18 @@ export function renderTaskcoreWakePrompt(
   }
   if (normalized.checkedOutByHarness) {
     lines.push("- checkout: already claimed by the harness for this run");
+  }
+  if (normalized.dependencyBlockedInteraction) {
+    lines.push("- dependency-blocked interaction: yes");
+    lines.push("- execution scope: respond or triage the human comment; do not treat blocker-dependent deliverable work as unblocked");
+    if (normalized.unresolvedBlockerSummaries.length > 0) {
+      const blockers = normalized.unresolvedBlockerSummaries
+        .map((blocker) => `${blocker.identifier ?? blocker.id ?? "unknown"}${blocker.title ? ` ${blocker.title}` : ""}${blocker.status ? ` (${blocker.status})` : ""}`)
+        .join("; ");
+      lines.push(`- unresolved blockers: ${blockers}`);
+    } else if (normalized.unresolvedBlockerIssueIds.length > 0) {
+      lines.push(`- unresolved blocker issue ids: ${normalized.unresolvedBlockerIssueIds.join(", ")}`);
+    }
   }
   if (normalized.missingCount > 0) {
     lines.push(`- omitted comments: ${normalized.missingCount}`);
@@ -467,6 +644,55 @@ export function renderTaskcoreWakePrompt(
         "Address the requested changes on this issue and resubmit when the work is ready.",
         "",
       );
+    }
+  }
+
+  if (normalized.continuationSummary) {
+    lines.push(
+      "",
+      "Issue continuation summary:",
+      normalized.continuationSummary.body,
+    );
+    if (normalized.continuationSummary.bodyTruncated) {
+      lines.push("[continuation summary truncated]");
+    }
+  }
+
+  if (normalized.livenessContinuation) {
+    const continuation = normalized.livenessContinuation;
+    lines.push("", "Run liveness continuation:");
+    if (continuation.attempt) {
+      lines.push(
+        `- attempt: ${continuation.attempt}${continuation.maxAttempts ? `/${continuation.maxAttempts}` : ""}`,
+      );
+    }
+    if (continuation.sourceRunId) {
+      lines.push(`- source run: ${continuation.sourceRunId}`);
+    }
+    if (continuation.state) {
+      lines.push(`- liveness state: ${continuation.state}`);
+    }
+    if (continuation.reason) {
+      lines.push(`- reason: ${continuation.reason}`);
+    }
+    if (continuation.instruction) {
+      lines.push(`- instruction: ${continuation.instruction}`);
+    }
+  }
+
+  if (normalized.childIssueSummaries.length > 0) {
+    lines.push("", "Direct child issue summaries:");
+    for (const child of normalized.childIssueSummaries) {
+      const label = child.identifier ?? child.id ?? "unknown";
+      lines.push(
+        `- ${label}${child.title ? ` ${child.title}` : ""}${child.status ? ` (${child.status})` : ""}`,
+      );
+      if (child.summary) {
+        lines.push(`  ${child.summary}`);
+      }
+    }
+    if (normalized.childIssueSummaryTruncated) {
+      lines.push("[child issue summaries truncated]");
     }
   }
 
@@ -907,9 +1133,9 @@ export function readTaskcoreSkillSyncPreference(config: Record<string, unknown>)
   const desiredValues = syncConfig.desiredSkills;
   const desired = Array.isArray(desiredValues)
     ? desiredValues
-      .filter((value): value is string => typeof value === "string")
-      .map((value) => value.trim())
-      .filter(Boolean)
+        .filter((value): value is string => typeof value === "string")
+        .map((value) => value.trim())
+        .filter(Boolean)
     : [];
   return {
     explicit: Object.prototype.hasOwnProperty.call(raw, "desiredSkills"),
@@ -1072,6 +1298,7 @@ export async function runChildProcess(
     onLog: (stream: "stdout" | "stderr", chunk: string) => Promise<void>;
     onLogError?: (err: unknown, runId: string, message: string) => void;
     onSpawn?: (meta: { pid: number; processGroupId: number | null; startedAt: string }) => Promise<void>;
+    terminalResultCleanup?: TerminalResultCleanupOptions;
     stdin?: string;
   },
 ): Promise<RunProcessResult> {
@@ -1121,32 +1348,97 @@ export async function runChildProcess(
         let stdout = "";
         let stderr = "";
         let logChain: Promise<void> = Promise.resolve();
+        let terminalResultSeen = false;
+        let terminalCleanupStarted = false;
+        let terminalCleanupTimer: NodeJS.Timeout | null = null;
+        let terminalCleanupKillTimer: NodeJS.Timeout | null = null;
+        let terminalResultStdoutScanOffset = 0;
+        let terminalResultStderrScanOffset = 0;
+
+        const clearTerminalCleanupTimers = () => {
+          if (terminalCleanupTimer) clearTimeout(terminalCleanupTimer);
+          if (terminalCleanupKillTimer) clearTimeout(terminalCleanupKillTimer);
+          terminalCleanupTimer = null;
+          terminalCleanupKillTimer = null;
+        };
+
+        const maybeArmTerminalResultCleanup = () => {
+          const terminalCleanup = opts.terminalResultCleanup;
+          if (!terminalCleanup || terminalCleanupStarted || timedOut) return;
+          if (!terminalResultSeen) {
+            const stdoutStart = Math.max(0, terminalResultStdoutScanOffset - TERMINAL_RESULT_SCAN_OVERLAP_CHARS);
+            const stderrStart = Math.max(0, terminalResultStderrScanOffset - TERMINAL_RESULT_SCAN_OVERLAP_CHARS);
+            const scanOutput = {
+              stdout: stdout.slice(stdoutStart),
+              stderr: stderr.slice(stderrStart),
+            };
+            terminalResultStdoutScanOffset = stdout.length;
+            terminalResultStderrScanOffset = stderr.length;
+            if (scanOutput.stdout.length === 0 && scanOutput.stderr.length === 0) return;
+            try {
+              terminalResultSeen = terminalCleanup.hasTerminalResult(scanOutput);
+            } catch (err) {
+              onLogError(err, runId, "failed to inspect terminal adapter output");
+            }
+          }
+          if (!terminalResultSeen) return;
+
+          if (terminalCleanupTimer) return;
+          const graceMs = Math.max(0, terminalCleanup.graceMs ?? 5_000);
+          terminalCleanupTimer = setTimeout(() => {
+            terminalCleanupTimer = null;
+            if (terminalCleanupStarted || timedOut) return;
+            terminalCleanupStarted = true;
+            signalRunningProcess({ child, processGroupId }, "SIGTERM");
+            terminalCleanupKillTimer = setTimeout(() => {
+              terminalCleanupKillTimer = null;
+              signalRunningProcess({ child, processGroupId }, "SIGKILL");
+            }, Math.max(1, opts.graceSec) * 1000);
+          }, graceMs);
+        };
 
         const timeout =
           opts.timeoutSec > 0
             ? setTimeout(() => {
-              timedOut = true;
-              signalRunningProcess({ child, processGroupId }, "SIGTERM");
-              setTimeout(() => {
-                signalRunningProcess({ child, processGroupId }, "SIGKILL");
-              }, Math.max(1, opts.graceSec) * 1000);
-            }, opts.timeoutSec * 1000)
+                timedOut = true;
+                clearTerminalCleanupTimers();
+                signalRunningProcess({ child, processGroupId }, "SIGTERM");
+                setTimeout(() => {
+                  signalRunningProcess({ child, processGroupId }, "SIGKILL");
+                }, Math.max(1, opts.graceSec) * 1000);
+              }, opts.timeoutSec * 1000)
             : null;
 
         child.stdout?.on("data", (chunk: unknown) => {
+          const readable = child.stdout;
+          if (!readable) return;
+          readable.pause();
           const text = String(chunk);
           stdout = appendWithCap(stdout, text);
+          maybeArmTerminalResultCleanup();
           logChain = logChain
             .then(() => opts.onLog("stdout", text))
-            .catch((err) => onLogError(err, runId, "failed to append stdout log chunk"));
+            .catch((err) => onLogError(err, runId, "failed to append stdout log chunk"))
+            .finally(() => {
+              maybeArmTerminalResultCleanup();
+              resumeReadable(readable);
+            });
         });
 
         child.stderr?.on("data", (chunk: unknown) => {
+          const readable = child.stderr;
+          if (!readable) return;
+          readable.pause();
           const text = String(chunk);
           stderr = appendWithCap(stderr, text);
+          maybeArmTerminalResultCleanup();
           logChain = logChain
             .then(() => opts.onLog("stderr", text))
-            .catch((err) => onLogError(err, runId, "failed to append stderr log chunk"));
+            .catch((err) => onLogError(err, runId, "failed to append stderr log chunk"))
+            .finally(() => {
+              maybeArmTerminalResultCleanup();
+              resumeReadable(readable);
+            });
         });
 
         const stdin = child.stdin;
@@ -1160,6 +1452,7 @@ export async function runChildProcess(
 
         child.on("error", (err: Error) => {
           if (timeout) clearTimeout(timeout);
+          clearTerminalCleanupTimers();
           runningProcesses.delete(runId);
           const errno = (err as NodeJS.ErrnoException).code;
           const pathValue = mergedEnv.PATH ?? mergedEnv.Path ?? "";
@@ -1170,8 +1463,13 @@ export async function runChildProcess(
           reject(new Error(msg));
         });
 
+        child.on("exit", () => {
+          maybeArmTerminalResultCleanup();
+        });
+
         child.on("close", (code: number | null, signal: NodeJS.Signals | null) => {
           if (timeout) clearTimeout(timeout);
+          clearTerminalCleanupTimers();
           runningProcesses.delete(runId);
           void logChain.finally(() => {
             resolve({

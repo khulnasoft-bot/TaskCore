@@ -165,7 +165,7 @@ export function PluginManager() {
           <Puzzle className="h-6 w-6 text-muted-foreground" />
           <h1 className="text-xl font-semibold">Plugin Manager</h1>
         </div>
-
+        
         <Dialog open={installDialogOpen} onOpenChange={setInstallDialogOpen}>
           <DialogTrigger asChild>
             <Button size="sm" className="gap-2">
@@ -381,7 +381,7 @@ export function PluginManager() {
                               ? "default"
                               : plugin.status === "error"
                                 ? "destructive"
-                                : "secondary"
+                              : "secondary"
                           }
                           className={cn(
                             "shrink-0",

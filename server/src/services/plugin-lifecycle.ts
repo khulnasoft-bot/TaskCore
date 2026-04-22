@@ -495,7 +495,7 @@ export function pluginLifecycleManager(
       if (plugin.status !== "disabled" && plugin.status !== "error" && plugin.status !== "upgrade_pending") {
         throw badRequest(
           `Cannot enable plugin in status '${plugin.status}'. ` +
-          `Plugin must be in 'disabled', 'error', or 'upgrade_pending' status to be enabled.`,
+            `Plugin must be in 'disabled', 'error', or 'upgrade_pending' status to be enabled.`,
         );
       }
 
@@ -516,7 +516,7 @@ export function pluginLifecycleManager(
       if (plugin.status !== "ready") {
         throw badRequest(
           `Cannot disable plugin in status '${plugin.status}'. ` +
-          `Plugin must be in 'ready' status to be disabled.`,
+            `Plugin must be in 'ready' status to be disabled.`,
         );
       }
 
@@ -556,7 +556,7 @@ export function pluginLifecycleManager(
         }
         throw badRequest(
           `Plugin ${plugin.pluginKey} is already uninstalled. ` +
-          `Use removeData=true to permanently delete it.`,
+            `Use removeData=true to permanently delete it.`,
         );
       }
 
@@ -643,7 +643,7 @@ export function pluginLifecycleManager(
       if (plugin.status !== "ready" && plugin.status !== "upgrade_pending") {
         throw badRequest(
           `Cannot upgrade plugin in status '${plugin.status}'. ` +
-          `Plugin must be in 'ready' or 'upgrade_pending' status to be upgraded.`,
+            `Plugin must be in 'ready' or 'upgrade_pending' status to be upgraded.`,
         );
       }
 
@@ -716,7 +716,7 @@ export function pluginLifecycleManager(
       if (!workerManager) {
         throw badRequest(
           "Cannot start worker: no PluginWorkerManager is configured. " +
-          "Provide a workerManager option when constructing the lifecycle manager.",
+            "Provide a workerManager option when constructing the lifecycle manager.",
         );
       }
 
@@ -724,7 +724,7 @@ export function pluginLifecycleManager(
       if (plugin.status !== "ready") {
         throw badRequest(
           `Cannot start worker for plugin in status '${plugin.status}'. ` +
-          `Plugin must be in 'ready' status.`,
+            `Plugin must be in 'ready' status.`,
         );
       }
 
@@ -765,7 +765,7 @@ export function pluginLifecycleManager(
       if (plugin.status !== "ready") {
         throw badRequest(
           `Cannot restart worker for plugin in status '${plugin.status}'. ` +
-          `Plugin must be in 'ready' status.`,
+            `Plugin must be in 'ready' status.`,
         );
       }
 

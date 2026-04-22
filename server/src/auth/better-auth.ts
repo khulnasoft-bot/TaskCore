@@ -11,6 +11,7 @@ import {
   authVerifications,
 } from "@taskcore/db";
 import type { Config } from "../config.js";
+import { resolveTaskcoreInstanceId } from "../home-paths.js";
 
 export type BetterAuthSessionUser = {
   id: string;
@@ -24,6 +25,24 @@ export type BetterAuthSessionResult = {
 };
 
 type BetterAuthInstance = ReturnType<typeof betterAuth>;
+
+const AUTH_COOKIE_PREFIX_FALLBACK = "default";
+const AUTH_COOKIE_PREFIX_INVALID_SEGMENTS_RE = /[^a-zA-Z0-9_-]+/g;
+
+export function deriveAuthCookiePrefix(instanceId = resolveTaskcoreInstanceId()): string {
+  const scopedInstanceId = instanceId
+    .trim()
+    .replace(AUTH_COOKIE_PREFIX_INVALID_SEGMENTS_RE, "-")
+    .replace(/^-+|-+$/g, "") || AUTH_COOKIE_PREFIX_FALLBACK;
+  return `taskcore-${scopedInstanceId}`;
+}
+
+export function buildBetterAuthAdvancedOptions(input: { disableSecureCookies: boolean }) {
+  return {
+    cookiePrefix: deriveAuthCookiePrefix(),
+    ...(input.disableSecureCookies ? { useSecureCookies: false } : {}),
+  };
+}
 
 function headersFromNodeHeaders(rawHeaders: IncomingHttpHeaders): Headers {
   const headers = new Headers();
@@ -97,7 +116,7 @@ export function createBetterAuthInstance(db: Db, config: Config, trustedOrigins?
       requireEmailVerification: false,
       disableSignUp: config.authDisableSignUp,
     },
-    ...(isHttpOnly ? { advanced: { useSecureCookies: false } } : {}),
+    advanced: buildBetterAuthAdvancedOptions({ disableSecureCookies: isHttpOnly }),
   };
 
   if (!baseUrl) {
@@ -135,10 +154,10 @@ export async function resolveBetterAuthSessionFromHeaders(
     : null;
   const user = value.user?.id
     ? {
-      id: value.user.id,
-      email: value.user.email ?? null,
-      name: value.user.name ?? null,
-    }
+        id: value.user.id,
+        email: value.user.email ?? null,
+        name: value.user.name ?? null,
+      }
     : null;
 
   if (!session || !user) return null;

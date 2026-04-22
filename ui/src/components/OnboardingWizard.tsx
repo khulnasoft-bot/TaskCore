@@ -7,6 +7,7 @@ import { useCompany } from "../context/CompanyContext";
 import { companiesApi } from "../api/companies";
 import { goalsApi } from "../api/goals";
 import { agentsApi } from "../api/agents";
+import { approvalsApi } from "../api/approvals";
 import { issuesApi } from "../api/issues";
 import { projectsApi } from "../api/projects";
 import { queryKeys } from "../lib/queryKeys";
@@ -16,8 +17,6 @@ import {
   PopoverContent,
   PopoverTrigger
 } from "@/components/ui/popover";
-import { Input } from "@/components/ui/input";
-import { OnboardingInterview } from "./OnboardingInterview";
 import { Button } from "@/components/ui/button";
 import { cn } from "../lib/utils";
 import {
@@ -27,6 +26,7 @@ import {
 import { getUIAdapter } from "../adapters";
 import { listUIAdapters } from "../adapters";
 import { useDisabledAdaptersSync } from "../adapters/use-disabled-adapters";
+import { useAdapterCapabilities } from "../adapters/use-adapter-capabilities";
 import { getAdapterDisplay } from "../adapters/adapter-display-registry";
 import { defaultCreateValues } from "./agent-config-defaults";
 import { parseOnboardingGoalInput } from "../lib/onboarding-goal";
@@ -83,10 +83,10 @@ export function OnboardingWizard() {
     companyPrefix && companiesLoading
       ? null
       : resolveRouteOnboardingOptions({
-        pathname: location.pathname,
-        companyPrefix,
-        companies,
-      });
+          pathname: location.pathname,
+          companyPrefix,
+          companies,
+        });
   const effectiveOnboardingOpen =
     onboardingOpen || (routeOnboardingOptions !== null && !routeDismissed);
   const effectiveOnboardingOptions = onboardingOpen
@@ -105,7 +105,6 @@ export function OnboardingWizard() {
   // Step 1
   const [companyName, setCompanyName] = useState("");
   const [companyGoal, setCompanyGoal] = useState("");
-  const [showInterview, setShowInterview] = useState(false);
 
   // Step 2
   const [agentName, setAgentName] = useState("CEO");
@@ -201,8 +200,9 @@ export function OnboardingWizard() {
     queryFn: () => agentsApi.adapterModels(createdCompanyId!, adapterType),
     enabled: Boolean(createdCompanyId) && effectiveOnboardingOpen && step === 2
   });
-  const NONLOCAL_TYPES = new Set(["process", "http", "openclaw_gateway"]);
-  const isLocalAdapter = !NONLOCAL_TYPES.has(adapterType);
+  const getCapabilities = useAdapterCapabilities();
+  const adapterCaps = getCapabilities(adapterType);
+  const isLocalAdapter = adapterCaps.supportsInstructionsBundle || adapterCaps.supportsSkills || adapterCaps.supportsLocalAgentJwt;
 
   // Build adapter grids dynamically from the UI registry + display metadata.
   // External/plugin adapters automatically appear with generic defaults.
@@ -323,9 +323,9 @@ export function OnboardingWizard() {
           ? model || DEFAULT_CODEX_LOCAL_MODEL
           : adapterType === "gemini_local"
             ? model || DEFAULT_GEMINI_LOCAL_MODEL
-            : adapterType === "cursor"
-              ? model || DEFAULT_CURSOR_LOCAL_MODEL
-              : model,
+          : adapterType === "cursor"
+          ? model || DEFAULT_CURSOR_LOCAL_MODEL
+          : model,
       command,
       args,
       url,
@@ -339,8 +339,8 @@ export function OnboardingWizard() {
     if (adapterType === "claude_local" && forceUnsetAnthropicApiKey) {
       const env =
         typeof config.env === "object" &&
-          config.env !== null &&
-          !Array.isArray(config.env)
+        config.env !== null &&
+        !Array.isArray(config.env)
           ? { ...(config.env as Record<string, unknown>) }
           : {};
       env.ANTHROPIC_API_KEY = { type: "plain", value: "" };
@@ -459,13 +459,23 @@ export function OnboardingWizard() {
         if (!result) return;
       }
 
-      const agent = await agentsApi.create(createdCompanyId, {
+      const hire = await agentsApi.hire(createdCompanyId, {
         name: agentName.trim(),
         role: "ceo",
         adapterType,
         adapterConfig: buildAdapterConfig(),
         runtimeConfig: buildNewAgentRuntimeConfig()
       });
+      if (hire.approval) {
+        await approvalsApi.approve(
+          hire.approval.id,
+          "Approved during onboarding first-agent setup."
+        );
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.approvals.list(createdCompanyId)
+        });
+      }
+      const agent = hire.agent;
       setCreatedAgentId(agent.id);
       queryClient.invalidateQueries({
         queryKey: queryKeys.agents.list(createdCompanyId)
@@ -489,8 +499,8 @@ export function OnboardingWizard() {
       const config = buildAdapterConfig();
       const env =
         typeof config.env === "object" &&
-          config.env !== null &&
-          !Array.isArray(config.env)
+        config.env !== null &&
+        !Array.isArray(config.env)
           ? { ...(config.env as Record<string, unknown>) }
           : {};
       env.ANTHROPIC_API_KEY = { type: "plain", value: "" };
@@ -678,72 +688,43 @@ export function OnboardingWizard() {
                       </p>
                     </div>
                   </div>
-                  {!showInterview ? (
-                    <>
-                      <div className="mt-3 group">
-                        <label
-                          className={cn(
-                            "text-xs mb-1 block transition-colors",
-                            companyName.trim()
-                              ? "text-foreground"
-                              : "text-muted-foreground group-focus-within:text-foreground"
-                          )}
-                        >
-                          Company name
-                        </label>
-                        <input
-                          className="w-full rounded-md border border-border bg-transparent px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground/50"
-                          placeholder="Acme Corp"
-                          value={companyName}
-                          onChange={(e) => setCompanyName(e.target.value)}
-                          autoFocus
-                        />
-                      </div>
-                      <div className="group">
-                        <label
-                          className={cn(
-                            "text-xs mb-1 block transition-colors",
-                            companyGoal.trim()
-                              ? "text-foreground"
-                              : "text-muted-foreground group-focus-within:text-foreground"
-                          )}
-                        >
-                          Mission / goal (optional)
-                        </label>
-                        <textarea
-                          className="w-full rounded-md border border-border bg-transparent px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground/50 resize-none min-h-[60px]"
-                          placeholder="What is this company trying to achieve?"
-                          value={companyGoal}
-                          onChange={(e) => setCompanyGoal(e.target.value)}
-                        />
-                      </div>
-                      {companyGoal.trim().length > 10 && (
-                        <Button 
-                          variant="outline" 
-                          className="w-full gap-2 py-6 border-blue-200 bg-blue-50/30 text-blue-700 hover:bg-blue-50 hover:border-blue-300"
-                          onClick={() => setShowInterview(true)}
-                        >
-                          <Sparkles className="h-4 w-4" />
-                          Help me refine this mission with AI
-                        </Button>
+                  <div className="mt-3 group">
+                    <label
+                      className={cn(
+                        "text-xs mb-1 block transition-colors",
+                        companyName.trim()
+                          ? "text-foreground"
+                          : "text-muted-foreground group-focus-within:text-foreground"
                       )}
-                    </>
-                  ) : (
-                    <OnboardingInterview 
-                      initialMission={companyGoal}
-                      onConfirm={(rec) => {
-                        setTaskTitle(rec.suggestedTaskTitle);
-                        setTaskDescription(rec.suggestedTaskDescription);
-                        // We also set the project name for later use or just keep it in mind
-                        setShowInterview(false);
-                        // Auto-advance to step 2 after name is set (if they haven't set it yet)
-                        if (companyName.trim()) {
-                          // Handled by the wizard's footer "Next" button usually
-                          // but we could auto-advance if we wanted.
-                        }
-                      }}
+                    >
+                      Company name
+                    </label>
+                    <input
+                      className="w-full rounded-md border border-border bg-transparent px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground/50"
+                      placeholder="Acme Corp"
+                      value={companyName}
+                      onChange={(e) => setCompanyName(e.target.value)}
+                      autoFocus
                     />
-                  )}
+                  </div>
+                  <div className="group">
+                    <label
+                      className={cn(
+                        "text-xs mb-1 block transition-colors",
+                        companyGoal.trim()
+                          ? "text-foreground"
+                          : "text-muted-foreground group-focus-within:text-foreground"
+                      )}
+                    >
+                      Mission / goal (optional)
+                    </label>
+                    <textarea
+                      className="w-full rounded-md border border-border bg-transparent px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground/50 resize-none min-h-[60px]"
+                      placeholder="What is this company trying to achieve?"
+                      value={companyGoal}
+                      onChange={(e) => setCompanyGoal(e.target.value)}
+                    />
+                  </div>
                 </div>
               )}
 
@@ -829,20 +810,20 @@ export function OnboardingWizard() {
                     {showMoreAdapters && (
                       <div className="grid grid-cols-2 gap-2 mt-2">
                         {moreAdapters.map((opt) => (
-                          <button
-                            key={opt.type}
-                            disabled={!!opt.comingSoon}
-                            className={cn(
-                              "flex flex-col items-center gap-1.5 rounded-md border p-3 text-xs transition-colors relative",
-                              opt.comingSoon
-                                ? "border-border opacity-40 cursor-not-allowed"
-                                : adapterType === opt.type
-                                  ? "border-foreground bg-accent"
-                                  : "border-border hover:bg-accent/50"
-                            )}
-                            onClick={() => {
-                              if (opt.comingSoon) return;
-                              const nextType = opt.type;
+                           <button
+                             key={opt.type}
+                             disabled={!!opt.comingSoon}
+                             className={cn(
+                               "flex flex-col items-center gap-1.5 rounded-md border p-3 text-xs transition-colors relative",
+                               opt.comingSoon
+                                 ? "border-border opacity-40 cursor-not-allowed"
+                                 : adapterType === opt.type
+                                 ? "border-foreground bg-accent"
+                                 : "border-border hover:bg-accent/50"
+                             )}
+                             onClick={() => {
+                               if (opt.comingSoon) return;
+                               const nextType = opt.type;
                               setAdapterType(nextType);
                               if (nextType === "gemini_local" && !model) {
                                 setModel(DEFAULT_GEMINI_LOCAL_MODEL);
@@ -898,9 +879,9 @@ export function OnboardingWizard() {
                                 {selectedModel
                                   ? selectedModel.label
                                   : model ||
-                                  (adapterType === "opencode_local"
-                                    ? "Select model (required)"
-                                    : "Default")}
+                                    (adapterType === "opencode_local"
+                                      ? "Select model (required)"
+                                      : "Default")}
                               </span>
                               <ChevronDown className="h-3 w-3 text-muted-foreground" />
                             </button>
@@ -1007,7 +988,7 @@ export function OnboardingWizard() {
                       )}
 
                       {adapterEnvResult &&
-                        adapterEnvResult.status === "pass" ? (
+                      adapterEnvResult.status === "pass" ? (
                         <div className="flex items-center gap-2 rounded-md border border-green-300 dark:border-green-500/40 bg-green-50 dark:bg-green-500/10 px-3 py-2 text-xs text-green-700 dark:text-green-300 animate-in fade-in slide-in-from-bottom-1 duration-300">
                           <Check className="h-3.5 w-3.5 shrink-0" />
                           <span className="font-medium">Passed</span>
@@ -1047,21 +1028,21 @@ export function OnboardingWizard() {
                             {adapterType === "cursor"
                               ? `${effectiveAdapterCommand} -p --mode ask --output-format json \"Respond with hello.\"`
                               : adapterType === "codex_local"
-                                ? `${effectiveAdapterCommand} exec --json -`
-                                : adapterType === "gemini_local"
-                                  ? `${effectiveAdapterCommand} --output-format json "Respond with hello."`
-                                  : adapterType === "opencode_local"
-                                    ? `${effectiveAdapterCommand} run --format json "Respond with hello."`
-                                    : `${effectiveAdapterCommand} --print - --output-format stream-json --verbose`}
+                              ? `${effectiveAdapterCommand} exec --json -`
+                              : adapterType === "gemini_local"
+                                ? `${effectiveAdapterCommand} --output-format json "Respond with hello."`
+                              : adapterType === "opencode_local"
+                                ? `${effectiveAdapterCommand} run --format json "Respond with hello."`
+                              : `${effectiveAdapterCommand} --print - --output-format stream-json --verbose`}
                           </p>
                           <p className="text-muted-foreground">
                             Prompt:{" "}
                             <span className="font-mono">Respond with hello.</span>
                           </p>
                           {adapterType === "cursor" ||
-                            adapterType === "codex_local" ||
-                            adapterType === "gemini_local" ||
-                            adapterType === "opencode_local" ? (
+                          adapterType === "codex_local" ||
+                          adapterType === "gemini_local" ||
+                          adapterType === "opencode_local" ? (
                             <p className="text-muted-foreground">
                               If auth fails, set{" "}
                               <span className="font-mono">
@@ -1097,24 +1078,24 @@ export function OnboardingWizard() {
 
                   {(adapterType === "http" ||
                     adapterType === "openclaw_gateway") && (
-                      <div>
-                        <label className="text-xs text-muted-foreground mb-1 block">
-                          {adapterType === "openclaw_gateway"
-                            ? "Gateway URL"
-                            : "Webhook URL"}
-                        </label>
-                        <input
-                          className="w-full rounded-md border border-border bg-transparent px-3 py-2 text-sm font-mono outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground/50"
-                          placeholder={
-                            adapterType === "openclaw_gateway"
-                              ? "ws://127.0.0.1:18789"
-                              : "https://..."
-                          }
-                          value={url}
-                          onChange={(e) => setUrl(e.target.value)}
-                        />
-                      </div>
-                    )}
+                    <div>
+                      <label className="text-xs text-muted-foreground mb-1 block">
+                        {adapterType === "openclaw_gateway"
+                          ? "Gateway URL"
+                          : "Webhook URL"}
+                      </label>
+                      <input
+                        className="w-full rounded-md border border-border bg-transparent px-3 py-2 text-sm font-mono outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground/50"
+                        placeholder={
+                          adapterType === "openclaw_gateway"
+                            ? "ws://127.0.0.1:18789"
+                            : "https://..."
+                        }
+                        value={url}
+                        onChange={(e) => setUrl(e.target.value)}
+                      />
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -1316,14 +1297,14 @@ function AdapterEnvironmentResult({
     result.status === "pass"
       ? "Passed"
       : result.status === "warn"
-        ? "Warnings"
-        : "Failed";
+      ? "Warnings"
+      : "Failed";
   const statusClass =
     result.status === "pass"
       ? "text-green-700 dark:text-green-300 border-green-300 dark:border-green-500/40 bg-green-50 dark:bg-green-500/10"
       : result.status === "warn"
-        ? "text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-500/10"
-        : "text-red-700 dark:text-red-300 border-red-300 dark:border-red-500/40 bg-red-50 dark:bg-red-500/10";
+      ? "text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-500/10"
+      : "text-red-700 dark:text-red-300 border-red-300 dark:border-red-500/40 bg-red-50 dark:bg-red-500/10";
 
   return (
     <div className={`rounded-md border px-2.5 py-2 text-[11px] ${statusClass}`}>

@@ -1,7 +1,7 @@
 FROM ubuntu:24.04
 
 ARG NODE_MAJOR=20
-ARG TASKCORE_VERSION=latest
+ARG TASKCOREAI_VERSION=latest
 ARG HOST_UID=10001
 
 ENV DEBIAN_FRONTEND=noninteractive \
@@ -14,7 +14,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
   LC_ALL=en_US.UTF-8 \
   NPM_CONFIG_UPDATE_NOTIFIER=false \
   NODE_MAJOR=${NODE_MAJOR} \
-  TASKCORE_VERSION=${TASKCORE_VERSION}
+  TASKCOREAI_VERSION=${TASKCOREAI_VERSION}
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends ca-certificates curl gnupg locales \
@@ -37,4 +37,4 @@ WORKDIR /home/taskcore/workspace
 EXPOSE 3100
 USER taskcore
 
-CMD ["bash", "-lc", "set -euo pipefail; mkdir -p \"$TASKCORE_HOME\"; npx --yes \"taskcore@${TASKCORE_VERSION}\" onboard --yes --data-dir \"$TASKCORE_HOME\""]
+CMD ["bash", "-lc", "set -euo pipefail; mkdir -p \"$TASKCORE_HOME\"; npx --yes \"taskcore@${TASKCOREAI_VERSION}\" onboard --yes --data-dir \"$TASKCORE_HOME\""]

@@ -21,6 +21,7 @@ import {
   renderTemplate,
   renderTaskcoreWakePrompt,
   stringifyTaskcoreWakePayload,
+  DEFAULT_TASKCORE_AGENT_PROMPT_TEMPLATE,
   joinPromptSections,
   runChildProcess,
 } from "@taskcore/adapter-utils/server-utils";
@@ -110,12 +111,12 @@ export async function ensureCursorSkillsInjected(
   const skillsEntries = options.skillsEntries
     ?? (options.skillsDir
       ? (await fs.readdir(options.skillsDir, { withFileTypes: true }))
-        .filter((entry) => entry.isDirectory())
-        .map((entry) => ({
-          key: entry.name,
-          runtimeName: entry.name,
-          source: path.join(options.skillsDir!, entry.name),
-        }))
+          .filter((entry) => entry.isDirectory())
+          .map((entry) => ({
+            key: entry.name,
+            runtimeName: entry.name,
+            source: path.join(options.skillsDir!, entry.name),
+          }))
       : await readTaskcoreRuntimeSkillEntries({}, __moduleDir));
   if (skillsEntries.length === 0) return;
 
@@ -164,7 +165,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
 
   const promptTemplate = asString(
     config.promptTemplate,
-    "You are agent {{agent.id}} ({{agent.name}}). Continue your Taskcore work.",
+    DEFAULT_TASKCORE_AGENT_PROMPT_TEMPLATE,
   );
   const command = asString(config.command, "agent");
   const model = asString(config.model, DEFAULT_CURSOR_LOCAL_MODEL).trim();
@@ -179,8 +180,8 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   const agentHome = asString(workspaceContext.agentHome, "");
   const workspaceHints = Array.isArray(context.taskcoreWorkspaces)
     ? context.taskcoreWorkspaces.filter(
-      (value): value is Record<string, unknown> => typeof value === "object" && value !== null,
-    )
+        (value): value is Record<string, unknown> => typeof value === "object" && value !== null,
+      )
     : [];
   const configuredCwd = asString(config.cwd, "");
   const useConfiguredInsteadOfAgentHome = workspaceSource === "agent_home" && configuredCwd.length > 0;
@@ -486,12 +487,12 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     const resolvedSessionId = attempt.parsed.sessionId ?? runtimeSessionId ?? runtime.sessionId ?? null;
     const resolvedSessionParams = resolvedSessionId
       ? ({
-        sessionId: resolvedSessionId,
-        cwd,
-        ...(workspaceId ? { workspaceId } : {}),
-        ...(workspaceRepoUrl ? { repoUrl: workspaceRepoUrl } : {}),
-        ...(workspaceRepoRef ? { repoRef: workspaceRepoRef } : {}),
-      } as Record<string, unknown>)
+          sessionId: resolvedSessionId,
+          cwd,
+          ...(workspaceId ? { workspaceId } : {}),
+          ...(workspaceRepoUrl ? { repoUrl: workspaceRepoUrl } : {}),
+          ...(workspaceRepoRef ? { repoRef: workspaceRepoRef } : {}),
+        } as Record<string, unknown>)
       : null;
     const parsedError = typeof attempt.parsed.errorMessage === "string" ? attempt.parsed.errorMessage.trim() : "";
     const stderrLine = firstNonEmptyLine(attempt.proc.stderr);

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { spawn } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { createInterface } from "node:readline/promises";
@@ -16,6 +17,8 @@ const gracefulShutdownTimeoutMs = 10_000;
 const changedPathSampleLimit = 5;
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const devServerStatusFilePath = path.join(repoRoot, ".taskcore", "dev-server-status.json");
+const devServerStatusToken = mode === "dev" ? randomUUID() : null;
+const devServerStatusTokenHeader = "x-taskcore-dev-server-status-token";
 
 const watchedDirectories = [
   "cli",
@@ -81,9 +84,11 @@ const env = {
 
 if (mode === "dev") {
   env.TASKCORE_DEV_SERVER_STATUS_FILE = devServerStatusFilePath;
+  env.TASKCORE_DEV_SERVER_STATUS_TOKEN = devServerStatusToken ?? "";
 }
 
 if (mode === "watch") {
+  delete env.TASKCORE_DEV_SERVER_STATUS_TOKEN;
   env.TASKCORE_MIGRATION_PROMPT ??= "never";
   env.TASKCORE_MIGRATION_AUTO_APPLY ??= "true";
 }
@@ -291,8 +296,8 @@ async function getMigrationStatusPayload() {
   if (status.code !== 0) {
     process.stderr.write(
       status.stderr ||
-      status.stdout ||
-      `[taskcore] Command failed with code ${status.code}: pnpm --filter @taskcore/db exec tsx src/migration-status.ts --json\n`,
+        status.stdout ||
+        `[taskcore] Command failed with code ${status.code}: pnpm --filter @taskcore/db exec tsx src/migration-status.ts --json\n`,
     );
     process.exit(status.code);
   }
@@ -302,8 +307,8 @@ async function getMigrationStatusPayload() {
   } catch (error) {
     process.stderr.write(
       status.stderr ||
-      status.stdout ||
-      "[taskcore] migration-status returned invalid JSON payload\n",
+        status.stdout ||
+        "[taskcore] migration-status returned invalid JSON payload\n",
     );
     throw toError(error, "Unable to parse migration-status JSON output");
   }
@@ -355,7 +360,7 @@ async function maybePreflightMigrations(options = {}) {
     if (exitOnDecline) {
       process.stderr.write(
         `[taskcore] Pending migrations detected (${formatPendingMigrationSummary(pendingMigrations)}). ` +
-        "Refusing to start watch mode against a stale schema.\n",
+          "Refusing to start watch mode against a stale schema.\n",
       );
       process.exit(1);
     }
@@ -426,7 +431,9 @@ async function scanForBackendChanges() {
 
 async function getDevHealthPayload() {
   const serverPort = env.PORT ?? process.env.PORT ?? "3100";
-  const response = await fetch(`http://127.0.0.1:${serverPort}/api/health`);
+  const response = await fetch(`http://127.0.0.1:${serverPort}/api/health`, {
+    headers: devServerStatusToken ? { [devServerStatusTokenHeader]: devServerStatusToken } : undefined,
+  });
   if (!response.ok) {
     throw new Error(`Health request failed (${response.status})`);
   }

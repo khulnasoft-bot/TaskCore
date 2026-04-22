@@ -62,6 +62,7 @@ export interface Config {
   authDisableSignUp: boolean;
   databaseMode: DatabaseMode;
   databaseUrl: string | undefined;
+  databaseMigrationUrl: string | undefined;
   embeddedPostgresDataDir: string;
   embeddedPostgresPort: number;
   databaseBackupEnabled: boolean;
@@ -141,8 +142,8 @@ export function loadConfig(): Config {
   const storageProvider: StorageProvider = storageProviderFromEnv ?? fileStorage?.provider ?? "local_disk";
   const storageLocalDiskBaseDir = resolveHomeAwarePath(
     process.env.TASKCORE_STORAGE_LOCAL_DIR ??
-    fileStorage?.localDisk?.baseDir ??
-    resolveDefaultStorageDir(),
+      fileStorage?.localDisk?.baseDir ??
+      resolveDefaultStorageDir(),
   );
   const storageS3Bucket = process.env.TASKCORE_STORAGE_S3_BUCKET ?? fileStorage?.s3?.bucket ?? "taskcore";
   const storageS3Region = process.env.TASKCORE_STORAGE_S3_REGION ?? fileStorage?.s3?.region ?? "us-east-1";
@@ -170,7 +171,7 @@ export function loadConfig(): Config {
   const deploymentExposureFromEnvRaw = process.env.TASKCORE_DEPLOYMENT_EXPOSURE;
   const deploymentExposureFromEnv =
     deploymentExposureFromEnvRaw &&
-      DEPLOYMENT_EXPOSURES.includes(deploymentExposureFromEnvRaw as DeploymentExposure)
+    DEPLOYMENT_EXPOSURES.includes(deploymentExposureFromEnvRaw as DeploymentExposure)
       ? (deploymentExposureFromEnvRaw as DeploymentExposure)
       : null;
   const deploymentExposure: DeploymentExposure =
@@ -192,7 +193,7 @@ export function loadConfig(): Config {
   const authBaseUrlModeFromEnvRaw = process.env.TASKCORE_AUTH_BASE_URL_MODE;
   const authBaseUrlModeFromEnv =
     authBaseUrlModeFromEnvRaw &&
-      AUTH_BASE_URL_MODES.includes(authBaseUrlModeFromEnvRaw as AuthBaseUrlMode)
+    AUTH_BASE_URL_MODES.includes(authBaseUrlModeFromEnvRaw as AuthBaseUrlMode)
       ? (authBaseUrlModeFromEnvRaw as AuthBaseUrlMode)
       : null;
   const publicUrlFromEnv = process.env.TASKCORE_PUBLIC_URL;
@@ -250,19 +251,19 @@ export function loadConfig(): Config {
   const databaseBackupIntervalMinutes = Math.max(
     1,
     Number(process.env.TASKCORE_DB_BACKUP_INTERVAL_MINUTES) ||
-    fileDatabaseBackup?.intervalMinutes ||
-    60,
+      fileDatabaseBackup?.intervalMinutes ||
+      60,
   );
   const databaseBackupRetentionDays = Math.max(
     1,
     Number(process.env.TASKCORE_DB_BACKUP_RETENTION_DAYS) ||
-    fileDatabaseBackup?.retentionDays ||
-    7,
+      fileDatabaseBackup?.retentionDays ||
+      7,
   );
   const databaseBackupDir = resolveHomeAwarePath(
     process.env.TASKCORE_DB_BACKUP_DIR ??
-    fileDatabaseBackup?.dir ??
-    resolveDefaultBackupDir(),
+      fileDatabaseBackup?.dir ??
+      resolveDefaultBackupDir(),
   );
   const bindValidationErrors = validateConfiguredBindMode({
     deploymentMode,
@@ -297,6 +298,7 @@ export function loadConfig(): Config {
     authDisableSignUp,
     databaseMode: fileDatabaseMode,
     databaseUrl: process.env.DATABASE_URL ?? fileDbUrl,
+    databaseMigrationUrl: process.env.DATABASE_MIGRATION_URL,
     embeddedPostgresDataDir: resolveHomeAwarePath(
       fileConfig?.database.embeddedPostgresDataDir ?? resolveDefaultEmbeddedPostgresDir(),
     ),
@@ -315,8 +317,8 @@ export function loadConfig(): Config {
     secretsMasterKeyFilePath:
       resolveHomeAwarePath(
         process.env.TASKCORE_SECRETS_MASTER_KEY_FILE ??
-        fileSecrets?.localEncrypted.keyFilePath ??
-        resolveDefaultSecretsKeyFilePath(),
+          fileSecrets?.localEncrypted.keyFilePath ??
+          resolveDefaultSecretsKeyFilePath(),
       ),
     storageProvider,
     storageLocalDiskBaseDir,

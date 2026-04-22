@@ -96,7 +96,7 @@ export function generateReadme(
   // What's Inside table
   lines.push("## What's Inside");
   lines.push("");
-  lines.push("> This is an [Agent Company](https://agentcompanies.io) package from [Taskcore](https://taskcore.khulnasoft.com)");
+  lines.push("> This is an [Agent Company](https://agentcompanies.io) package from [Taskcore](https://taskcore.ing)");
   lines.push("");
 
   const counts: Array<[string, number]> = [];
@@ -160,12 +160,12 @@ export function generateReadme(
   lines.push("pnpm taskcore company import this-github-url-or-folder");
   lines.push("```");
   lines.push("");
-  lines.push("See [Taskcore](https://taskcore.khulnasoft.com) for more information.");
+  lines.push("See [Taskcore](https://taskcore.ing) for more information.");
   lines.push("");
 
   // Footer
   lines.push("---");
-  lines.push(`Exported from [Taskcore](https://taskcore.khulnasoft.com) on ${new Date().toISOString().split("T")[0]}`);
+  lines.push(`Exported from [Taskcore](https://taskcore.ing) on ${new Date().toISOString().split("T")[0]}`);
   lines.push("");
 
   return lines.join("\n");

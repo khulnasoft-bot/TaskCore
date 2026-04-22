@@ -289,7 +289,7 @@ function stripAnsi(value: string): string {
 
 describe("cursor cli formatter", () => {
   it("prints init, user, assistant, tool, and result events", () => {
-    const spy = vi.spyOn(console, "log").mockImplementation(() => { });
+    const spy = vi.spyOn(console, "log").mockImplementation(() => {});
 
     try {
       printCursorStreamEvent(

@@ -79,20 +79,20 @@ export function resolveCommandContext(
     recoverAuth: explicitApiKey || !canAttemptInteractiveBoardAuth()
       ? undefined
       : async ({ error }) => {
-        const requestedAccess = error.message.includes("Instance admin required")
-          ? "instance_admin_required"
-          : "board";
-        if (!shouldRecoverBoardAuth(error)) {
-          return null;
-        }
-        const login = await loginBoardCli({
-          apiBase,
-          requestedAccess,
-          requestedCompanyId: companyId ?? null,
-          command: buildCliCommandLabel(),
-        });
-        return login.token;
-      },
+          const requestedAccess = error.message.includes("Instance admin required")
+            ? "instance_admin_required"
+            : "board";
+          if (!shouldRecoverBoardAuth(error)) {
+            return null;
+          }
+          const login = await loginBoardCli({
+            apiBase,
+            requestedAccess,
+            requestedCompanyId: companyId ?? null,
+            command: buildCliCommandLabel(),
+          });
+          return login.token;
+        },
   });
   return {
     api,

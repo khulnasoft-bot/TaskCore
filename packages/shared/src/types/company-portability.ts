@@ -23,10 +23,10 @@ export interface CompanyPortabilityEnvInput {
 export type CompanyPortabilityFileEntry =
   | string
   | {
-    encoding: "base64";
-    data: string;
-    contentType?: string | null;
-  };
+      encoding: "base64";
+      data: string;
+      contentType?: string | null;
+    };
 
 export interface CompanyPortabilityCompanyManifestEntry {
   path: string;
@@ -198,24 +198,24 @@ export interface CompanyPortabilityExportPreviewResult {
 
 export type CompanyPortabilitySource =
   | {
-    type: "inline";
-    rootPath?: string | null;
-    files: Record<string, CompanyPortabilityFileEntry>;
-  }
+      type: "inline";
+      rootPath?: string | null;
+      files: Record<string, CompanyPortabilityFileEntry>;
+    }
   | {
-    type: "github";
-    url: string;
-  };
+      type: "github";
+      url: string;
+    };
 
 export type CompanyPortabilityImportTarget =
   | {
-    mode: "new_company";
-    newCompanyName?: string | null;
-  }
+      mode: "new_company";
+      newCompanyName?: string | null;
+    }
   | {
-    mode: "existing_company";
-    companyId: string;
-  };
+      mode: "existing_company";
+      companyId: string;
+    };
 
 export type CompanyPortabilityAgentSelection = "all" | string[];
 

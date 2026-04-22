@@ -40,17 +40,17 @@ export function buildAgentUpdatePatch(agent: Agent, overlay: AgentConfigOverlay)
     const nextAdapterConfig =
       overlay.adapterType !== undefined
         ? {
-          ...Object.fromEntries(
-            ADAPTER_AGNOSTIC_KEYS
-              .filter((key) => existing[key] !== undefined)
-              .map((key) => [key, existing[key]]),
-          ),
-          ...overlay.adapterConfig,
-        }
+            ...Object.fromEntries(
+              ADAPTER_AGNOSTIC_KEYS
+                .filter((key) => existing[key] !== undefined)
+                .map((key) => [key, existing[key]]),
+            ),
+            ...overlay.adapterConfig,
+          }
         : {
-          ...existing,
-          ...overlay.adapterConfig,
-        };
+            ...existing,
+            ...overlay.adapterConfig,
+          };
 
     patch.adapterConfig = omitUndefinedEntries(nextAdapterConfig);
     patch.replaceAdapterConfig = true;

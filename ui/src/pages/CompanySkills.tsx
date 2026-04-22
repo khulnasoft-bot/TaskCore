@@ -17,6 +17,7 @@ import { useBreadcrumbs } from "../context/BreadcrumbContext";
 import { useToastActions } from "../context/ToastContext";
 import { queryKeys } from "../lib/queryKeys";
 import { EmptyState } from "../components/EmptyState";
+import { TaskcoreIcon } from "../components/TaskcoreIcon";
 import { MarkdownBody } from "../components/MarkdownBody";
 import { MarkdownEditor } from "../components/MarkdownEditor";
 import { PageSkeleton } from "../components/PageSkeleton";
@@ -53,7 +54,6 @@ import {
   Search,
   Trash2,
 } from "lucide-react";
-import { TaskcoreIcon } from "../components/TaskcoreIcon";
 
 type SkillTreeNode = {
   name: string;
@@ -1259,7 +1259,7 @@ export function CompanySkills() {
                 });
               }}
               onSelectSkill={(currentSkillId) => setExpandedSkillId(currentSkillId)}
-              onSelectPath={() => { }}
+              onSelectPath={() => {}}
             />
           )}
         </aside>

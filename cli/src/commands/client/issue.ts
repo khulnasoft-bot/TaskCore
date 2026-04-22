@@ -315,17 +315,17 @@ export function registerIssueCommands(program: Command): void {
           const traces = (await ctx.api.get<FeedbackTrace[]>(
             `/api/issues/${issueId}/feedback-traces${buildFeedbackTraceQuery(opts, opts.includePayload ?? true)}`,
           )) ?? [];
-          const serialized = serializeFeedbackTraces(traces, opts.format);
-          if (opts.out?.trim()) {
-            await writeFile(opts.out, serialized, "utf8");
-            if (ctx.json) {
-              printOutput(
-                { out: opts.out, count: traces.length, format: normalizeFeedbackTraceExportFormat(opts.format) },
-                { json: true },
-              );
-              return;
-            }
-            console.log(`Wrote ${traces.length} feedback trace(s) to ${opts.out}`);
+            const serialized = serializeFeedbackTraces(traces, opts.format);
+            if (opts.out?.trim()) {
+              await writeFile(opts.out, serialized, "utf8");
+              if (ctx.json) {
+                printOutput(
+                  { out: opts.out, count: traces.length, format: normalizeFeedbackTraceExportFormat(opts.format) },
+                  { json: true },
+                );
+                return;
+              }
+              console.log(`Wrote ${traces.length} feedback trace(s) to ${opts.out}`);
             return;
           }
           process.stdout.write(`${serialized}${serialized.endsWith("\n") ? "" : "\n"}`);

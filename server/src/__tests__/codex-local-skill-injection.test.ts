@@ -89,7 +89,7 @@ describe("codex local adapter skill injection", () => {
     await createCustomSkill(customRoot, "taskcore");
     await fs.symlink(path.join(customRoot, "custom", "taskcore"), path.join(skillsHome, "taskcore"));
 
-    await ensureCodexSkillsInjected(async () => { }, {
+    await ensureCodexSkillsInjected(async () => {}, {
       skillsHome,
       skillsEntries: [{
         key: taskcoreKey,
@@ -156,7 +156,7 @@ describe("codex local adapter skill injection", () => {
       path.join(skillsHome, "agent-browser"),
     );
 
-    await ensureCodexSkillsInjected(async () => { }, {
+    await ensureCodexSkillsInjected(async () => {}, {
       skillsHome,
       skillsEntries: [{
         key: taskcoreKey,

@@ -21,6 +21,7 @@ import {
   renderTemplate,
   renderTaskcoreWakePrompt,
   stringifyTaskcoreWakePayload,
+  DEFAULT_TASKCORE_AGENT_PROMPT_TEMPLATE,
   runChildProcess,
 } from "@taskcore/adapter-utils/server-utils";
 import {
@@ -106,18 +107,18 @@ async function buildClaudeRuntimeConfig(input: ClaudeExecutionInput): Promise<Cl
   const agentHome = asString(workspaceContext.agentHome, "") || null;
   const workspaceHints = Array.isArray(context.taskcoreWorkspaces)
     ? context.taskcoreWorkspaces.filter(
-      (value): value is Record<string, unknown> => typeof value === "object" && value !== null,
-    )
+        (value): value is Record<string, unknown> => typeof value === "object" && value !== null,
+      )
     : [];
   const runtimeServiceIntents = Array.isArray(context.taskcoreRuntimeServiceIntents)
     ? context.taskcoreRuntimeServiceIntents.filter(
-      (value): value is Record<string, unknown> => typeof value === "object" && value !== null,
-    )
+        (value): value is Record<string, unknown> => typeof value === "object" && value !== null,
+      )
     : [];
   const runtimeServices = Array.isArray(context.taskcoreRuntimeServices)
     ? context.taskcoreRuntimeServices.filter(
-      (value): value is Record<string, unknown> => typeof value === "object" && value !== null,
-    )
+        (value): value is Record<string, unknown> => typeof value === "object" && value !== null,
+      )
     : [];
   const runtimePrimaryUrl = asString(context.taskcoreRuntimePrimaryUrl, "");
   const configuredCwd = asString(config.cwd, "");
@@ -266,7 +267,7 @@ export async function runClaudeLogin(input: {
   authToken?: string;
   onLog?: (stream: "stdout" | "stderr", chunk: string) => Promise<void>;
 }) {
-  const onLog = input.onLog ?? (async () => { });
+  const onLog = input.onLog ?? (async () => {});
   const runtime = await buildClaudeRuntimeConfig({
     runId: input.runId,
     agent: input.agent,
@@ -300,7 +301,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
 
   const promptTemplate = asString(
     config.promptTemplate,
-    "You are agent {{agent.id}} ({{agent.name}}). Continue your Taskcore work.",
+    DEFAULT_TASKCORE_AGENT_PROMPT_TEMPLATE,
   );
   const model = asString(config.model, "");
   const effort = asString(config.effort, "");
@@ -329,6 +330,10 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     graceSec,
     extraArgs,
   } = runtimeConfig;
+  const terminalResultCleanupGraceMs = Math.max(
+    0,
+    asNumber(config.terminalResultCleanupGraceMs, 5_000),
+  );
   const effectiveEnv = Object.fromEntries(
     Object.entries({ ...process.env, ...env }).filter(
       (entry): entry is [string, string] => typeof entry[1] === "string",
@@ -502,6 +507,10 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       graceSec,
       onSpawn,
       onLog,
+      terminalResultCleanup: {
+        graceMs: terminalResultCleanupGraceMs,
+        hasTerminalResult: ({ stdout }) => parseClaudeStreamJson(stdout).resultJson !== null,
+      },
     });
 
     const parsedStream = parseClaudeStreamJson(proc.stdout);
@@ -526,8 +535,8 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     const errorMeta =
       loginMeta.loginUrl != null
         ? {
-          loginUrl: loginMeta.loginUrl,
-        }
+            loginUrl: loginMeta.loginUrl,
+          }
         : undefined;
 
     if (proc.timedOut) {

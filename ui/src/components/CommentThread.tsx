@@ -10,9 +10,9 @@ import type {
 } from "@taskcore/shared";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Check, Copy } from "lucide-react";
-import { TaskcoreIcon } from "./TaskcoreIcon";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Identity } from "./Identity";
+import { TaskcoreIcon } from "./TaskcoreIcon";
 import { InlineEntitySelector, type InlineEntityOption } from "./InlineEntitySelector";
 import { MarkdownBody } from "./MarkdownBody";
 import { MarkdownEditor, type MarkdownEditorRef, type MentionOption } from "./MarkdownEditor";
@@ -136,8 +136,8 @@ function parseReassignment(target: string): CommentReassignment | null {
 }
 
 function shouldImplicitlyReopenComment(issueStatus: string | undefined, assigneeValue: string) {
-  const isClosed = issueStatus === "done" || issueStatus === "cancelled";
-  return isClosed && assigneeValue.startsWith("agent:");
+  const resumesToTodo = issueStatus === "done" || issueStatus === "cancelled" || issueStatus === "blocked";
+  return resumesToTodo && assigneeValue.startsWith("agent:");
 }
 
 function humanizeValue(value: string | null): string {
@@ -321,12 +321,13 @@ function CommentCard({
     <div
       key={comment.id}
       id={`comment-${comment.id}`}
-      className={`border p-3 overflow-hidden min-w-0 rounded-sm transition-colors duration-1000 ${isQueued
-        ? "border-amber-300/70 bg-amber-50/70 dark:border-amber-500/40 dark:bg-amber-500/10"
-        : isHighlighted
-          ? "border-primary/50 bg-primary/5"
-          : "border-border"
-        } ${isPending ? "opacity-80" : ""}`}
+      className={`border p-3 overflow-hidden min-w-0 rounded-sm transition-colors duration-1000 ${
+        isQueued
+          ? "border-amber-300/70 bg-amber-50/70 dark:border-amber-500/40 dark:bg-amber-500/10"
+          : isHighlighted
+            ? "border-primary/50 bg-primary/5"
+            : "border-border"
+      } ${isPending ? "opacity-80" : ""}`}
     >
       <div className="flex items-center justify-between mb-1">
         {comment.authorAgentId ? (

@@ -1,6 +1,5 @@
 import { useCallback, useMemo } from "react";
 import { Plus } from "lucide-react";
-import { TaskcoreIcon } from "./TaskcoreIcon";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import {
   DndContext,
@@ -24,6 +23,7 @@ import { queryKeys } from "../lib/queryKeys";
 import { sidebarBadgesApi } from "../api/sidebarBadges";
 import { heartbeatsApi } from "../api/heartbeats";
 import { authApi } from "../api/auth";
+import { TaskcoreIcon } from "./TaskcoreIcon";
 import { useCompanyOrder } from "../hooks/useCompanyOrder";
 import { useLocation, useNavigate } from "@/lib/router";
 import {

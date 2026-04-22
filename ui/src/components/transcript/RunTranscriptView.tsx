@@ -30,98 +30,98 @@ interface RunTranscriptViewProps {
 
 type TranscriptBlock =
   | {
-    type: "message";
-    role: "assistant" | "user";
-    ts: string;
-    text: string;
-    streaming: boolean;
-  }
-  | {
-    type: "thinking";
-    ts: string;
-    text: string;
-    streaming: boolean;
-  }
-  | {
-    type: "tool";
-    ts: string;
-    endTs?: string;
-    name: string;
-    toolUseId?: string;
-    input: unknown;
-    result?: string;
-    isError?: boolean;
-    status: "running" | "completed" | "error";
-  }
-  | {
-    type: "activity";
-    ts: string;
-    activityId?: string;
-    name: string;
-    status: "running" | "completed";
-  }
-  | {
-    type: "command_group";
-    ts: string;
-    endTs?: string;
-    items: Array<{
+      type: "message";
+      role: "assistant" | "user";
       ts: string;
-      endTs?: string;
-      input: unknown;
-      result?: string;
-      isError?: boolean;
-      status: "running" | "completed" | "error";
-    }>;
-  }
+      text: string;
+      streaming: boolean;
+    }
   | {
-    type: "tool_group";
-    ts: string;
-    endTs?: string;
-    items: Array<{
+      type: "thinking";
+      ts: string;
+      text: string;
+      streaming: boolean;
+    }
+  | {
+      type: "tool";
       ts: string;
       endTs?: string;
       name: string;
+      toolUseId?: string;
       input: unknown;
       result?: string;
       isError?: boolean;
       status: "running" | "completed" | "error";
-    }>;
-  }
+    }
   | {
-    type: "stderr_group";
-    ts: string;
-    endTs?: string;
-    lines: Array<{ ts: string; text: string }>;
-  }
+      type: "activity";
+      ts: string;
+      activityId?: string;
+      name: string;
+      status: "running" | "completed";
+    }
   | {
-    type: "system_group";
-    ts: string;
-    endTs?: string;
-    lines: Array<{ ts: string; text: string }>;
-  }
+      type: "command_group";
+      ts: string;
+      endTs?: string;
+      items: Array<{
+        ts: string;
+        endTs?: string;
+        input: unknown;
+        result?: string;
+        isError?: boolean;
+        status: "running" | "completed" | "error";
+      }>;
+    }
   | {
-    type: "stdout";
-    ts: string;
-    text: string;
-  }
+      type: "tool_group";
+      ts: string;
+      endTs?: string;
+      items: Array<{
+        ts: string;
+        endTs?: string;
+        name: string;
+        input: unknown;
+        result?: string;
+        isError?: boolean;
+        status: "running" | "completed" | "error";
+      }>;
+    }
   | {
-    type: "event";
-    ts: string;
-    label: string;
-    tone: "info" | "warn" | "error" | "neutral";
-    text: string;
-    detail?: string;
-  }
+      type: "stderr_group";
+      ts: string;
+      endTs?: string;
+      lines: Array<{ ts: string; text: string }>;
+    }
   | {
-    type: "diff_group";
-    ts: string;
-    endTs?: string;
-    filePath?: string;
-    hunks: Array<{
-      changeType: "add" | "remove" | "context" | "hunk" | "file_header" | "truncation";
+      type: "system_group";
+      ts: string;
+      endTs?: string;
+      lines: Array<{ ts: string; text: string }>;
+    }
+  | {
+      type: "stdout";
+      ts: string;
       text: string;
-    }>;
-  };
+    }
+  | {
+      type: "event";
+      ts: string;
+      label: string;
+      tone: "info" | "warn" | "error" | "neutral";
+      text: string;
+      detail?: string;
+    }
+  | {
+      type: "diff_group";
+      ts: string;
+      endTs?: string;
+      filePath?: string;
+      hunks: Array<{
+        changeType: "add" | "remove" | "context" | "hunk" | "file_header" | "truncation";
+        text: string;
+      }>;
+    };
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
@@ -820,8 +820,8 @@ function TranscriptCommandGroup({
     ? summarizeToolInput("command_execution", runningItem.input, density)
     : null;
   const statusTone = isRunning
-    ? "text-cyan-700 dark:text-cyan-300"
-    : "text-foreground/70";
+      ? "text-cyan-700 dark:text-cyan-300"
+      : "text-foreground/70";
 
   return (
     <div className={cn(showExpandedErrorState && "rounded-xl border border-red-500/20 bg-red-500/[0.04] p-3")}>
@@ -1022,8 +1022,8 @@ function TranscriptToolGroup({
                 </span>
                 <span className={cn("text-[10px] font-semibold uppercase tracking-[0.14em]",
                   item.status === "running" ? "text-cyan-700 dark:text-cyan-300"
-                    : item.status === "error" ? "text-red-700 dark:text-red-300"
-                      : "text-emerald-700 dark:text-emerald-300"
+                  : item.status === "error" ? "text-red-700 dark:text-red-300"
+                  : "text-emerald-700 dark:text-emerald-300"
                 )}>
                   {item.status === "running" ? "Running" : item.status === "error" ? "Errored" : "Completed"}
                 </span>

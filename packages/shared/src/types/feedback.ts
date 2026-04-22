@@ -82,21 +82,21 @@ export interface FeedbackTraceBundleFile {
   byteLength: number;
   sha256: string;
   source:
-  | "taskcore_run"
-  | "taskcore_run_events"
-  | "taskcore_run_log"
-  | "codex_session"
-  | "claude_stream_json"
-  | "claude_project_session"
-  | "claude_project_artifact"
-  | "claude_debug_log"
-  | "claude_task_metadata"
-  | "opencode_session"
-  | "opencode_session_diff"
-  | "opencode_message"
-  | "opencode_message_part"
-  | "opencode_project"
-  | "opencode_todo";
+    | "taskcore_run"
+    | "taskcore_run_events"
+    | "taskcore_run_log"
+    | "codex_session"
+    | "claude_stream_json"
+    | "claude_project_session"
+    | "claude_project_artifact"
+    | "claude_debug_log"
+    | "claude_task_metadata"
+    | "opencode_session"
+    | "opencode_session_diff"
+    | "opencode_message"
+    | "opencode_message_part"
+    | "opencode_project"
+    | "opencode_todo";
   contents: string;
 }
 

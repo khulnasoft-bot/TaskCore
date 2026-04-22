@@ -30,7 +30,7 @@ import {
   serializeFeedbackTraces,
 } from "./feedback.js";
 
-interface CompanyCommandOptions extends BaseClientOptions { }
+interface CompanyCommandOptions extends BaseClientOptions {}
 type CompanyDeleteSelectorMode = "auto" | "id" | "prefix";
 type CompanyImportTargetMode = "new" | "existing";
 type CompanyCollisionMode = "rename" | "skip" | "replace";
@@ -99,12 +99,12 @@ const IMPORT_INCLUDE_OPTIONS: Array<{
   label: string;
   hint: string;
 }> = [
-    { value: "company", label: "Company", hint: "name, branding, and company settings" },
-    { value: "projects", label: "Projects", hint: "projects and workspace metadata" },
-    { value: "issues", label: "Tasks", hint: "tasks and recurring routines" },
-    { value: "agents", label: "Agents", hint: "agent records and org structure" },
-    { value: "skills", label: "Skills", hint: "company skill packages and references" },
-  ];
+  { value: "company", label: "Company", hint: "name, branding, and company settings" },
+  { value: "projects", label: "Projects", hint: "projects and workspace metadata" },
+  { value: "issues", label: "Tasks", hint: "tasks and recurring routines" },
+  { value: "agents", label: "Agents", hint: "agent records and org structure" },
+  { value: "skills", label: "Skills", hint: "company skill packages and references" },
+];
 
 const IMPORT_PREVIEW_SAMPLE_LIMIT = 6;
 
@@ -1307,13 +1307,13 @@ export function registerCompanyCommands(program: Command): void {
           const targetPayload =
             target === "existing"
               ? {
-                mode: "existing_company" as const,
-                companyId: existingTargetCompanyId,
-              }
+                  mode: "existing_company" as const,
+                  companyId: existingTargetCompanyId,
+                }
               : {
-                mode: "new_company" as const,
-                newCompanyName: opts.newCompanyName?.trim() || null,
-              };
+                  mode: "new_company" as const,
+                  newCompanyName: opts.newCompanyName?.trim() || null,
+                };
 
           if (targetPayload.mode === "existing_company" && !targetPayload.companyId) {
             throw new Error("Target existing company requires --company-id (or context default companyId).");

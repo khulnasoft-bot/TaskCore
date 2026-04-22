@@ -31,26 +31,35 @@ source_env_path="$(dirname "$source_config_path")/.env"
 
 mkdir -p "$taskcore_dir"
 
-run_taskcore_command() {
-  local command_args=("$@")
-  if command -v pnpm >/dev/null 2>&1 && pnpm taskcore --help >/dev/null 2>&1; then
-    pnpm taskcore "${command_args[@]}"
+run_isolated_worktree_init() {
+  local base_cli_runner="$base_cwd/cli/node_modules/tsx/dist/cli.mjs"
+  local base_cli_entry="$base_cwd/cli/src/index.ts"
+
+  if [[ -f "$base_cli_runner" && -f "$base_cli_entry" ]]; then
+    (
+      cd "$worktree_cwd"
+      node "$base_cli_runner" "$base_cli_entry" worktree init --force --seed-mode minimal --name "$worktree_name" --from-config "$source_config_path"
+    )
     return 0
   fi
 
-  local base_cli_tsx_path="$base_cwd/cli/node_modules/tsx/dist/cli.mjs"
-  local base_cli_entry_path="$base_cwd/cli/src/index.ts"
-  if command -v node >/dev/null 2>&1 && [[ -f "$base_cli_tsx_path" ]] && [[ -f "$base_cli_entry_path" ]]; then
-    node "$base_cli_tsx_path" "$base_cli_entry_path" "${command_args[@]}"
+  if command -v pnpm >/dev/null 2>&1 && pnpm taskcore --help >/dev/null 2>&1; then
+    (
+      cd "$worktree_cwd"
+      pnpm taskcore worktree init --force --seed-mode minimal --name "$worktree_name" --from-config "$source_config_path"
+    )
     return 0
   fi
 
   if command -v taskcore >/dev/null 2>&1; then
-    taskcore "${command_args[@]}"
+    (
+      cd "$worktree_cwd"
+      taskcore worktree init --force --seed-mode minimal --name "$worktree_name" --from-config "$source_config_path"
+    )
     return 0
   fi
 
-  return 1
+  return 127
 }
 
 taskcore_command_available() {
@@ -69,19 +78,6 @@ taskcore_command_available() {
   fi
 
   return 1
-}
-
-run_isolated_worktree_init() {
-  run_taskcore_command \
-    worktree \
-    init \
-    --force \
-    --seed-mode \
-    minimal \
-    --name \
-    "$worktree_name" \
-    --from-config \
-    "$source_config_path"
 }
 
 write_fallback_worktree_config() {
@@ -336,11 +332,15 @@ main().catch((error) => {
 EOF
 }
 
-if taskcore_command_available; then
-  run_isolated_worktree_init
+if [[ -e "$worktree_config_path" && -e "$worktree_env_path" ]]; then
+  echo "Reusing existing isolated Taskcore worktree config at $worktree_config_path" >&2
 else
-  echo "taskcore CLI not available in this workspace; writing isolated fallback config without DB seeding." >&2
-  write_fallback_worktree_config
+  if taskcore_command_available; then
+    run_isolated_worktree_init
+  else
+    echo "taskcore CLI not available in this workspace; writing isolated fallback config without DB seeding." >&2
+    write_fallback_worktree_config
+  fi
 fi
 
 list_base_node_modules_paths() {

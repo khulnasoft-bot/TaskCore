@@ -434,8 +434,8 @@ pnpm test
 \`\`\`
 
 ${sdkDependency.startsWith("file:")
-      ? `This scaffold snapshots \`@taskcore/plugin-sdk\` and \`@taskcore/shared\` from a local Taskcore checkout at:\n\n\`${toPosixPath(localSdkPath)}\`\n\nThe packed tarballs live in \`.taskcore-sdk/\` for local development. Before publishing this plugin, switch those dependencies to published package versions once they are available on npm.\n\n`
-      : ""}
+  ? `This scaffold snapshots \`@taskcore/plugin-sdk\` and \`@taskcore/shared\` from a local Taskcore checkout at:\n\n\`${toPosixPath(localSdkPath)}\`\n\nThe packed tarballs live in \`.taskcore-sdk/\` for local development. Before publishing this plugin, switch those dependencies to published package versions once they are available on npm.\n\n`
+  : ""}
 
 ## Install Into Taskcore
 

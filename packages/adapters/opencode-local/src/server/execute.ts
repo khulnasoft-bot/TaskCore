@@ -19,6 +19,7 @@ import {
   renderTemplate,
   renderTaskcoreWakePrompt,
   stringifyTaskcoreWakePayload,
+  DEFAULT_TASKCORE_AGENT_PROMPT_TEMPLATE,
   runChildProcess,
   readTaskcoreRuntimeSkillEntries,
   resolveTaskcoreDesiredSkillNames,
@@ -97,7 +98,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
 
   const promptTemplate = asString(
     config.promptTemplate,
-    "You are agent {{agent.id}} ({{agent.name}}). Continue your Taskcore work.",
+    DEFAULT_TASKCORE_AGENT_PROMPT_TEMPLATE,
   );
   const command = asString(config.command, "opencode");
   const model = asString(config.model, "").trim();
@@ -112,8 +113,8 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   const agentHome = asString(workspaceContext.agentHome, "");
   const workspaceHints = Array.isArray(context.taskcoreWorkspaces)
     ? context.taskcoreWorkspaces.filter(
-      (value): value is Record<string, unknown> => typeof value === "object" && value !== null,
-    )
+        (value): value is Record<string, unknown> => typeof value === "object" && value !== null,
+      )
     : [];
   const configuredCwd = asString(config.cwd, "");
   const useConfiguredInsteadOfAgentHome = workspaceSource === "agent_home" && configuredCwd.length > 0;
@@ -362,12 +363,12 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
         (clearSessionOnMissingSession ? null : runtimeSessionId ?? runtime.sessionId ?? null);
       const resolvedSessionParams = resolvedSessionId
         ? ({
-          sessionId: resolvedSessionId,
-          cwd,
-          ...(workspaceId ? { workspaceId } : {}),
-          ...(workspaceRepoUrl ? { repoUrl: workspaceRepoUrl } : {}),
-          ...(workspaceRepoRef ? { repoRef: workspaceRepoRef } : {}),
-        } as Record<string, unknown>)
+            sessionId: resolvedSessionId,
+            cwd,
+            ...(workspaceId ? { workspaceId } : {}),
+            ...(workspaceRepoUrl ? { repoUrl: workspaceRepoUrl } : {}),
+            ...(workspaceRepoRef ? { repoRef: workspaceRepoRef } : {}),
+          } as Record<string, unknown>)
         : null;
 
       const parsedError = typeof attempt.parsed.errorMessage === "string" ? attempt.parsed.errorMessage.trim() : "";

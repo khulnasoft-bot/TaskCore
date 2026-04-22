@@ -17,8 +17,8 @@ interface AuthLoginOptions extends BaseClientOptions {
   instanceAdmin?: boolean;
 }
 
-interface AuthLogoutOptions extends BaseClientOptions { }
-interface AuthWhoamiOptions extends BaseClientOptions { }
+interface AuthLogoutOptions extends BaseClientOptions {}
+interface AuthWhoamiOptions extends BaseClientOptions {}
 
 export function registerClientAuthCommands(auth: Command): void {
   addCommonClientOptions(

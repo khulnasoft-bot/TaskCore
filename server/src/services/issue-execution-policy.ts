@@ -530,10 +530,10 @@ export function applyIssueExecutionPolicyTransition(input: TransitionInput): Tra
       skippedStageIds.length === (existingState?.completedStageIds ?? []).length
         ? existingState
         : buildStateWithCompletedStages({
-          previous: existingState,
-          completedStageIds: skippedStageIds,
-          returnAssignee,
-        }),
+            previous: existingState,
+            completedStageIds: skippedStageIds,
+            returnAssignee,
+          }),
     policy: input.policy,
     stage: pendingStage,
     participant,

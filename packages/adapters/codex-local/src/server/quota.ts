@@ -86,14 +86,14 @@ function parsePlanAndEmailFromToken(idToken: string | null, accessToken: string 
     const directEmail = typeof payload.email === "string" ? payload.email : null;
     const authBlock =
       typeof payload["https://api.openai.com/auth"] === "object" &&
-        payload["https://api.openai.com/auth"] !== null &&
-        !Array.isArray(payload["https://api.openai.com/auth"])
+      payload["https://api.openai.com/auth"] !== null &&
+      !Array.isArray(payload["https://api.openai.com/auth"])
         ? payload["https://api.openai.com/auth"] as Record<string, unknown>
         : null;
     const profileBlock =
       typeof payload["https://api.openai.com/profile"] === "object" &&
-        payload["https://api.openai.com/profile"] !== null &&
-        !Array.isArray(payload["https://api.openai.com/profile"])
+      payload["https://api.openai.com/profile"] !== null &&
+      !Array.isArray(payload["https://api.openai.com/profile"])
         ? payload["https://api.openai.com/profile"] as Record<string, unknown>
         : null;
     const email =

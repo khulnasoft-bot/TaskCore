@@ -312,8 +312,8 @@ function buildWakePayload(ctx: AdapterExecutionContext): WakePayload {
     approvalStatus: nonEmpty(context.approvalStatus),
     issueIds: Array.isArray(context.issueIds)
       ? context.issueIds.filter(
-        (value): value is string => typeof value === "string" && value.trim().length > 0,
-      )
+          (value): value is string => typeof value === "string" && value.trim().length > 0,
+        )
       : [],
   };
 }
@@ -420,7 +420,11 @@ function buildWakeText(
     "   - POST /api/issues/{issueId}/checkout with {\"agentId\":\"$TASKCORE_AGENT_ID\",\"expectedStatuses\":[\"todo\",\"backlog\",\"blocked\",\"in_review\"]}",
     "   - GET /api/issues/{issueId}",
     "   - GET /api/issues/{issueId}/comments",
-    "   - Execute the issue instructions exactly.",
+    "   - Execute the issue instructions exactly. If the issue is actionable, take concrete action in this run; do not stop at a plan unless planning was requested.",
+    "   - Leave durable progress with a clear next action. Use child issues for long or parallel delegated work instead of polling agents, sessions, or processes.",
+    "   - Create child issues directly when you know what needs to be done; use POST /api/issues/{issueId}/interactions with kind suggest_tasks, ask_user_questions, or request_confirmation when the board/user must choose, answer, or confirm before you can continue.",
+    "   - For plan approval, update the plan document first, then create request_confirmation targeting the latest plan revision with idempotencyKey confirmation:{issueId}:plan:{revisionId}; wait for acceptance before creating implementation subtasks.",
+    "   - If blocked, PATCH /api/issues/{issueId} with {\"status\":\"blocked\",\"comment\":\"what is blocked, who owns the unblock, and the next action\"}.",
     "   - If instructions require a comment, POST /api/issues/{issueId}/comments with {\"body\":\"...\"}.",
     "   - PATCH /api/issues/{issueId} with {\"status\":\"done\",\"comment\":\"what changed and why\"}.",
     "4) If issueId does not exist:",
@@ -433,9 +437,9 @@ function buildWakeText(
     "- POST /api/companies/{companyId}/issues (when asked to create a new issue)",
     ...(structuredWakePrompt
       ? [
-        "",
-        structuredWakePrompt,
-      ]
+          "",
+          structuredWakePrompt,
+        ]
       : []),
     "",
     "Complete the workflow in this run.",
@@ -473,8 +477,8 @@ function buildStandardTaskcorePayload(
   const configuredWorkspaceRuntime = parseObject(ctx.config.workspaceRuntime);
   const runtimeServiceIntents = Array.isArray(ctx.context.taskcoreRuntimeServiceIntents)
     ? ctx.context.taskcoreRuntimeServiceIntents.filter(
-      (entry): entry is Record<string, unknown> => Boolean(asRecord(entry)),
-    )
+        (entry): entry is Record<string, unknown> => Boolean(asRecord(entry)),
+      )
     : [];
 
   const standardTaskcore: Record<string, unknown> = {
@@ -653,7 +657,7 @@ class GatewayWsClient {
       this.resolveChallenge = resolve;
       this.rejectChallenge = reject;
     });
-    this.challengePromise.catch(() => { });
+    this.challengePromise.catch(() => {});
   }
 
   async connect(
@@ -742,9 +746,9 @@ class GatewayWsClient {
       const timer =
         opts.timeoutMs > 0
           ? setTimeout(() => {
-            this.pending.delete(id);
-            reject(new Error(`gateway request timeout (${method})`));
-          }, opts.timeoutMs)
+              this.pending.delete(id);
+              reject(new Error(`gateway request timeout (${method})`));
+            }, opts.timeoutMs)
           : null;
 
       this.pending.set(id, {
@@ -852,7 +856,7 @@ async function autoApproveDevicePairing(params: {
   const client = new GatewayWsClient({
     url: params.url,
     headers: params.headers,
-    onEvent: () => { },
+    onEvent: () => {},
     onLog: params.onLog,
   });
 
@@ -960,8 +964,8 @@ function extractRuntimeServicesFromMeta(meta: Record<string, unknown> | null): A
     const rawScopeType = nonEmpty(entry.scopeType)?.toLowerCase();
     const scopeType =
       rawScopeType === "project_workspace" ||
-        rawScopeType === "execution_workspace" ||
-        rawScopeType === "agent"
+      rawScopeType === "execution_workspace" ||
+      rawScopeType === "agent"
         ? rawScopeType
         : "run";
     const rawHealth = nonEmpty(entry.healthStatus)?.toLowerCase();
@@ -1270,10 +1274,10 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
           auth:
             authToken || password || deviceToken
               ? {
-                ...(authToken ? { token: authToken } : {}),
-                ...(deviceToken ? { deviceToken } : {}),
-                ...(password ? { password } : {}),
-              }
+                  ...(authToken ? { token: authToken } : {}),
+                  ...(deviceToken ? { deviceToken } : {}),
+                  ...(password ? { password } : {}),
+                }
               : undefined,
         };
 
