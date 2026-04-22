@@ -50,7 +50,7 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
 
       await applyPendingMigrations(connectionString);
 
-      const sql = postgres(connectionString, { max: 1, onnotice: () => { } });
+      const sql = postgres(connectionString, { max: 1, onnotice: () => {} });
       try {
         const richMagnetoHash = await migrationHash("0030_rich_magneto.sql");
 
@@ -74,7 +74,7 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
       const finalState = await inspectMigrations(connectionString);
       expect(finalState.status).toBe("upToDate");
 
-      const verifySql = postgres(connectionString, { max: 1, onnotice: () => { } });
+      const verifySql = postgres(connectionString, { max: 1, onnotice: () => {} });
       try {
         const rows = await verifySql.unsafe<{ table_name: string }[]>(
           `
@@ -103,7 +103,7 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
 
       await applyPendingMigrations(connectionString);
 
-      const sql = postgres(connectionString, { max: 1, onnotice: () => { } });
+      const sql = postgres(connectionString, { max: 1, onnotice: () => {} });
       try {
         const illegalToadHash = await migrationHash("0044_illegal_toad.sql");
 
@@ -147,7 +147,7 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
 
       await applyPendingMigrations(connectionString);
 
-      const sql = postgres(connectionString, { max: 1, onnotice: () => { } });
+      const sql = postgres(connectionString, { max: 1, onnotice: () => {} });
       try {
         await sql.unsafe(`
           INSERT INTO "user" ("id", "name", "email", "email_verified", "created_at", "updated_at")
@@ -177,7 +177,7 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
 
       await applyPendingMigrations(connectionString);
 
-      const sql = postgres(connectionString, { max: 1, onnotice: () => { } });
+      const sql = postgres(connectionString, { max: 1, onnotice: () => {} });
       try {
         const smoothSentinelsHash = await migrationHash("0046_smooth_sentinels.sql");
 
@@ -212,7 +212,7 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
       const finalState = await inspectMigrations(connectionString);
       expect(finalState.status).toBe("upToDate");
 
-      const verifySql = postgres(connectionString, { max: 1, onnotice: () => { } });
+      const verifySql = postgres(connectionString, { max: 1, onnotice: () => {} });
       try {
         const columns = await verifySql.unsafe<{ column_name: string; is_nullable: string; column_default: string | null }[]>(
           `
@@ -249,7 +249,7 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
 
       await applyPendingMigrations(connectionString);
 
-      const sql = postgres(connectionString, { max: 1, onnotice: () => { } });
+      const sql = postgres(connectionString, { max: 1, onnotice: () => {} });
       try {
         const overjoyedGrootHash = await migrationHash("0047_overjoyed_groot.sql");
 
@@ -306,7 +306,7 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
       const finalState = await inspectMigrations(connectionString);
       expect(finalState.status).toBe("upToDate");
 
-      const verifySql = postgres(connectionString, { max: 1, onnotice: () => { } });
+      const verifySql = postgres(connectionString, { max: 1, onnotice: () => {} });
       try {
         const constraints = await verifySql.unsafe<{ conname: string }[]>(
           `
@@ -343,7 +343,7 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
 
       await applyPendingMigrations(connectionString);
 
-      const sql = postgres(connectionString, { max: 1, onnotice: () => { } });
+      const sql = postgres(connectionString, { max: 1, onnotice: () => {} });
       try {
         const flashyMarrowHash = await migrationHash("0048_flashy_marrow.sql");
 
@@ -377,7 +377,7 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
       const finalState = await inspectMigrations(connectionString);
       expect(finalState.status).toBe("upToDate");
 
-      const verifySql = postgres(connectionString, { max: 1, onnotice: () => { } });
+      const verifySql = postgres(connectionString, { max: 1, onnotice: () => {} });
       try {
         const columns = await verifySql.unsafe<{ column_name: string; is_nullable: string; data_type: string }[]>(
           `
@@ -409,7 +409,7 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
 
       await applyPendingMigrations(connectionString);
 
-      const sql = postgres(connectionString, { max: 1, onnotice: () => { } });
+      const sql = postgres(connectionString, { max: 1, onnotice: () => {} });
       try {
         const stiffLuckmanHash = await migrationHash("0050_stiff_luckman.sql");
 
@@ -443,7 +443,7 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
       const finalState = await inspectMigrations(connectionString);
       expect(finalState.status).toBe("upToDate");
 
-      const verifySql = postgres(connectionString, { max: 1, onnotice: () => { } });
+      const verifySql = postgres(connectionString, { max: 1, onnotice: () => {} });
       try {
         const columns = await verifySql.unsafe<{ column_name: string; is_nullable: string; data_type: string }[]>(
           `
@@ -461,6 +461,80 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
             data_type: "jsonb",
           }),
         ]);
+      } finally {
+        await verifySql.end();
+      }
+    },
+    20_000,
+  );
+
+  it(
+    "replays migration 0059 safely when plugin_database_namespaces already exists",
+    async () => {
+      const connectionString = await createTempDatabase();
+
+      await applyPendingMigrations(connectionString);
+
+      const sql = postgres(connectionString, { max: 1, onnotice: () => {} });
+      try {
+        const pluginNamespacesHash = await migrationHash(
+          "0059_plugin_database_namespaces.sql",
+        );
+
+        await sql.unsafe(
+          `DELETE FROM "drizzle"."__drizzle_migrations" WHERE hash = '${pluginNamespacesHash}'`,
+        );
+
+        const tables = await sql.unsafe<{ table_name: string }[]>(
+          `
+            SELECT table_name
+            FROM information_schema.tables
+            WHERE table_schema = 'public'
+              AND table_name IN ('plugin_database_namespaces', 'plugin_migrations')
+            ORDER BY table_name
+          `,
+        );
+        expect(tables.map((row) => row.table_name)).toEqual([
+          "plugin_database_namespaces",
+          "plugin_migrations",
+        ]);
+      } finally {
+        await sql.end();
+      }
+
+      const pendingState = await inspectMigrations(connectionString);
+      expect(pendingState).toMatchObject({
+        status: "needsMigrations",
+        pendingMigrations: ["0059_plugin_database_namespaces.sql"],
+        reason: "pending-migrations",
+      });
+
+      await applyPendingMigrations(connectionString);
+
+      const finalState = await inspectMigrations(connectionString);
+      expect(finalState.status).toBe("upToDate");
+
+      const verifySql = postgres(connectionString, { max: 1, onnotice: () => {} });
+      try {
+        const indexes = await verifySql.unsafe<{ indexname: string }[]>(
+          `
+            SELECT indexname
+            FROM pg_indexes
+            WHERE schemaname = 'public'
+              AND tablename IN ('plugin_database_namespaces', 'plugin_migrations')
+            ORDER BY indexname
+          `,
+        );
+        expect(indexes.map((row) => row.indexname)).toEqual(
+          expect.arrayContaining([
+            "plugin_database_namespaces_namespace_idx",
+            "plugin_database_namespaces_plugin_idx",
+            "plugin_database_namespaces_status_idx",
+            "plugin_migrations_plugin_idx",
+            "plugin_migrations_plugin_key_idx",
+            "plugin_migrations_status_idx",
+          ]),
+        );
       } finally {
         await verifySql.end();
       }

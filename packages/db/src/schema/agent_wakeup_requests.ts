@@ -10,7 +10,6 @@ export const agentWakeupRequests = pgTable(
     agentId: uuid("agent_id").notNull().references(() => agents.id),
     source: text("source").notNull(),
     triggerDetail: text("trigger_detail"),
-    wakeReason: text("wake_reason"),
     reason: text("reason"),
     payload: jsonb("payload").$type<Record<string, unknown>>(),
     status: text("status").notNull().default("queued"),

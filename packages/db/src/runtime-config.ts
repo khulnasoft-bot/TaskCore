@@ -20,20 +20,20 @@ type PartialConfig = {
 
 export type ResolvedDatabaseTarget =
   | {
-    mode: "postgres";
-    connectionString: string;
-    source: "DATABASE_URL" | "taskcore-env" | "config.database.connectionString";
-    configPath: string;
-    envPath: string;
-  }
+      mode: "postgres";
+      connectionString: string;
+      source: "DATABASE_URL" | "taskcore-env" | "config.database.connectionString";
+      configPath: string;
+      envPath: string;
+    }
   | {
-    mode: "embedded-postgres";
-    dataDir: string;
-    port: number;
-    source: `embedded-postgres@${number}`;
-    configPath: string;
-    envPath: string;
-  };
+      mode: "embedded-postgres";
+      dataDir: string;
+      port: number;
+      source: `embedded-postgres@${number}`;
+      configPath: string;
+      envPath: string;
+    };
 
 function expandHomePrefix(value: string): string {
   if (value === "~") return os.homedir();
@@ -189,25 +189,25 @@ function readConfig(configPath: string): PartialConfig | null {
 
   const database =
     typeof migrated.database === "object" &&
-      migrated.database !== null &&
-      !Array.isArray(migrated.database)
+    migrated.database !== null &&
+    !Array.isArray(migrated.database)
       ? migrated.database
       : undefined;
 
   return {
     database: database
       ? {
-        mode: database.mode === "postgres" ? "postgres" : "embedded-postgres",
-        connectionString:
-          typeof database.connectionString === "string" ? database.connectionString : undefined,
-        embeddedPostgresDataDir:
-          typeof database.embeddedPostgresDataDir === "string"
-            ? database.embeddedPostgresDataDir
-            : undefined,
-        embeddedPostgresPort: asPositiveInt(database.embeddedPostgresPort) ?? undefined,
-        pgliteDataDir: typeof database.pgliteDataDir === "string" ? database.pgliteDataDir : undefined,
-        pglitePort: asPositiveInt(database.pglitePort) ?? undefined,
-      }
+          mode: database.mode === "postgres" ? "postgres" : "embedded-postgres",
+          connectionString:
+            typeof database.connectionString === "string" ? database.connectionString : undefined,
+          embeddedPostgresDataDir:
+            typeof database.embeddedPostgresDataDir === "string"
+              ? database.embeddedPostgresDataDir
+              : undefined,
+          embeddedPostgresPort: asPositiveInt(database.embeddedPostgresPort) ?? undefined,
+          pgliteDataDir: typeof database.pgliteDataDir === "string" ? database.pgliteDataDir : undefined,
+          pglitePort: asPositiveInt(database.pglitePort) ?? undefined,
+        }
       : undefined,
   };
 }

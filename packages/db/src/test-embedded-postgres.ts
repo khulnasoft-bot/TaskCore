@@ -75,8 +75,8 @@ async function probeEmbeddedPostgresSupport(): Promise<EmbeddedPostgresTestSuppo
     port,
     persistent: true,
     initdbFlags: ["--encoding=UTF8", "--locale=C", "--lc-messages=C"],
-    onLog: () => { },
-    onError: () => { },
+    onLog: () => {},
+    onError: () => {},
   });
 
   try {
@@ -89,7 +89,7 @@ async function probeEmbeddedPostgresSupport(): Promise<EmbeddedPostgresTestSuppo
       reason: formatEmbeddedPostgresError(error),
     };
   } finally {
-    await instance.stop().catch(() => { });
+    await instance.stop().catch(() => {});
     fs.rmSync(dataDir, { recursive: true, force: true });
   }
 }
@@ -114,8 +114,8 @@ export async function startEmbeddedPostgresTestDatabase(
     port,
     persistent: true,
     initdbFlags: ["--encoding=UTF8", "--locale=C", "--lc-messages=C"],
-    onLog: () => { },
-    onError: () => { },
+    onLog: () => {},
+    onError: () => {},
   });
 
   try {
@@ -130,12 +130,12 @@ export async function startEmbeddedPostgresTestDatabase(
     return {
       connectionString,
       cleanup: async () => {
-        await instance.stop().catch(() => { });
+        await instance.stop().catch(() => {});
         fs.rmSync(dataDir, { recursive: true, force: true });
       },
     };
   } catch (error) {
-    await instance.stop().catch(() => { });
+    await instance.stop().catch(() => {});
     fs.rmSync(dataDir, { recursive: true, force: true });
     throw new Error(
       `Failed to start embedded PostgreSQL test database: ${formatEmbeddedPostgresError(error)}`,

@@ -83,8 +83,8 @@ describeEmbeddedPostgres("runDatabaseBackup", () => {
         "taskcore_restore_target",
       );
       const backupDir = createTempDir("taskcore-db-backup-output-");
-      const sourceSql = postgres(sourceConnectionString, { max: 1, onnotice: () => { } });
-      const restoreSql = postgres(restoreConnectionString, { max: 1, onnotice: () => { } });
+      const sourceSql = postgres(sourceConnectionString, { max: 1, onnotice: () => {} });
+      const restoreSql = postgres(restoreConnectionString, { max: 1, onnotice: () => {} });
 
       try {
         await sourceSql.unsafe(`
@@ -127,6 +127,7 @@ describeEmbeddedPostgres("runDatabaseBackup", () => {
           backupDir,
           retention: { dailyDays: 7, weeklyWeeks: 4, monthlyMonths: 1 },
           filenamePrefix: "taskcore-test",
+          backupEngine: "javascript",
         });
 
         expect(result.backupFile).toMatch(/taskcore-test-.*\.sql\.gz$/);
@@ -148,14 +149,17 @@ describeEmbeddedPostgres("runDatabaseBackup", () => {
           title: string;
           payload: string;
           state: string;
-          metadata: { index: number; even: boolean };
+          metadata: { index: number; even: boolean } | string;
         }[]>(`
           SELECT "title", "payload", "state"::text AS "state", "metadata"
           FROM "public"."backup_test_records"
           WHERE "title" IN ('row-0', 'row-159')
           ORDER BY "title"
         `);
-        expect(sampleRows).toEqual([
+        expect(sampleRows.map((row) => ({
+          ...row,
+          metadata: typeof row.metadata === "string" ? JSON.parse(row.metadata) : row.metadata,
+        }))).toEqual([
           {
             title: "row-0",
             payload,
@@ -181,7 +185,7 @@ describeEmbeddedPostgres("runDatabaseBackup", () => {
     "restores statements incrementally when backup comments precede the first breakpoint",
     async () => {
       const restoreConnectionString = await createTempDatabase();
-      const restoreSql = postgres(restoreConnectionString, { max: 1, onnotice: () => { } });
+      const restoreSql = postgres(restoreConnectionString, { max: 1, onnotice: () => {} });
       const backupDir = createTempDir("taskcore-db-restore-manual-");
       const backupFile = path.join(backupDir, "manual.sql");
 

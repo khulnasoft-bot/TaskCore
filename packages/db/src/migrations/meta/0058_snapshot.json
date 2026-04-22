@@ -1,6 +1,6 @@
 {
-  "id": "aea5333d-7ff4-43de-8d57-b06ece3ecda1",
-  "prevId": "ed72f2cb-17f3-4fe2-b6fb-3c55b740bbce",
+  "id": "58b07646-6b04-4945-b6d2-e3409d238235",
+  "prevId": "c13b1dd5-1860-4d0b-aeb2-5bb197766983",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -898,12 +898,6 @@
         },
         "trigger_detail": {
           "name": "trigger_detail",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "wake_reason": {
-          "name": "wake_reason",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -6308,12 +6302,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "wake_reason": {
-          "name": "wake_reason",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "status": {
           "name": "status",
           "type": "text",
@@ -6486,6 +6474,37 @@
           "primaryKey": false,
           "notNull": false
         },
+        "liveness_state": {
+          "name": "liveness_state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "liveness_reason": {
+          "name": "liveness_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "continuation_attempt": {
+          "name": "continuation_attempt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "last_useful_action_at": {
+          "name": "last_useful_action_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "next_action": {
+          "name": "next_action",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "context_snapshot": {
           "name": "context_snapshot",
           "type": "jsonb",
@@ -6525,6 +6544,33 @@
             },
             {
               "expression": "started_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "heartbeat_runs_company_liveness_idx": {
+          "name": "heartbeat_runs_company_liveness_idx",
+          "columns": [
+            {
+              "expression": "company_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "liveness_state",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -9777,6 +9823,50 @@
             }
           ],
           "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "join_requests_pending_human_user_uq": {
+          "name": "join_requests_pending_human_user_uq",
+          "columns": [
+            {
+              "expression": "company_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "requesting_user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"join_requests\".\"request_type\" = 'human' AND \"join_requests\".\"status\" = 'pending_approval' AND \"join_requests\".\"requesting_user_id\" IS NOT NULL",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "join_requests_pending_human_email_uq": {
+          "name": "join_requests_pending_human_email_uq",
+          "columns": [
+            {
+              "expression": "company_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "lower(\"request_email_snapshot\")",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"join_requests\".\"request_type\" = 'human' AND \"join_requests\".\"status\" = 'pending_approval' AND \"join_requests\".\"request_email_snapshot\" IS NOT NULL",
           "concurrently": false,
           "method": "btree",
           "with": {}
