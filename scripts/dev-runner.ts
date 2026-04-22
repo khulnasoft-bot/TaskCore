@@ -1,10 +1,11 @@
 #!/usr/bin/env -S node --import tsx
 import { spawn } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { createInterface } from "node:readline/promises";
 import { stdin, stdout } from "node:process";
-import { createCapturedOutputBuffer, parseJsonResponseWithLimit } from "./dev-runner-output.mjs";
+import { createCapturedOutputBuffer, parseJsonResponseWithLimit } from "./dev-runner-output.ts";
 import { shouldTrackDevServerPath } from "./dev-runner-paths.mjs";
 import { createDevServiceIdentity, repoRoot } from "./dev-service-profile.ts";
 import { bootstrapDevRunnerWorktreeEnv } from "../server/src/dev-runner-worktree.ts";
@@ -35,6 +36,8 @@ const autoRestartPollIntervalMs = 2500;
 const gracefulShutdownTimeoutMs = 10_000;
 const changedPathSampleLimit = 5;
 const devServerStatusFilePath = path.join(repoRoot, ".taskcore", "dev-server-status.json");
+const devServerStatusToken = mode === "dev" ? randomUUID() : null;
+const devServerStatusTokenHeader = "x-taskcore-dev-server-status-token";
 
 const watchedDirectories = [
   "cli",
@@ -133,10 +136,12 @@ const env: NodeJS.ProcessEnv = {
 
 if (mode === "dev") {
   env.TASKCORE_DEV_SERVER_STATUS_FILE = devServerStatusFilePath;
+  env.TASKCORE_DEV_SERVER_STATUS_TOKEN = devServerStatusToken ?? "";
   env.TASKCORE_MIGRATION_AUTO_APPLY ??= "true";
 }
 
 if (mode === "watch") {
+  delete env.TASKCORE_DEV_SERVER_STATUS_TOKEN;
   env.TASKCORE_MIGRATION_PROMPT ??= "never";
   env.TASKCORE_MIGRATION_AUTO_APPLY ??= "true";
 }
@@ -422,8 +427,8 @@ async function getMigrationStatusPayload() {
   if (status.code !== 0) {
     process.stderr.write(
       status.stderr ||
-      status.stdout ||
-      `[taskcore] Command failed with code ${status.code}: pnpm --filter @taskcore/db exec tsx src/migration-status.ts --json\n`,
+        status.stdout ||
+        `[taskcore] Command failed with code ${status.code}: pnpm --filter @taskcore/db exec tsx src/migration-status.ts --json\n`,
     );
     process.exit(status.code);
   }
@@ -433,8 +438,8 @@ async function getMigrationStatusPayload() {
   } catch (error) {
     process.stderr.write(
       status.stderr ||
-      status.stdout ||
-      "[taskcore] migration-status returned invalid JSON payload\n",
+        status.stdout ||
+        "[taskcore] migration-status returned invalid JSON payload\n",
     );
     throw toError(error, "Unable to parse migration-status JSON output");
   }
@@ -553,11 +558,13 @@ async function scanForBackendChanges() {
 }
 
 async function getDevHealthPayload() {
-  const response = await fetch(`http://127.0.0.1:${serverPort}/api/health`);
+  const response = await fetch(`http://127.0.0.1:${serverPort}/api/health`, {
+    headers: devServerStatusToken ? { [devServerStatusTokenHeader]: devServerStatusToken } : undefined,
+  });
   if (!response.ok) {
     throw new Error(`Health request failed (${response.status})`);
   }
-  return await parseJsonResponseWithLimit<{ devServer?: { enabled?: boolean; autoRestartEnabled?: boolean; activeRunCount?: number } }>(response);
+  return await parseJsonResponseWithLimit(response);
 }
 
 async function waitForChildExit() {

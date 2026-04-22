@@ -4,14 +4,14 @@
 
 <p align="center">
   <a href="#quickstart"><strong>Quickstart</strong></a> &middot;
-  <a href="https://taskcore.khulnasoft.com/docs"><strong>Docs</strong></a> &middot;
+  <a href="https://taskcore.ing/docs"><strong>Docs</strong></a> &middot;
   <a href="https://github.com/khulnasoft/taskcore"><strong>GitHub</strong></a> &middot;
   <a href="https://discord.gg/m4HZY7xNG3"><strong>Discord</strong></a>
 </p>
 
 <p align="center">
   <a href="https://github.com/khulnasoft/taskcore/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT License" /></a>
-  <a href="https://github.com/khulnasoft/taskcore/stargazers"><img src="https://img.shields.io/github/stars/taskcore/taskcore?style=flat" alt="Stars" /></a>
+  <a href="https://github.com/khulnasoft/taskcore/stargazers"><img src="https://img.shields.io/github/stars/khulnasoft/taskcore?style=flat" alt="Stars" /></a>
   <a href="https://discord.gg/m4HZY7xNG3"><img src="https://img.shields.io/discord/000000000?label=discord" alt="Discord" /></a>
 </p>
 
@@ -256,10 +256,10 @@ See [doc/DEVELOPING.md](doc/DEVELOPING.md) for the full development guide.
 - ✅ Scheduled Routines
 - ✅ Better Budgeting
 - ✅ Agent Reviews and Approvals
-- ⚪ Multiple Human Users
+- ✅ Multiple Human Users
 - ⚪ Cloud / Sandbox agents (e.g. Cursor / e2b agents)
 - ⚪ Artifacts & Work Products
-- ⚪ Memory & Knowledge
+- ⚪ Memory / Knowledge
 - ⚪ Enforced Outcomes
 - ⚪ MAXIMIZER MODE
 - ⚪ Deep Planning
@@ -269,6 +269,8 @@ See [doc/DEVELOPING.md](doc/DEVELOPING.md) for the full development guide.
 - ⚪ CEO Chat
 - ⚪ Cloud deployments
 - ⚪ Desktop App
+
+This is the short roadmap preview. See the full roadmap in [ROADMAP.md](ROADMAP.md).
 
 <br/>
 
@@ -305,7 +307,7 @@ We welcome contributions. See the [contributing guide](CONTRIBUTING.md) for deta
 
 ## License
 
-MIT &copy; 2026 KhulnaSoft, Ltd
+MIT &copy; 2026 Taskcore
 
 ## Star History
 

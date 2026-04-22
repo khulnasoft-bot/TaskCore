@@ -146,8 +146,8 @@ async function setupCompany(boardRequest: APIRequestContext): Promise<TestContex
   if (health.deploymentMode !== "local_trusted") {
     throw new Error(
       `Signoff e2e tests require local_trusted deployment mode, ` +
-      `but server is in "${health.deploymentMode}" mode. ` +
-      `Set TASKCORE_DEPLOYMENT_MODE=local_trusted or use the webServer config.`,
+        `but server is in "${health.deploymentMode}" mode. ` +
+        `Set TASKCORE_DEPLOYMENT_MODE=local_trusted or use the webServer config.`,
     );
   }
 
@@ -163,9 +163,9 @@ async function setupCompany(boardRequest: APIRequestContext): Promise<TestContex
   const companyId = company.id;
   const companyPrefix = company.issuePrefix ?? company.prefix ?? company.urlKey ?? "E2E";
 
-  // Helper: create agent + API key + request context
+  // Helper: hire/approve agent + API key + request context
   async function createAgent(name: string, role: string, title: string): Promise<AgentAuth> {
-    const agentRes = await boardRequest.post(`${BASE_URL}/api/companies/${companyId}/agents`, {
+    const agentRes = await boardRequest.post(`${BASE_URL}/api/companies/${companyId}/agent-hires`, {
       data: {
         name,
         role,
@@ -178,7 +178,14 @@ async function setupCompany(boardRequest: APIRequestContext): Promise<TestContex
       },
     });
     expect(agentRes.ok()).toBe(true);
-    const agent = await agentRes.json();
+    const hire = await agentRes.json();
+    const agent = hire.agent;
+    if (hire.approval) {
+      const approvalRes = await boardRequest.post(`${BASE_URL}/api/approvals/${hire.approval.id}/approve`, {
+        data: { decisionNote: "Approved for signoff e2e setup." },
+      });
+      expect(approvalRes.ok()).toBe(true);
+    }
 
     const keyRes = await boardRequest.post(`${BASE_URL}/api/agents/${agent.id}/keys`, {
       data: { name: `e2e-${name.toLowerCase()}` },
@@ -249,13 +256,13 @@ test.describe("Signoff execution policy", () => {
     for (const issueId of ctx.issueIds) {
       await board.patch(`${BASE_URL}/api/issues/${issueId}`, {
         data: { status: "cancelled", comment: "E2E test cleanup." },
-      }).catch(() => { });
+      }).catch(() => {});
     }
     for (const agent of [ctx.executor, ctx.reviewer, ctx.approver]) {
-      await board.delete(`${BASE_URL}/api/agents/${agent.agentId}/keys/${agent.keyId}`).catch(() => { });
-      await board.delete(`${BASE_URL}/api/agents/${agent.agentId}`).catch(() => { });
+      await board.delete(`${BASE_URL}/api/agents/${agent.agentId}/keys/${agent.keyId}`).catch(() => {});
+      await board.delete(`${BASE_URL}/api/agents/${agent.agentId}`).catch(() => {});
     }
-    await board.delete(`${BASE_URL}/api/companies/${ctx.companyId}`).catch(() => { });
+    await board.delete(`${BASE_URL}/api/companies/${ctx.companyId}`).catch(() => {});
     await board.dispose();
   });
 

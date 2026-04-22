@@ -122,9 +122,9 @@ test.describe("Docker authenticated onboarding smoke", () => {
         const latestRun = runs.find((entry) => entry.agentId === ceoAgent!.id);
         return latestRun
           ? {
-            invocationSource: latestRun.invocationSource,
-            status: latestRun.status,
-          }
+              invocationSource: latestRun.invocationSource,
+              status: latestRun.status,
+            }
           : null;
       },
       {
