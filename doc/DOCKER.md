@@ -231,9 +231,9 @@ Open: `http://localhost:3131` (default smoke host port)
 Useful overrides:
 
 ```sh
-HOST_PORT=3200 TASKCORE_VERSION=latest ./scripts/docker-onboard-smoke.sh
+HOST_PORT=3200 TASKCOREAI_VERSION=latest ./scripts/docker-onboard-smoke.sh
 TASKCORE_DEPLOYMENT_MODE=authenticated TASKCORE_DEPLOYMENT_EXPOSURE=private ./scripts/docker-onboard-smoke.sh
-SMOKE_DETACH=true SMOKE_METADATA_FILE=/tmp/taskcore-smoke.env TASKCORE_VERSION=latest ./scripts/docker-onboard-smoke.sh
+SMOKE_DETACH=true SMOKE_METADATA_FILE=/tmp/taskcore-smoke.env TASKCOREAI_VERSION=latest ./scripts/docker-onboard-smoke.sh
 ```
 
 Notes:
