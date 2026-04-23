@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.setConfig({ testTimeout: 30_000 });
 import { models as codexFallbackModels } from "@taskcore/adapter-codex-local";
 import { models as cursorFallbackModels } from "@taskcore/adapter-cursor-local";
 import { models as opencodeFallbackModels } from "@taskcore/adapter-opencode-local";

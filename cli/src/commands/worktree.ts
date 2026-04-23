@@ -1314,6 +1314,7 @@ async function seedWorktreeDatabase(input: {
       includeMigrationJournal: true,
       excludeTables: seedPlan.excludedTables,
       nullifyColumns: seedPlan.nullifyColumns,
+      backupEngine: "javascript",
     });
 
     targetHandle = await ensureEmbeddedPostgres(

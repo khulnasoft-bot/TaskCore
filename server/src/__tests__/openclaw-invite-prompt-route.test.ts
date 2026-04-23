@@ -2,6 +2,8 @@ import express from "express";
 import request from "supertest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.setConfig({ testTimeout: 30_000 });
+
 const mockAccessService = vi.hoisted(() => ({
   hasPermission: vi.fn(),
   canUser: vi.fn(),

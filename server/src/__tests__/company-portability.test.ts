@@ -395,7 +395,7 @@ describe("company portability", () => {
       parseGitHubSourceUrl("https://github.com/khulnasoft/companies?ref=feature%2Fdemo&path=gstack"),
     ).toEqual({
       hostname: "github.com",
-      owner: "taskcore",
+      owner: "khulnasoft",
       repo: "companies",
       ref: "feature/demo",
       basePath: "gstack",
@@ -410,7 +410,7 @@ describe("company portability", () => {
       ),
     ).toEqual({
       hostname: "github.com",
-      owner: "taskcore",
+      owner: "khulnasoft",
       repo: "companies",
       ref: "abc123",
       basePath: "gstack",

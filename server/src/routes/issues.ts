@@ -762,21 +762,21 @@ export function issueRoutes(
     const inboxArchivedByUserFilterRaw = req.query.inboxArchivedByUserId as string | undefined;
     const unreadForUserFilterRaw = req.query.unreadForUserId as string | undefined;
     const assigneeUserId =
-      assigneeUserFilterRaw === "me" && req.actor.type === "board"
+      assigneeUserFilterRaw === "me" && req.actor.type === "board" && req.actor.userId
         ? req.actor.userId
-        : assigneeUserFilterRaw;
+        : assigneeUserFilterRaw ?? undefined;
     const touchedByUserId =
-      touchedByUserFilterRaw === "me" && req.actor.type === "board"
+      touchedByUserFilterRaw === "me" && req.actor.type === "board" && req.actor.userId
         ? req.actor.userId
-        : touchedByUserFilterRaw;
+        : touchedByUserFilterRaw ?? undefined;
     const inboxArchivedByUserId =
-      inboxArchivedByUserFilterRaw === "me" && req.actor.type === "board"
+      inboxArchivedByUserFilterRaw === "me" && req.actor.type === "board" && req.actor.userId
         ? req.actor.userId
-        : inboxArchivedByUserFilterRaw;
+        : inboxArchivedByUserFilterRaw ?? undefined;
     const unreadForUserId =
-      unreadForUserFilterRaw === "me" && req.actor.type === "board"
+      unreadForUserFilterRaw === "me" && req.actor.type === "board" && req.actor.userId
         ? req.actor.userId
-        : unreadForUserFilterRaw;
+        : unreadForUserFilterRaw ?? undefined;
     const rawLimit = req.query.limit as string | undefined;
     const parsedLimit = rawLimit !== undefined && /^\d+$/.test(rawLimit)
       ? Number.parseInt(rawLimit, 10)

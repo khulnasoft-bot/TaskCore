@@ -722,7 +722,8 @@ describe("feedbackService.saveIssueVote", () => {
     expect(JSON.stringify(issueContextItems)).toContain("[REDACTED_PHONE]");
     expect(sourceRun?.id).toBe(runId);
     expect(JSON.stringify(sourceRun)).toContain("gpt-5.4");
-    expect(skillItems?.[1]?.sourceLocator).toBe("https://github.com/octo/research/tree/main/skills/public-skill");
+    const publicSkill = skillItems?.find((s) => s.slug === "public-skill");
+    expect(publicSkill?.sourceLocator).toBe("https://github.com/octo/research/tree/main/skills/public-skill");
     expect(String(instructions?.entryBody)).toContain("[REDACTED]");
     expect(String(instructions?.entryBody)).not.toContain("secret-value");
   });

@@ -29,6 +29,8 @@ const externalAdapter: ServerAdapterModule = {
   supportsLocalAgentJwt: false,
 };
 
+const hermesExecuteMock = vi.fn();
+
 describe("server adapter registry", () => {
   beforeEach(() => {
     unregisterServerAdapter("external_test");
