@@ -27,14 +27,14 @@ Generates:
 - `esbuild` and `rollup` config files using SDK bundler presets
 - dev server script for hot-reload (`taskcore-plugin-dev-server`)
 
-The scaffold intentionally uses plain React elements rather than host-provided UI kit components, because the current plugin runtime does not ship a stable shared component library yet.
+The scaffold starts with plain React elements so the generated plugin stays minimal. For Taskcore-native controls, import shared host components such as `MarkdownEditor`, `FileTree`, `AssigneePicker`, and `ProjectPicker` from `@taskcore/plugin-sdk/ui`.
 
 Inside this repo, the generated package uses `@taskcore/plugin-sdk` via `workspace:*`.
 
 Outside this repo, the scaffold snapshots `@taskcore/plugin-sdk` from your local Taskcore checkout into a `.taskcore-sdk/` tarball and points the generated package at that local file by default. You can override the SDK source explicitly:
 
 ```bash
-node packages/plugins/create-taskcore-plugin/dist/index.js @acme/my-plugin \
+node packages/plugins/create-taskcore-plugin/dist/bin.js @acme/my-plugin \
   --output /absolute/path/to/plugins \
   --sdk-path /absolute/path/to/taskcore/packages/plugins/sdk
 ```

@@ -1,5 +1,5 @@
 [Unit]
-Description=Taskcore AI Agent Orchestrator
+Description=KhulnaSoft Ltd Agent Orchestrator
 Requires=taskcore-db.service
 After=taskcore-db.service
 

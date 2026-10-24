@@ -1,0 +1,172 @@
+[
+  {
+    "dir": "packages/adapter-utils",
+    "name": "@taskcore/adapter-utils",
+    "publishFromCi": true
+  },
+  {
+    "dir": "packages/adapters/claude-local",
+    "name": "@taskcore/adapter-claude-local",
+    "publishFromCi": true
+  },
+  {
+    "dir": "packages/adapters/codex-local",
+    "name": "@taskcore/adapter-codex-local",
+    "publishFromCi": true
+  },
+  {
+    "dir": "packages/adapters/cursor-cloud",
+    "name": "@taskcore/adapter-cursor-cloud",
+    "publishFromCi": true
+  },
+  {
+    "dir": "packages/adapters/cursor-local",
+    "name": "@taskcore/adapter-cursor-local",
+    "publishFromCi": true
+  },
+  {
+    "dir": "packages/adapters/gemini-local",
+    "name": "@taskcore/adapter-gemini-local",
+    "publishFromCi": true
+  },
+  {
+    "dir": "packages/adapters/grok-local",
+    "name": "@taskcore/adapter-grok-local",
+    "publishFromCi": true
+  },
+  {
+    "dir": "packages/adapters/hermes",
+    "name": "@taskcore/hermes-taskcore-adapter",
+    "publishFromCi": true
+  },
+  {
+    "dir": "packages/adapters/hermes-gateway",
+    "name": "@taskcore/adapter-hermes-gateway",
+    "publishFromCi": false
+  },
+  {
+    "dir": "packages/adapters/kimi-local",
+    "name": "@taskcore/adapter-kimi-local",
+    "publishFromCi": true
+  },
+  {
+    "dir": "packages/adapters/opencode-local",
+    "name": "@taskcore/adapter-opencode-local",
+    "publishFromCi": true
+  },
+  {
+    "dir": "packages/adapters/pi-local",
+    "name": "@taskcore/adapter-pi-local",
+    "publishFromCi": true
+  },
+  {
+    "dir": "packages/adapters/openclaw-gateway",
+    "name": "@taskcore/adapter-openclaw-gateway",
+    "publishFromCi": true
+  },
+  {
+    "dir": "packages/shared",
+    "name": "@taskcore/shared",
+    "publishFromCi": true
+  },
+  {
+    "dir": "packages/skills-catalog",
+    "name": "@taskcore/skills-catalog",
+    "publishFromCi": true
+  },
+  {
+    "dir": "packages/teams-catalog",
+    "name": "@taskcore/teams-catalog",
+    "publishFromCi": true
+  },
+  {
+    "dir": "packages/db",
+    "name": "@taskcore/db",
+    "publishFromCi": true
+  },
+  {
+    "dir": "packages/plugins/sdk",
+    "name": "@taskcore/plugin-sdk",
+    "publishFromCi": true
+  },
+  {
+    "dir": "packages/plugins/plugin-workspace-diff",
+    "name": "@taskcore/plugin-workspace-diff",
+    "publishFromCi": true
+  },
+  {
+    "dir": "server",
+    "name": "@taskcore/server",
+    "publishFromCi": true
+  },
+  {
+    "dir": "cli",
+    "name": "taskcore",
+    "publishFromCi": true
+  },
+  {
+    "dir": "packages/mcp-server",
+    "name": "@taskcore/mcp-server",
+    "publishFromCi": true
+  },
+  {
+    "dir": "packages/google-sheets-mcp-server",
+    "name": "@taskcore/google-sheets-mcp-server",
+    "publishFromCi": false
+  },
+  {
+    "dir": "packages/kv-demo-mcp-server",
+    "name": "@taskcore/kv-demo-mcp-server",
+    "publishFromCi": false
+  },
+  {
+    "dir": "packages/plugins/create-taskcore-plugin",
+    "name": "@taskcore/create-taskcore-plugin",
+    "publishFromCi": true
+  },
+  {
+    "dir": "packages/plugins/sandbox-providers/cloudflare",
+    "name": "@taskcore/plugin-cloudflare-sandbox",
+    "publishFromCi": true
+  },
+  {
+    "dir": "packages/plugins/sandbox-providers/createos",
+    "name": "@taskcore/plugin-createos",
+    "publishFromCi": false
+  },
+  {
+    "dir": "packages/plugins/sandbox-providers/daytona",
+    "name": "@taskcore/plugin-daytona",
+    "publishFromCi": true
+  },
+  {
+    "dir": "packages/plugins/sandbox-providers/exe-dev",
+    "name": "@taskcore/plugin-exe-dev",
+    "publishFromCi": true
+  },
+  {
+    "dir": "packages/plugins/sandbox-providers/e2b",
+    "name": "@taskcore/plugin-e2b",
+    "publishFromCi": true
+  },
+  {
+    "dir": "packages/plugins/sandbox-providers/modal",
+    "name": "@taskcore/plugin-modal",
+    "publishFromCi": true
+  },
+  {
+    "dir": "packages/plugins/sandbox-providers/kubernetes",
+    "name": "@taskcore/plugin-kubernetes",
+    "publishFromCi": true
+  },
+  {
+    "dir": "packages/plugins/sandbox-providers/novita",
+    "name": "@taskcore/plugin-novita-sandbox",
+    "publishFromCi": true
+  },
+  {
+    "dir": "ui",
+    "name": "@taskcore/ui",
+    "publishFromCi": true
+  }
+]

@@ -1,6 +1,9 @@
 import * as p from "@clack/prompts";
 import type { StorageConfig } from "../config/schema.js";
-import { resolveDefaultStorageDir, resolveTaskcoreInstanceId } from "../config/home.js";
+import {
+  resolveDefaultStorageDir,
+  resolveTaskcoreInstanceId,
+} from "../config/home.js";
 
 function defaultStorageBaseDir(): string {
   return resolveDefaultStorageDir(resolveTaskcoreInstanceId());
@@ -22,7 +25,9 @@ export function defaultStorageConfig(): StorageConfig {
   };
 }
 
-export async function promptStorage(current?: StorageConfig): Promise<StorageConfig> {
+export async function promptStorage(
+  current?: StorageConfig,
+): Promise<StorageConfig> {
   const base = current ?? defaultStorageConfig();
 
   const provider = await p.select({
@@ -48,12 +53,16 @@ export async function promptStorage(current?: StorageConfig): Promise<StorageCon
   }
 
   if (provider === "local_disk") {
+    const baseDirDefault = base.localDisk.baseDir || defaultStorageBaseDir();
     const baseDir = await p.text({
       message: "Local storage base directory",
-      defaultValue: base.localDisk.baseDir || defaultStorageBaseDir(),
+      defaultValue: baseDirDefault,
       placeholder: defaultStorageBaseDir(),
       validate: (value) => {
-        if (!value || value.trim().length === 0) return "Storage base directory is required";
+        // Clack validates the raw input before applying defaultValue —
+        // validate the value that will actually be submitted.
+        if ((value || baseDirDefault).trim().length === 0)
+          return "Storage base directory is required";
       },
     });
 
@@ -71,12 +80,15 @@ export async function promptStorage(current?: StorageConfig): Promise<StorageCon
     };
   }
 
+  const bucketDefault = base.s3.bucket || "taskcore";
+  const regionDefault = base.s3.region || "us-east-1";
   const bucket = await p.text({
     message: "S3 bucket",
-    defaultValue: base.s3.bucket || "taskcore",
+    defaultValue: bucketDefault,
     placeholder: "taskcore",
     validate: (value) => {
-      if (!value || value.trim().length === 0) return "Bucket is required";
+      if ((value || bucketDefault).trim().length === 0)
+        return "Bucket is required";
     },
   });
 
@@ -87,10 +99,11 @@ export async function promptStorage(current?: StorageConfig): Promise<StorageCon
 
   const region = await p.text({
     message: "S3 region",
-    defaultValue: base.s3.region || "us-east-1",
+    defaultValue: regionDefault,
     placeholder: "us-east-1",
     validate: (value) => {
-      if (!value || value.trim().length === 0) return "Region is required";
+      if ((value || regionDefault).trim().length === 0)
+        return "Region is required";
     },
   });
 
@@ -143,4 +156,3 @@ export async function promptStorage(current?: StorageConfig): Promise<StorageCon
     },
   };
 }
-

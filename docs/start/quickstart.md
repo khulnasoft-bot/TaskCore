@@ -25,7 +25,7 @@ npx taskcore run
 
 ## Local Development
 
-For contributors working on Taskcore itself. Prerequisites: Node.js 20+ and pnpm 9+.
+For contributors working on Taskcore itself. Prerequisites: Node.js 24.11+ and pnpm 9+.
 
 Clone the repository, then:
 

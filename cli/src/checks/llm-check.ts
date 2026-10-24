@@ -34,7 +34,11 @@ export async function llmCheck(config: TaskcoreConfig): Promise<CheckResult> {
         }),
       });
       if (res.ok || res.status === 400) {
-        return { name: "LLM provider", status: "pass", message: "Claude API key is valid" };
+        return {
+          name: "LLM provider",
+          status: "pass",
+          message: "Claude API key is valid",
+        };
       }
       if (res.status === 401) {
         return {
@@ -55,7 +59,11 @@ export async function llmCheck(config: TaskcoreConfig): Promise<CheckResult> {
         headers: { Authorization: `Bearer ${config.llm.apiKey}` },
       });
       if (res.ok) {
-        return { name: "LLM provider", status: "pass", message: "OpenAI API key is valid" };
+        return {
+          name: "LLM provider",
+          status: "pass",
+          message: "OpenAI API key is valid",
+        };
       }
       if (res.status === 401) {
         return {

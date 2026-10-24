@@ -365,18 +365,18 @@ Taskcore should require an explicit operator install step.
 
 The products are solving different problems.
 
-| Topic | OpenCode | Taskcore |
-|---|---|---|
-| Primary unit | local project/worktree | single-tenant operator instance with company objects |
-| Trust assumption | local power user on own machine | operator managing one trusted Taskcore instance |
-| Failure blast radius | local session/runtime | entire company control plane |
-| Extension style | mutate runtime behavior freely | preserve governance and auditability |
-| UI model | local app can load local behavior | board UI must stay coherent and safe |
-| Security model | host-trusted local plugins | needs capability boundaries and auditability |
+| Topic                | OpenCode                          | Taskcore                                             |
+| -------------------- | --------------------------------- | ---------------------------------------------------- |
+| Primary unit         | local project/worktree            | single-tenant operator instance with company objects |
+| Trust assumption     | local power user on own machine   | operator managing one trusted Taskcore instance      |
+| Failure blast radius | local session/runtime             | entire company control plane                         |
+| Extension style      | mutate runtime behavior freely    | preserve governance and auditability                 |
+| UI model             | local app can load local behavior | board UI must stay coherent and safe                 |
+| Security model       | host-trusted local plugins        | needs capability boundaries and auditability         |
 
 That means Taskcore should borrow the good ideas from `opencode` but use a stricter architecture.
 
-## Taskcore Already Has Useful Pre-Plugin Seams
+## TaskCore Already Has Useful Pre-Plugin Seams
 
 Taskcore has several extension-like seams already:
 
@@ -399,13 +399,13 @@ Do not create one giant `hooks` object for everything.
 
 Use distinct plugin classes with different trust models.
 
-| Extension class | Examples | Runtime model | Trust level | Why |
-|---|---|---|---|---|
-| Platform module | agent adapters, storage providers, secret providers, run-log backends | in-process | highly trusted | tight integration, performance, low-level APIs |
-| Connector plugin | Linear, GitHub Issues, Grafana, Stripe | out-of-process worker or sidecar | medium | external sync, safer isolation, clearer failure boundary |
-| Workspace plugin | file browser, terminal, git workflow, child process/server tracking | out-of-process, direct OS access | medium | resolves workspace paths from host, owns filesystem/git/PTY/process logic directly |
-| UI contribution | dashboard widgets, settings forms, company panels | plugin-shipped React bundles in host extension slots via bridge | medium | plugins own their rendering; host controls slot placement and bridge access |
-| Automation plugin | alerts, schedulers, sync jobs, webhook processors | out-of-process | medium | event-driven automation is a natural plugin fit |
+| Extension class   | Examples                                                              | Runtime model                                                   | Trust level    | Why                                                                                |
+| ----------------- | --------------------------------------------------------------------- | --------------------------------------------------------------- | -------------- | ---------------------------------------------------------------------------------- |
+| Platform module   | agent adapters, storage providers, secret providers, run-log backends | in-process                                                      | highly trusted | tight integration, performance, low-level APIs                                     |
+| Connector plugin  | Linear, GitHub Issues, Grafana, Stripe                                | out-of-process worker or sidecar                                | medium         | external sync, safer isolation, clearer failure boundary                           |
+| Workspace plugin  | file browser, terminal, git workflow, child process/server tracking   | out-of-process, direct OS access                                | medium         | resolves workspace paths from host, owns filesystem/git/PTY/process logic directly |
+| UI contribution   | dashboard widgets, settings forms, company panels                     | plugin-shipped React bundles in host extension slots via bridge | medium         | plugins own their rendering; host controls slot placement and bridge access        |
+| Automation plugin | alerts, schedulers, sync jobs, webhook processors                     | out-of-process                                                  | medium         | event-driven automation is a natural plugin fit                                    |
 
 This split is the most important design recommendation in this report.
 
@@ -679,19 +679,37 @@ The plugin's UI bundle (separate from the worker) might look like:
 
 ```tsx
 // dist/ui/index.tsx
-import { usePluginData, usePluginAction, MetricCard, ErrorBoundary } from "@taskcore/plugin-sdk/ui";
+import {
+  usePluginData,
+  usePluginAction,
+  MetricCard,
+  ErrorBoundary,
+} from "@taskcore/plugin-sdk/ui";
 
 export function DashboardWidget({ context }: PluginWidgetProps) {
-  const { data, loading, error } = usePluginData("sync-health", { companyId: context.companyId });
+  const { data, loading, error } = usePluginData("sync-health", {
+    companyId: context.companyId,
+  });
   const resync = usePluginAction("resync");
 
   if (loading) return <Spinner />;
-  if (error) return <div>Plugin error: {error.message} ({error.code})</div>;
+  if (error)
+    return (
+      <div>
+        Plugin error: {error.message} ({error.code})
+      </div>
+    );
 
   return (
     <ErrorBoundary fallback={<div>Widget failed to render</div>}>
-      <MetricCard label="Synced Issues" value={data.syncedCount} trend={data.trend} />
-      <button onClick={() => resync({ companyId: context.companyId })}>Resync Now</button>
+      <MetricCard
+        label="Synced Issues"
+        value={data.syncedCount}
+        trend={data.trend}
+      />
+      <button onClick={() => resync({ companyId: context.companyId })}>
+        Resync Now
+      </button>
     </ErrorBoundary>
   );
 }
@@ -1002,16 +1020,16 @@ This is a useful middle ground:
 
 ## How The Requested Examples Map To This Model
 
-| Use case | Best fit | Host primitives needed | Notes |
-|---|---|---|---|
-| File browser | workspace plugin | project workspace metadata | plugin owns filesystem ops directly |
-| Terminal | workspace plugin | project workspace metadata | plugin spawns PTY sessions directly |
-| Git workflow | workspace plugin | project workspace metadata | plugin shells out to git directly |
-| Linear issue tracking | connector plugin | jobs, webhooks, secret refs, issue sync API | very strong plugin candidate |
-| GitHub issue tracking | connector plugin | jobs, webhooks, secret refs | very strong plugin candidate |
-| Grafana metrics | connector plugin + dashboard widget | outbound HTTP | probably read-only first |
-| Child process/server tracking | workspace plugin | project workspace metadata | plugin manages processes directly |
-| Stripe revenue tracking | connector plugin | secret refs, scheduled sync, company metrics API | strong plugin candidate |
+| Use case                      | Best fit                            | Host primitives needed                           | Notes                               |
+| ----------------------------- | ----------------------------------- | ------------------------------------------------ | ----------------------------------- |
+| File browser                  | workspace plugin                    | project workspace metadata                       | plugin owns filesystem ops directly |
+| Terminal                      | workspace plugin                    | project workspace metadata                       | plugin spawns PTY sessions directly |
+| Git workflow                  | workspace plugin                    | project workspace metadata                       | plugin shells out to git directly   |
+| Linear issue tracking         | connector plugin                    | jobs, webhooks, secret refs, issue sync API      | very strong plugin candidate        |
+| GitHub issue tracking         | connector plugin                    | jobs, webhooks, secret refs                      | very strong plugin candidate        |
+| Grafana metrics               | connector plugin + dashboard widget | outbound HTTP                                    | probably read-only first            |
+| Child process/server tracking | workspace plugin                    | project workspace metadata                       | plugin manages processes directly   |
+| Stripe revenue tracking       | connector plugin                    | secret refs, scheduled sync, company metrics API | strong plugin candidate             |
 
 # Plugin Examples
 

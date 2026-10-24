@@ -1,4 +1,5 @@
 import { type TranscriptEntry } from "@taskcore/adapter-utils";
+import { parseAcpxStdoutLine } from "@taskcore/adapter-utils/acpx-engine/ui";
 
 function safeJsonParse(text: string): unknown {
   try {
@@ -9,7 +10,8 @@ function safeJsonParse(text: string): unknown {
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  if (typeof value !== "object" || value === null || Array.isArray(value))
+    return null;
   return value as Record<string, unknown>;
 }
 
@@ -56,21 +58,26 @@ function parseCommandExecutionItem(
   const id = asString(item.id);
   const command = asString(item.command);
   const status = asString(item.status);
-  const exitCode = typeof item.exit_code === "number" && Number.isFinite(item.exit_code) ? item.exit_code : null;
+  const exitCode =
+    typeof item.exit_code === "number" && Number.isFinite(item.exit_code)
+      ? item.exit_code
+      : null;
   const safeCommand = command;
   const output = asString(item.aggregated_output).replace(/\s+$/, "");
 
   if (phase === "started") {
-    return [{
-      kind: "tool_call",
-      ts,
-      name: "command_execution",
-      toolUseId: id || command || "command_execution",
-      input: {
-        id,
-        command: safeCommand,
+    return [
+      {
+        kind: "tool_call",
+        ts,
+        name: "command_execution",
+        toolUseId: id || command || "command_execution",
+        input: {
+          id,
+          command: safeCommand,
+        },
       },
-    }];
+    ];
   }
 
   const lines: string[] = [];
@@ -89,16 +96,21 @@ function parseCommandExecutionItem(
     status === "error" ||
     status === "cancelled";
 
-  return [{
-    kind: "tool_result",
-    ts,
-    toolUseId: id || command || "command_execution",
-    content: lines.join("\n").trim() || "command completed",
-    isError,
-  }];
+  return [
+    {
+      kind: "tool_result",
+      ts,
+      toolUseId: id || command || "command_execution",
+      content: lines.join("\n").trim() || "command completed",
+      isError,
+    },
+  ];
 }
 
-function parseFileChangeItem(item: Record<string, unknown>, ts: string): TranscriptEntry[] {
+function parseFileChangeItem(
+  item: Record<string, unknown>,
+  ts: string,
+): TranscriptEntry[] {
   const changes = Array.isArray(item.changes) ? item.changes : [];
   const entries = changes
     .map((changeRaw) => asRecord(changeRaw))
@@ -127,13 +139,15 @@ function parseToolUseItem(
   const toolUseId = asString(item.id, name || "tool_use");
 
   if (phase === "started") {
-    return [{
-      kind: "tool_call",
-      ts,
-      name,
-      toolUseId,
-      input: item.input ?? {},
-    }];
+    return [
+      {
+        kind: "tool_call",
+        ts,
+        name,
+        toolUseId,
+        input: item.input ?? {},
+      },
+    ];
   }
 
   const status = asString(item.status);
@@ -144,24 +158,22 @@ function parseToolUseItem(
     status === "error" ||
     status === "cancelled";
   const rawContent =
-    item.content ??
-    item.output ??
-    item.result ??
-    item.error ??
-    item.message;
+    item.content ?? item.output ?? item.result ?? item.error ?? item.message;
   const content =
     asString(rawContent) ||
     errorText(rawContent) ||
     stringifyUnknown(rawContent) ||
     `${name} ${isError ? "failed" : "completed"}`;
 
-  return [{
-    kind: "tool_result",
-    ts,
-    toolUseId,
-    content,
-    isError,
-  }];
+  return [
+    {
+      kind: "tool_result",
+      ts,
+      toolUseId,
+      content,
+      isError,
+    },
+  ];
 }
 
 function parseCodexItem(
@@ -180,7 +192,13 @@ function parseCodexItem(
   if (itemType === "reasoning") {
     const text = asString(item.text);
     if (text) return [{ kind: "thinking", ts, text }];
-    return [{ kind: "system", ts, text: phase === "started" ? "reasoning started" : "reasoning completed" }];
+    return [
+      {
+        kind: "system",
+        ts,
+        text: phase === "started" ? "reasoning started" : "reasoning completed",
+      },
+    ];
   }
 
   if (itemType === "command_execution") {
@@ -213,30 +231,42 @@ function parseCodexItem(
 
   const id = asString(item.id);
   const status = asString(item.status);
-  const meta = [id ? `id=${id}` : "", status ? `status=${status}` : ""].filter(Boolean).join(" ");
-  return [{
-    kind: "system",
-    ts,
-    text: `item ${phase}: ${itemType || "unknown"}${meta ? ` (${meta})` : ""}`,
-  }];
+  const meta = [id ? `id=${id}` : "", status ? `status=${status}` : ""]
+    .filter(Boolean)
+    .join(" ");
+  return [
+    {
+      kind: "system",
+      ts,
+      text: `item ${phase}: ${itemType || "unknown"}${meta ? ` (${meta})` : ""}`,
+    },
+  ];
 }
 
-export function parseCodexStdoutLine(line: string, ts: string): TranscriptEntry[] {
+export function parseCodexStdoutLine(
+  line: string,
+  ts: string,
+): TranscriptEntry[] {
   const parsed = asRecord(safeJsonParse(line));
   if (!parsed) {
     return [{ kind: "stdout", ts, text: line }];
   }
 
   const type = asString(parsed.type);
+  if (type.startsWith("acpx.")) {
+    return parseAcpxStdoutLine(line, ts);
+  }
 
   if (type === "thread.started") {
     const threadId = asString(parsed.thread_id);
-    return [{
-      kind: "init",
-      ts,
-      model: asString(parsed.model, "codex"),
-      sessionId: threadId,
-    }];
+    return [
+      {
+        kind: "init",
+        ts,
+        model: asString(parsed.model, "codex"),
+        sessionId: threadId,
+      },
+    ];
   }
 
   if (type === "turn.started") {
@@ -246,48 +276,62 @@ export function parseCodexStdoutLine(line: string, ts: string): TranscriptEntry[
   if (type === "item.started" || type === "item.completed") {
     const item = asRecord(parsed.item);
     if (!item) return [{ kind: "system", ts, text: type.replace(".", " ") }];
-    return parseCodexItem(item, ts, type === "item.started" ? "started" : "completed");
+    return parseCodexItem(
+      item,
+      ts,
+      type === "item.started" ? "started" : "completed",
+    );
   }
 
   if (type === "turn.completed") {
     const usage = asRecord(parsed.usage);
     const inputTokens = asNumber(usage?.input_tokens);
     const outputTokens = asNumber(usage?.output_tokens);
-    const cachedTokens = asNumber(usage?.cached_input_tokens, asNumber(usage?.cache_read_input_tokens));
-    return [{
-      kind: "result",
-      ts,
-      text: asString(parsed.result),
-      inputTokens,
-      outputTokens,
-      cachedTokens,
-      costUsd: asNumber(parsed.total_cost_usd),
-      subtype: asString(parsed.subtype),
-      isError: parsed.is_error === true,
-      errors: Array.isArray(parsed.errors)
-        ? parsed.errors.map(errorText).filter(Boolean)
-        : [],
-    }];
+    const cachedTokens = asNumber(
+      usage?.cached_input_tokens,
+      asNumber(usage?.cache_read_input_tokens),
+    );
+    return [
+      {
+        kind: "result",
+        ts,
+        text: asString(parsed.result),
+        inputTokens,
+        outputTokens,
+        cachedTokens,
+        costUsd: asNumber(parsed.total_cost_usd),
+        subtype: asString(parsed.subtype),
+        isError: parsed.is_error === true,
+        errors: Array.isArray(parsed.errors)
+          ? parsed.errors.map(errorText).filter(Boolean)
+          : [],
+      },
+    ];
   }
 
   if (type === "turn.failed") {
     const usage = asRecord(parsed.usage);
     const inputTokens = asNumber(usage?.input_tokens);
     const outputTokens = asNumber(usage?.output_tokens);
-    const cachedTokens = asNumber(usage?.cached_input_tokens, asNumber(usage?.cache_read_input_tokens));
+    const cachedTokens = asNumber(
+      usage?.cached_input_tokens,
+      asNumber(usage?.cache_read_input_tokens),
+    );
     const message = errorText(parsed.error ?? parsed.message);
-    return [{
-      kind: "result",
-      ts,
-      text: asString(parsed.result),
-      inputTokens,
-      outputTokens,
-      cachedTokens,
-      costUsd: asNumber(parsed.total_cost_usd),
-      subtype: asString(parsed.subtype, "turn.failed"),
-      isError: true,
-      errors: message ? [message] : [],
-    }];
+    return [
+      {
+        kind: "result",
+        ts,
+        text: asString(parsed.result),
+        inputTokens,
+        outputTokens,
+        cachedTokens,
+        costUsd: asNumber(parsed.total_cost_usd),
+        subtype: asString(parsed.subtype, "turn.failed"),
+        isError: true,
+        errors: message ? [message] : [],
+      },
+    ];
   }
 
   if (type === "error") {

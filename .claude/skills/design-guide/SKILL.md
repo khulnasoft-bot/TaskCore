@@ -11,7 +11,7 @@ description: >
   web-design-guidelines skill (for web best practices).
 ---
 
-# Taskcore Design Guide
+# TaskCore Design Guide
 
 Taskcore's UI is a professional-grade control plane — dense, keyboard-driven, dark-themed by default. Every pixel earns its place.
 
@@ -51,19 +51,19 @@ All tokens defined as CSS variables in `ui/src/index.css`. Both light and dark t
 
 Use semantic token names, never raw color values:
 
-| Token | Usage |
-|-------|-------|
-| `--background` / `--foreground` | Page background and primary text |
-| `--card` / `--card-foreground` | Card surfaces |
-| `--primary` / `--primary-foreground` | Primary actions, emphasis |
-| `--secondary` / `--secondary-foreground` | Secondary surfaces |
-| `--muted` / `--muted-foreground` | Subdued text, labels |
-| `--accent` / `--accent-foreground` | Hover states, active nav items |
-| `--destructive` | Destructive actions |
-| `--border` | All borders |
-| `--ring` | Focus rings |
-| `--sidebar-*` | Sidebar-specific variants |
-| `--chart-1` through `--chart-5` | Data visualization |
+| Token                                    | Usage                            |
+| ---------------------------------------- | -------------------------------- |
+| `--background` / `--foreground`          | Page background and primary text |
+| `--card` / `--card-foreground`           | Card surfaces                    |
+| `--primary` / `--primary-foreground`     | Primary actions, emphasis        |
+| `--secondary` / `--secondary-foreground` | Secondary surfaces               |
+| `--muted` / `--muted-foreground`         | Subdued text, labels             |
+| `--accent` / `--accent-foreground`       | Hover states, active nav items   |
+| `--destructive`                          | Destructive actions              |
+| `--border`                               | All borders                      |
+| `--ring`                                 | Focus rings                      |
+| `--sidebar-*`                            | Sidebar-specific variants        |
+| `--chart-1` through `--chart-5`          | Data visualization               |
 
 ### Radius
 
@@ -85,18 +85,18 @@ Minimal shadows: `shadow-xs` (outline buttons), `shadow-sm` (cards). No heavy sh
 
 Use these exact patterns — do not invent new ones:
 
-| Pattern | Classes | Usage |
-|---------|---------|-------|
-| Page title | `text-xl font-bold` | Top of pages |
-| Section title | `text-lg font-semibold` | Major sections |
+| Pattern         | Classes                                                               | Usage                                    |
+| --------------- | --------------------------------------------------------------------- | ---------------------------------------- |
+| Page title      | `text-xl font-bold`                                                   | Top of pages                             |
+| Section title   | `text-lg font-semibold`                                               | Major sections                           |
 | Section heading | `text-sm font-semibold text-muted-foreground uppercase tracking-wide` | Section headers in design guide, sidebar |
-| Card title | `text-sm font-medium` or `text-sm font-semibold` | Card headers, list item titles |
-| Body | `text-sm` | Default body text |
-| Muted | `text-sm text-muted-foreground` | Descriptions, secondary text |
-| Tiny label | `text-xs text-muted-foreground` | Metadata, timestamps, property labels |
-| Mono identifier | `text-xs font-mono text-muted-foreground` | Issue keys (PAP-001), CSS vars |
-| Large stat | `text-2xl font-bold` | Dashboard metric values |
-| Code/log | `font-mono text-xs` | Log output, code snippets |
+| Card title      | `text-sm font-medium` or `text-sm font-semibold`                      | Card headers, list item titles           |
+| Body            | `text-sm`                                                             | Default body text                        |
+| Muted           | `text-sm text-muted-foreground`                                       | Descriptions, secondary text             |
+| Tiny label      | `text-xs text-muted-foreground`                                       | Metadata, timestamps, property labels    |
+| Mono identifier | `text-xs font-mono text-muted-foreground`                             | Issue keys (PAP-001), CSS vars           |
+| Large stat      | `text-2xl font-bold`                                                  | Dashboard metric values                  |
+| Code/log        | `font-mono text-xs`                                                   | Log output, code snippets                |
 
 ---
 
@@ -106,17 +106,17 @@ Use these exact patterns — do not invent new ones:
 
 Defined in `StatusBadge.tsx` and `StatusIcon.tsx`:
 
-| Status | Color | Entity types |
-|--------|-------|-------------|
+| Status                                                 | Color        | Entity types                     |
+| ------------------------------------------------------ | ------------ | -------------------------------- |
 | active, achieved, completed, succeeded, approved, done | Green shades | Agents, goals, issues, approvals |
-| running | Cyan | Agents |
-| paused | Orange | Agents |
-| idle, pending | Yellow | Agents, approvals |
-| failed, error, rejected, blocked | Red shades | Runs, agents, approvals, issues |
-| archived, planned, backlog, cancelled | Neutral gray | Various |
-| todo | Blue | Issues |
-| in_progress | Indigo | Issues |
-| in_review | Violet | Issues |
+| running                                                | Cyan         | Agents                           |
+| paused                                                 | Orange       | Agents                           |
+| idle, pending                                          | Yellow       | Agents, approvals                |
+| failed, error, rejected, blocked                       | Red shades   | Runs, agents, approvals, issues  |
+| archived, planned, backlog, cancelled                  | Neutral gray | Various                          |
+| todo                                                   | Blue         | Issues                           |
+| in_progress                                            | Indigo       | Issues                           |
+| in_review                                              | Violet       | Issues                           |
 
 ### Priority Icons
 
@@ -141,11 +141,13 @@ Three tiers:
 ### When to Create a New Component
 
 Create a reusable component when:
+
 - The same visual pattern appears in 2+ places
 - The pattern has interactive behavior (status changing, inline editing)
 - The pattern encodes domain logic (status colors, priority icons)
 
 Do NOT create a component for:
+
 - One-off layouts specific to a single page
 - Simple className combinations (use Tailwind directly)
 - Thin wrappers that add no semantic value
@@ -162,7 +164,12 @@ The standard list item for issues and similar entities:
 
 ```tsx
 <EntityRow
-  leading={<><StatusIcon status="in_progress" /><PriorityIcon priority="high" /></>}
+  leading={
+    <>
+      <StatusIcon status="in_progress" />
+      <PriorityIcon priority="high" />
+    </>
+  }
   identifier="PAP-001"
   title="Implement authentication flow"
   subtitle="Assigned to Agent Alpha"
@@ -208,7 +215,12 @@ Dashboard metrics in a responsive grid:
 
 ```tsx
 <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-4">
-  <MetricCard icon={Bot} value={12} label="Active Agents" description="+3 this week" />
+  <MetricCard
+    icon={Bot}
+    value={12}
+    label="Active Agents"
+    description="+3 this week"
+  />
   ...
 </div>
 ```
@@ -219,7 +231,10 @@ Color by threshold: green (<60%), yellow (60-85%), red (>85%):
 
 ```tsx
 <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-  <div className="h-full rounded-full bg-green-400" style={{ width: `${pct}%` }} />
+  <div
+    className="h-full rounded-full bg-green-400"
+    style={{ width: `${pct}%` }}
+  />
 </div>
 ```
 
@@ -300,12 +315,8 @@ This is the living showcase of every component and pattern in the app. It is the
 
 ```tsx
 <Section title="My New Component">
-  <SubSection title="Variants">
-    {/* Show all variants */}
-  </SubSection>
-  <SubSection title="Sizes">
-    {/* Show all sizes */}
-  </SubSection>
+  <SubSection title="Variants">{/* Show all variants */}</SubSection>
+  <SubSection title="Sizes">{/* Show all sizes */}</SubSection>
   <SubSection title="States">
     {/* Show interactive/disabled states */}
   </SubSection>
@@ -319,6 +330,7 @@ This is the living showcase of every component and pattern in the app. It is the
 **See [references/component-index.md](references/component-index.md) for the full component inventory.**
 
 When you create a new reusable component:
+
 1. Add it to the component index reference file
 2. Add it to the /design-guide page
 3. Follow existing naming and file conventions

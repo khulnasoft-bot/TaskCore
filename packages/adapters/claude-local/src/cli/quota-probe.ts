@@ -70,8 +70,12 @@ async function main() {
 
   if (!args.oauthOnly) {
     try {
-      const rawCliText = args.includeRawCli ? await captureClaudeCliUsageText() : null;
-      const windows = rawCliText ? parseClaudeCliUsageText(rawCliText) : await fetchClaudeCliQuota();
+      const rawCliText = args.includeRawCli
+        ? await captureClaudeCliUsageText()
+        : null;
+      const windows = rawCliText
+        ? parseClaudeCliUsageText(rawCliText)
+        : await fetchClaudeCliQuota();
       result.cli = rawCliText
         ? {
             ok: true,
@@ -104,7 +108,8 @@ async function main() {
 
   const oauthOk = (result.oauth as { ok?: boolean } | undefined)?.ok === true;
   const cliOk = (result.cli as { ok?: boolean } | undefined)?.ok === true;
-  const aggregatedOk = (result.aggregated as { ok?: boolean } | undefined)?.ok === true;
+  const aggregatedOk =
+    (result.aggregated as { ok?: boolean } | undefined)?.ok === true;
   const ok = oauthOk || cliOk || aggregatedOk;
 
   if (args.json || process.stdout.isTTY === false) {
@@ -113,9 +118,11 @@ async function main() {
     console.log(`timestamp: ${result.timestamp}`);
     console.log(`auth: ${JSON.stringify(authStatus)}`);
     console.log(`tokenAvailable: ${token != null}`);
-    if (result.oauth) console.log(`oauth: ${JSON.stringify(result.oauth, null, 2)}`);
+    if (result.oauth)
+      console.log(`oauth: ${JSON.stringify(result.oauth, null, 2)}`);
     if (result.cli) console.log(`cli: ${JSON.stringify(result.cli, null, 2)}`);
-    if (result.aggregated) console.log(`aggregated: ${JSON.stringify(result.aggregated, null, 2)}`);
+    if (result.aggregated)
+      console.log(`aggregated: ${JSON.stringify(result.aggregated, null, 2)}`);
   }
 
   if (!ok) process.exitCode = 1;

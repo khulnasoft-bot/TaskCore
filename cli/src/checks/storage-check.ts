@@ -3,9 +3,15 @@ import type { TaskcoreConfig } from "../config/schema.js";
 import type { CheckResult } from "./index.js";
 import { resolveRuntimeLikePath } from "./path-resolver.js";
 
-export function storageCheck(config: TaskcoreConfig, configPath?: string): CheckResult {
+export function storageCheck(
+  config: TaskcoreConfig,
+  configPath?: string,
+): CheckResult {
   if (config.storage.provider === "local_disk") {
-    const baseDir = resolveRuntimeLikePath(config.storage.localDisk.baseDir, configPath);
+    const baseDir = resolveRuntimeLikePath(
+      config.storage.localDisk.baseDir,
+      configPath,
+    );
     if (!fs.existsSync(baseDir)) {
       fs.mkdirSync(baseDir, { recursive: true });
     }
@@ -48,4 +54,3 @@ export function storageCheck(config: TaskcoreConfig, configPath?: string): Check
     repairHint: "Verify credentials and endpoint in deployment environment",
   };
 }
-

@@ -5,7 +5,9 @@ export function normalizeHostnameInput(raw: string): string {
   }
 
   try {
-    const url = input.includes("://") ? new URL(input) : new URL(`http://${input}`);
+    const url = input.includes("://")
+      ? new URL(input)
+      : new URL(`http://${input}`);
     const hostname = url.hostname.trim().toLowerCase();
     if (!hostname) throw new Error("Hostname is required");
     return hostname;
@@ -23,4 +25,3 @@ export function parseHostnameCsv(raw: string): string[] {
   }
   return Array.from(unique);
 }
-

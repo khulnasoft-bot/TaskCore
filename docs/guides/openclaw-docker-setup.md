@@ -82,15 +82,16 @@ TASKCORE_COOKIE="your_session_cookie=..." pnpm smoke:openclaw-join
 - If Taskcore rejects the container-visible host with a hostname error, allow it from host:
 
 ```bash
-pnpm taskcore allowed-hostname host.docker.internal
+npx taskcore allowed-hostname host.docker.internal
 ```
 
 Then restart Taskcore and rerun the smoke script.
+
 - Docker/remote OpenClaw: prefer a reachable hostname (Docker host alias, Tailscale hostname, or public domain).
 - Authenticated/private mode: ensure hostnames are in the allowed list when required:
 
 ```bash
-pnpm taskcore allowed-hostname <host>
+npx taskcore allowed-hostname <host>
 ```
 
 ## Prerequisites
@@ -316,7 +317,7 @@ This issue does not affect the Docker Sandbox approach.
 
 ### Node version mismatch in community template images
 
-Some community-built sandbox templates (e.g. `olegselajev241/openclaw-dmr:latest`) ship Node 20, but OpenClaw requires Node >=22.12.0. Use our locally built `openclaw:local` image as the sandbox template instead, which includes Node 22.
+Some community-built sandbox templates (e.g. `olegselajev241/openclaw-dmr:latest`) ship Node 20, but OpenClaw requires Node >=22.12.0. Use our locally built `openclaw:local` image as the sandbox template instead, which includes Node 24.
 
 ### Gateway takes ~15 seconds to respond after start
 
@@ -325,6 +326,7 @@ The Node.js gateway needs time to initialize. Wait 15 seconds before hitting `ht
 ### CLAUDE_AI_SESSION_KEY warnings (Compose only)
 
 These Docker Compose warnings are harmless and can be ignored:
+
 ```
 level=warning msg="The \"CLAUDE_AI_SESSION_KEY\" variable is not set. Defaulting to a blank string."
 ```
@@ -334,6 +336,7 @@ level=warning msg="The \"CLAUDE_AI_SESSION_KEY\" variable is not set. Defaulting
 Config file: `~/.openclaw/openclaw.json` (JSON5 format)
 
 Key settings:
+
 - `gateway.auth.token` — the auth token for the web UI and API
 - `agents.defaults.model.primary` — the AI model (use `openai/gpt-5.2` or newer)
 - `env.OPENAI_API_KEY` — references the `OPENAI_API_KEY` env var (Compose approach)

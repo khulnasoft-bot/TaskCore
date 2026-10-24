@@ -4,6 +4,7 @@ Status: Proposed
 Date: 2026-04-07
 Audience: Product and engineering
 Related:
+
 - `ui/src/pages/IssueDetail.tsx`
 - `ui/src/components/IssueProperties.tsx`
 - `ui/src/api/issues.ts`

@@ -29,9 +29,10 @@ The following intentions are explicitly preserved in this spec:
 10. CLI errors must be visible in full (or as much as possible) in the UI.
 11. Status changes must live-update across task and agent views via server push.
 12. Wakeup triggers should be centralized by a heartbeat/wakeup service with at least:
-   - timer interval
-   - wake on task assignment
-   - explicit ping/request
+
+- timer interval
+- wake on task assignment
+- explicit ping/request
 
 ## 3. Goals and Non-Goals
 
@@ -144,9 +145,15 @@ interface AdapterInvokeInput {
 
 interface AdapterHooks {
   status?: (update: { message: string; color?: StatusColor }) => Promise<void>;
-  log?: (event: { stream: "stdout" | "stderr" | "system"; chunk: string }) => Promise<void>;
+  log?: (event: {
+    stream: "stdout" | "stderr" | "system";
+    chunk: string;
+  }) => Promise<void>;
   usage?: (usage: TokenUsage) => Promise<void>;
-  event?: (eventType: string, payload: Record<string, unknown>) => Promise<void>;
+  event?: (
+    eventType: string,
+    payload: Record<string, unknown>,
+  ) => Promise<void>;
 }
 
 interface AdapterInvokeResult {
@@ -172,8 +179,14 @@ interface AgentRunAdapter {
     logStreaming: boolean;
     tokenUsage: boolean;
   };
-  validateConfig(config: unknown): { ok: true } | { ok: false; errors: string[] };
-  invoke(input: AdapterInvokeInput, hooks: AdapterHooks, signal: AbortSignal): Promise<AdapterInvokeResult>;
+  validateConfig(
+    config: unknown,
+  ): { ok: true } | { ok: false; errors: string[] };
+  invoke(
+    input: AdapterInvokeInput,
+    hooks: AdapterHooks,
+    signal: AbortSignal,
+  ): Promise<AdapterInvokeResult>;
 }
 ```
 
@@ -202,10 +215,18 @@ interface RunLogHandle {
 }
 
 interface RunLogStore {
-  begin(input: { companyId: string; agentId: string; runId: string }): Promise<RunLogHandle>;
+  begin(input: {
+    companyId: string;
+    agentId: string;
+    runId: string;
+  }): Promise<RunLogHandle>;
   append(
     handle: RunLogHandle,
-    event: { stream: "stdout" | "stderr" | "system"; chunk: string; ts: string },
+    event: {
+      stream: "stdout" | "stderr" | "system";
+      chunk: string;
+      ts: string;
+    },
   ): Promise<void>;
   finalize(
     handle: RunLogHandle,
@@ -251,7 +272,14 @@ Runs local `claude` CLI directly.
   "model": "optional-model-id",
   "maxTurnsPerRun": 1000,
   "dangerouslySkipPermissions": true,
-  "env": {"KEY": "VALUE"},
+  "filesystemScope": "workspace",
+  "filesystemExtraPaths": [
+    "/opt/toolchains",
+    { "path": "/var/cache/pnpm", "access": "rw" }
+  ],
+  "networkScope": "allowlist",
+  "networkAllowlist": ["api.anthropic.com"],
+  "env": { "KEY": "VALUE" },
   "extraArgs": [],
   "timeoutSec": 1800,
   "graceSec": 20
@@ -288,7 +316,14 @@ Runs local `codex` CLI directly.
   "model": "optional-model-id",
   "search": false,
   "dangerouslyBypassApprovalsAndSandbox": true,
-  "env": {"KEY": "VALUE"},
+  "filesystemScope": "workspace",
+  "filesystemExtraPaths": [
+    "/opt/toolchains",
+    { "path": "/var/cache/pnpm", "access": "rw" }
+  ],
+  "networkScope": "allowlist",
+  "networkAllowlist": ["api.openai.com"],
+  "env": { "KEY": "VALUE" },
   "extraArgs": [],
   "timeoutSec": 1800,
   "graceSec": 20
@@ -302,6 +337,10 @@ Runs local `codex` CLI directly.
 - Unsandboxed mode: add `--dangerously-bypass-approvals-and-sandbox` when enabled
 - Optional search mode: add `--search`
 
+For Linux local coding adapters, `filesystemScope: "workspace"` adds host-level filesystem confinement around the CLI process. It is disabled by default and independent of the CLI's own approval or sandbox flags. Taskcore uses Bubblewrap to expose the active workspace and adapter-managed config/home, creates a private `/tmp`, and hides other host paths. `filesystemExtraPaths` can expose additional absolute paths read-only (string or `access: "ro"`) or writable (`access: "rw"`).
+
+`networkScope` is also disabled by default and can be enabled independently or together with filesystem confinement. `"deny"` creates a private network namespace with no egress. `"allowlist"` keeps direct sockets blocked and injects an HTTP(S) proxy that accepts only exact `networkAllowlist` hostnames (optionally with a port); list the coding provider endpoint and every other required API origin explicitly. For example, a standard Codex API-key setup normally needs `api.openai.com`, while Claude setups may need `api.anthropic.com` or their configured Bedrock, Vertex, or gateway origins. Wildcards are intentionally unsupported. Install `bwrap` on the Taskcore host before enabling either scope. Auto engine selection uses the CLI lane while a scope is enabled; explicit ACP mode is rejected because ACP processes are not yet covered by the spawn wrapper.
+
 ### Output parsing
 
 Codex emits JSONL events. Parse line-by-line and extract:
@@ -313,7 +352,7 @@ Codex emits JSONL events. Parse line-by-line and extract:
    - `cached_input_tokens`
    - `output_tokens`
 
-Codex JSONL currently may not include cost; store token usage and leave cost null/unknown unless available.
+Codex JSONL currently may not include cost; store token usage as per-run totals and mark the ledger row `unpriced` unless a cost is available.
 
 ## 7.3 Common local adapter process handling
 

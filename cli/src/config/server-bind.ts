@@ -72,12 +72,14 @@ export function buildPresetServerConfig(
   };
 }
 
-export function buildCustomServerConfig(input: BaseServerInput & {
-  deploymentMode: DeploymentMode;
-  exposure: DeploymentExposure;
-  host: string;
-  publicBaseUrl?: string;
-}): { server: ServerConfig; auth: AuthConfig } {
+export function buildCustomServerConfig(
+  input: BaseServerInput & {
+    deploymentMode: DeploymentMode;
+    exposure: DeploymentExposure;
+    host: string;
+    publicBaseUrl?: string;
+  },
+): { server: ServerConfig; auth: AuthConfig } {
   const normalizedHost = input.host.trim();
   const bind = isLoopbackHost(normalizedHost)
     ? "loopback"
@@ -88,7 +90,8 @@ export function buildCustomServerConfig(input: BaseServerInput & {
   return {
     server: {
       deploymentMode: input.deploymentMode,
-      exposure: input.deploymentMode === "local_trusted" ? "private" : input.exposure,
+      exposure:
+        input.deploymentMode === "local_trusted" ? "private" : input.exposure,
       bind,
       customBindHost: bind === "custom" ? normalizedHost : undefined,
       host: normalizedHost,
@@ -99,14 +102,14 @@ export function buildCustomServerConfig(input: BaseServerInput & {
     auth:
       input.deploymentMode === "authenticated" && input.exposure === "public"
         ? {
-          baseUrlMode: "explicit",
-          disableSignUp: false,
-          publicBaseUrl: input.publicBaseUrl,
-        }
+            baseUrlMode: "explicit",
+            disableSignUp: false,
+            publicBaseUrl: input.publicBaseUrl,
+          }
         : {
-          baseUrlMode: "auto",
-          disableSignUp: false,
-        },
+            baseUrlMode: "auto",
+            disableSignUp: false,
+          },
   };
 }
 
@@ -123,7 +126,11 @@ export function resolveQuickstartServerConfig(input: {
   const trimmedHost = input.host?.trim();
   const explicitBind = input.bind ?? null;
 
-  if (explicitBind === "loopback" || explicitBind === "lan" || explicitBind === "tailnet") {
+  if (
+    explicitBind === "loopback" ||
+    explicitBind === "lan" ||
+    explicitBind === "tailnet"
+  ) {
     return buildPresetServerConfig(explicitBind, {
       port: input.port,
       allowedHostnames: input.allowedHostnames,
@@ -145,7 +152,9 @@ export function resolveQuickstartServerConfig(input: {
 
   if (trimmedHost) {
     return buildCustomServerConfig({
-      deploymentMode: input.deploymentMode ?? (isLoopbackHost(trimmedHost) ? "local_trusted" : "authenticated"),
+      deploymentMode:
+        input.deploymentMode ??
+        (isLoopbackHost(trimmedHost) ? "local_trusted" : "authenticated"),
       exposure: input.exposure ?? "private",
       host: trimmedHost,
       port: input.port,

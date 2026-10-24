@@ -9,6 +9,7 @@ import {
   createEmbeddedPostgresLogBuffer,
   ensurePostgresDatabase,
   formatEmbeddedPostgresError,
+  prepareEmbeddedPostgresNativeRuntime,
   routines,
 } from "@taskcore/db";
 import { eq, inArray } from "drizzle-orm";
@@ -60,7 +61,9 @@ type ClosableDb = ReturnType<typeof createDb> & {
 };
 
 function nonEmpty(value: string | null | undefined): string | null {
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : null;
 }
 
 async function isPortAvailable(port: number): Promise<boolean> {
@@ -96,7 +99,9 @@ function readPidFilePort(postmasterPidFile: string): number | null {
 function readRunningPostmasterPid(postmasterPidFile: string): number | null {
   if (!fs.existsSync(postmasterPidFile)) return null;
   try {
-    const pid = Number(fs.readFileSync(postmasterPidFile, "utf8").split("\n")[0]?.trim());
+    const pid = Number(
+      fs.readFileSync(postmasterPidFile, "utf8").split("\n")[0]?.trim(),
+    );
     if (!Number.isInteger(pid) || pid <= 0) return null;
     process.kill(pid, 0);
     return pid;
@@ -105,7 +110,10 @@ function readRunningPostmasterPid(postmasterPidFile: string): number | null {
   }
 }
 
-async function ensureEmbeddedPostgres(dataDir: string, preferredPort: number): Promise<EmbeddedPostgresHandle> {
+async function ensureEmbeddedPostgres(
+  dataDir: string,
+  preferredPort: number,
+): Promise<EmbeddedPostgresHandle> {
   const moduleName = "embedded-postgres";
   let EmbeddedPostgres: EmbeddedPostgresCtor;
   try {
@@ -116,6 +124,7 @@ async function ensureEmbeddedPostgres(dataDir: string, preferredPort: number): P
       "Embedded PostgreSQL support requires dependency `embedded-postgres`. Reinstall dependencies and try again.",
     );
   }
+  await prepareEmbeddedPostgresNativeRuntime();
 
   const postmasterPidFile = path.resolve(dataDir, "postmaster.pid");
   const runningPid = readRunningPostmasterPid(postmasterPidFile);
@@ -211,7 +220,9 @@ async function openConfiguredDb(configPath: string): Promise<{
 
     const connectionString = nonEmpty(config.database.connectionString);
     if (!connectionString) {
-      throw new Error(`Config at ${configPath} does not define a database connection string.`);
+      throw new Error(
+        `Config at ${configPath} does not define a database connection string.`,
+      );
     }
 
     await applyPendingMigrations(connectionString);
@@ -236,11 +247,13 @@ export async function disableAllRoutinesInConfig(
   const configPath = resolveConfigPath(options.config);
   loadTaskcoreEnvFile(configPath);
   const companyId =
-    nonEmpty(options.companyId)
-    ?? nonEmpty(process.env.TASKCORE_COMPANY_ID)
-    ?? null;
+    nonEmpty(options.companyId) ??
+    nonEmpty(process.env.TASKCORE_COMPANY_ID) ??
+    null;
   if (!companyId) {
-    throw new Error("Company ID is required. Pass --company-id or set TASKCORE_COMPANY_ID.");
+    throw new Error(
+      "Company ID is required. Pass --company-id or set TASKCORE_COMPANY_ID.",
+    );
   }
 
   const config = readConfig(configPath);
@@ -264,7 +277,9 @@ export async function disableAllRoutinesInConfig(
     } else {
       const connectionString = nonEmpty(config.database.connectionString);
       if (!connectionString) {
-        throw new Error(`Config at ${configPath} does not define a database connection string.`);
+        throw new Error(
+          `Config at ${configPath} does not define a database connection string.`,
+        );
       }
       await applyPendingMigrations(connectionString);
       db = createDb(connectionString) as ClosableDb;
@@ -278,10 +293,17 @@ export async function disableAllRoutinesInConfig(
       .from(routines)
       .where(eq(routines.companyId, companyId));
 
-    const alreadyPausedCount = existing.filter((routine) => routine.status === "paused").length;
-    const archivedCount = existing.filter((routine) => routine.status === "archived").length;
+    const alreadyPausedCount = existing.filter(
+      (routine) => routine.status === "paused",
+    ).length;
+    const archivedCount = existing.filter(
+      (routine) => routine.status === "archived",
+    ).length;
     const idsToPause = existing
-      .filter((routine) => routine.status !== "paused" && routine.status !== "archived")
+      .filter(
+        (routine) =>
+          routine.status !== "paused" && routine.status !== "archived",
+      )
       .map((routine) => routine.id);
 
     if (idsToPause.length > 0) {
@@ -311,7 +333,9 @@ export async function disableAllRoutinesInConfig(
   }
 }
 
-export async function disableAllRoutinesCommand(options: RoutinesDisableAllOptions): Promise<void> {
+export async function disableAllRoutinesCommand(
+  options: RoutinesDisableAllOptions,
+): Promise<void> {
   const result = await disableAllRoutinesInConfig(options);
 
   if (options.json) {
@@ -331,13 +355,20 @@ export async function disableAllRoutinesCommand(options: RoutinesDisableAllOptio
 }
 
 export function registerRoutineCommands(program: Command): void {
-  const routinesCommand = program.command("routines").description("Local routine maintenance commands");
+  const routinesCommand = program
+    .command("routines")
+    .description("Local routine maintenance commands");
 
   routinesCommand
     .command("disable-all")
-    .description("Pause all non-archived routines in the configured local instance for one company")
+    .description(
+      "Pause all non-archived routines in the configured local instance for one company",
+    )
     .option("-c, --config <path>", "Path to config file")
-    .option("-d, --data-dir <path>", "Taskcore data directory root (isolates state from ~/.taskcore)")
+    .option(
+      "-d, --data-dir <path>",
+      "Taskcore data directory root (isolates state from ~/.taskcore)",
+    )
     .option("-C, --company-id <id>", "Company ID")
     .option("--json", "Output raw JSON")
     .action(async (opts: RoutinesDisableAllOptions) => {

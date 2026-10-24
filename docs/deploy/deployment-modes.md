@@ -42,7 +42,7 @@ pnpm taskcore onboard
 Allow custom Tailscale hostnames:
 
 ```sh
-pnpm taskcore allowed-hostname my-machine
+npx taskcore allowed-hostname my-machine
 ```
 
 ### `authenticated` + `public`

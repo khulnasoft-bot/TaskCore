@@ -1,0 +1,26 @@
+[Unit]
+Description=Taskcore Tailscale HTTPS broker
+After=tailscaled.service
+Requires=tailscaled.service
+
+[Service]
+Type=simple
+User=taskcore-tsbroker
+Group=taskcore-tsbroker-sock
+EnvironmentFile=/etc/taskcore/tailscale-https-broker.env
+ExecStart=/usr/bin/node /opt/taskcore/packages/tailscale-https-broker/dist/main.js
+Restart=on-failure
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+RuntimeDirectory=taskcore-tailscale-broker
+RuntimeDirectoryMode=0750
+StateDirectory=taskcore-tailscale-broker
+StateDirectoryMode=0700
+LogsDirectory=taskcore-tailscale-broker
+LogsDirectoryMode=0700
+ReadWritePaths=/run/taskcore-tailscale-broker /var/lib/taskcore-tailscale-broker /var/log/taskcore-tailscale-broker
+
+[Install]
+WantedBy=multi-user.target

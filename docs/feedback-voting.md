@@ -12,9 +12,9 @@ When you rate an agent's response with **Helpful** (thumbs up) or **Needs work**
 
 Each vote creates two local records:
 
-| Record | What it contains |
-|--------|-----------------|
-| **Vote** | Your vote (up/down), optional reason text, sharing preference, consent version, timestamp |
+| Record           | What it contains                                                                                                                                                      |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Vote**         | Your vote (up/down), optional reason text, sharing preference, consent version, timestamp                                                                             |
 | **Trace bundle** | Full context snapshot: the voted-on comment/revision text, issue title, agent info, your vote, and reason — everything needed to understand the feedback in isolation |
 
 All data lives in your local Taskcore database. Nothing leaves your machine unless you explicitly choose to share.
@@ -36,7 +36,7 @@ Shows a color-coded summary: vote counts, per-trace details with reasons, and ex
 taskcore feedback report
 
 # Point to a different server or company
-pnpm taskcore feedback report --api-base http://127.0.0.1:3000 --company-id <company-id>
+npx taskcore feedback report --api-base http://127.0.0.1:3000 --company-id <company-id>
 
 # Include raw payload dumps in the report
 pnpm taskcore feedback report --payloads
@@ -47,26 +47,31 @@ pnpm taskcore feedback report --payloads
 All endpoints require board-user access (automatic in local dev).
 
 **List votes for an issue:**
+
 ```bash
 curl http://127.0.0.1:3102/api/issues/<issueId>/feedback-votes
 ```
 
 **List trace bundles for an issue (with full payloads):**
+
 ```bash
 curl 'http://127.0.0.1:3102/api/issues/<issueId>/feedback-traces?includePayload=true'
 ```
 
 **List all traces company-wide:**
+
 ```bash
 curl 'http://127.0.0.1:3102/api/companies/<companyId>/feedback-traces?includePayload=true'
 ```
 
 **Get a single trace envelope record:**
+
 ```bash
 curl http://127.0.0.1:3102/api/feedback-traces/<traceId>
 ```
 
 **Get the full export bundle for a trace:**
+
 ```bash
 curl http://127.0.0.1:3102/api/feedback-traces/<traceId>/bundle
 ```
@@ -75,14 +80,14 @@ curl http://127.0.0.1:3102/api/feedback-traces/<traceId>/bundle
 
 The trace endpoints accept query parameters:
 
-| Parameter | Values | Description |
-|-----------|--------|-------------|
-| `vote` | `up`, `down` | Filter by vote direction |
-| `status` | `local_only`, `pending`, `sent`, `failed` | Filter by export status |
-| `targetType` | `issue_comment`, `issue_document_revision` | Filter by what was voted on |
-| `sharedOnly` | `true` | Only show votes the user chose to share |
-| `includePayload` | `true` | Include the full context snapshot |
-| `from` / `to` | ISO date | Date range filter |
+| Parameter        | Values                                     | Description                             |
+| ---------------- | ------------------------------------------ | --------------------------------------- |
+| `vote`           | `up`, `down`                               | Filter by vote direction                |
+| `status`         | `local_only`, `pending`, `sent`, `failed`  | Filter by export status                 |
+| `targetType`     | `issue_comment`, `issue_document_revision` | Filter by what was voted on             |
+| `sharedOnly`     | `true`                                     | Only show votes the user chose to share |
+| `includePayload` | `true`                                     | Include the full context snapshot       |
+| `from` / `to`    | ISO date                                   | Date range filter                       |
 
 ## Exporting your data
 
@@ -100,7 +105,7 @@ feedback-export-20260331T120000Z/
   votes/
     PAP-123-a1b2c3d4.json      # vote metadata (one per vote)
   traces/
-    PAP-123-e5f6g7h8.json      # Taskcore feedback envelope (one per trace)
+    PAP-123-e5f6g7h8.json      # TaskCore feedback envelope (one per trace)
   full-traces/
     PAP-123-e5f6g7h8/
       bundle.json              # full export manifest for the trace
@@ -112,7 +117,7 @@ Exports are full by default. `traces/` keeps the Taskcore envelope, while `full-
 
 ```bash
 # Custom server and output directory
-pnpm taskcore feedback export --api-base http://127.0.0.1:3000 --company-id <company-id> --out ./my-export
+npx taskcore feedback export --api-base http://127.0.0.1:3000 --company-id <company-id> --out ./my-export
 ```
 
 ### Reading an exported trace
@@ -167,12 +172,12 @@ Your preference is saved per-company. You can change it any time via the feedbac
 
 ## Data lifecycle
 
-| Status | Meaning |
-|--------|---------|
-| `local_only` | Vote stored locally, not marked for sharing |
-| `pending` | Marked for sharing, saved locally, and waiting for the immediate upload attempt |
-| `sent` | Successfully transmitted |
-| `failed` | Transmission attempted but failed (for example the backend is unreachable or not configured); later flushes retry once a backend is available |
+| Status       | Meaning                                                                                                                                       |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `local_only` | Vote stored locally, not marked for sharing                                                                                                   |
+| `pending`    | Marked for sharing, saved locally, and waiting for the immediate upload attempt                                                               |
+| `sent`       | Successfully transmitted                                                                                                                      |
+| `failed`     | Transmission attempted but failed (for example the backend is unreachable or not configured); later flushes retry once a backend is available |
 
 Your local database always retains the full vote and trace data regardless of sharing status.
 

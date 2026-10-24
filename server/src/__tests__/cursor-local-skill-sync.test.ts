@@ -27,7 +27,7 @@ describe("cursor local skill sync", () => {
     cleanupDirs.clear();
   });
 
-  it("reports configured Taskcore skills and installs them into the Cursor skills home", async () => {
+  it("defaults and installs the operational Taskcore skill in the Cursor skills home", async () => {
     const home = await makeTempDir("taskcore-cursor-skill-sync-");
     cleanupDirs.add(home);
 
@@ -39,20 +39,35 @@ describe("cursor local skill sync", () => {
         env: {
           HOME: home,
         },
-        taskcoreSkillSync: {
-          desiredSkills: [taskcoreKey],
-        },
       },
     } as const;
 
     const before = await listCursorSkills(ctx);
     expect(before.mode).toBe("persistent");
     expect(before.desiredSkills).toContain(taskcoreKey);
-    expect(before.entries.find((entry) => entry.key === taskcoreKey)?.required).toBe(true);
     expect(before.entries.find((entry) => entry.key === taskcoreKey)?.state).toBe("missing");
 
     const after = await syncCursorSkills(ctx, [taskcoreKey]);
     expect(after.entries.find((entry) => entry.key === taskcoreKey)?.state).toBe("installed");
+    expect((await fs.lstat(path.join(home, ".cursor", "skills", "taskcore"))).isSymbolicLink()).toBe(true);
+  });
+
+  it("keeps the operational skill installed after an explicit empty replacement", async () => {
+    const home = await makeTempDir("taskcore-cursor-required-skill-");
+    cleanupDirs.add(home);
+
+    const snapshot = await syncCursorSkills({
+      agentId: "agent-required",
+      companyId: "company-1",
+      adapterType: "cursor",
+      config: {
+        env: { HOME: home },
+        taskcoreSkillSync: { desiredSkills: [] },
+      },
+    }, []);
+
+    expect(snapshot.desiredSkills).toEqual([taskcoreKey, "taskcore/taskcore/complain", "taskcore/taskcore/suggestion-box"]);
+    expect(snapshot.entries.find((entry) => entry.key === taskcoreKey)?.state).toBe("installed");
     expect((await fs.lstat(path.join(home, ".cursor", "skills", "taskcore"))).isSymbolicLink()).toBe(true);
   });
 
@@ -78,8 +93,6 @@ describe("cursor local skill sync", () => {
             key: "taskcore",
             runtimeName: "taskcore",
             source: taskcoreDir,
-            required: true,
-            requiredReason: "Bundled Taskcore skills are always available for local adapters.",
           },
           {
             key: "ascii-heart",
@@ -95,7 +108,7 @@ describe("cursor local skill sync", () => {
 
     const before = await listCursorSkills(ctx);
     expect(before.warnings).toEqual([]);
-    expect(before.desiredSkills).toEqual(["taskcore", "ascii-heart"]);
+    expect(before.desiredSkills).toEqual(["ascii-heart"]);
     expect(before.entries.find((entry) => entry.key === "ascii-heart")?.state).toBe("missing");
 
     const after = await syncCursorSkills(ctx, ["ascii-heart"]);
@@ -104,41 +117,4 @@ describe("cursor local skill sync", () => {
     expect((await fs.lstat(path.join(home, ".cursor", "skills", "ascii-heart"))).isSymbolicLink()).toBe(true);
   });
 
-  it("keeps required bundled Taskcore skills installed even when the desired set is emptied", async () => {
-    const home = await makeTempDir("taskcore-cursor-skill-prune-");
-    cleanupDirs.add(home);
-
-    const configuredCtx = {
-      agentId: "agent-2",
-      companyId: "company-1",
-      adapterType: "cursor",
-      config: {
-        env: {
-          HOME: home,
-        },
-        taskcoreSkillSync: {
-          desiredSkills: [taskcoreKey],
-        },
-      },
-    } as const;
-
-    await syncCursorSkills(configuredCtx, [taskcoreKey]);
-
-    const clearedCtx = {
-      ...configuredCtx,
-      config: {
-        env: {
-          HOME: home,
-        },
-        taskcoreSkillSync: {
-          desiredSkills: [],
-        },
-      },
-    } as const;
-
-    const after = await syncCursorSkills(clearedCtx, []);
-    expect(after.desiredSkills).toContain(taskcoreKey);
-    expect(after.entries.find((entry) => entry.key === taskcoreKey)?.state).toBe("installed");
-    expect((await fs.lstat(path.join(home, ".cursor", "skills", "taskcore"))).isSymbolicLink()).toBe(true);
-  });
 });

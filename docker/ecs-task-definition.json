@@ -1,0 +1,96 @@
+{
+  "family": "taskcore-server",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "2048",
+  "memory": "4096",
+  "executionRoleArn": "arn:aws:iam::<ACCOUNT_ID>:role/taskcore-ecs-execution",
+  "taskRoleArn": "arn:aws:iam::<ACCOUNT_ID>:role/taskcore-ecs-task",
+  "containerDefinitions": [
+    {
+      "name": "taskcore-server",
+      "image": "<ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/taskcore-server:latest",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 3100,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        { "name": "NODE_ENV", "value": "production" },
+        { "name": "HOST", "value": "0.0.0.0" },
+        { "name": "PORT", "value": "3100" },
+        { "name": "SERVE_UI", "value": "true" },
+        { "name": "TASKCORE_HOME", "value": "/taskcore" },
+        { "name": "TASKCORE_INSTANCE_ID", "value": "default" },
+        {
+          "name": "TASKCORE_CONFIG",
+          "value": "/taskcore/instances/default/config.json"
+        },
+        { "name": "TASKCORE_DEPLOYMENT_MODE", "value": "authenticated" },
+        { "name": "TASKCORE_DEPLOYMENT_EXPOSURE", "value": "public" },
+        { "name": "TASKCORE_PUBLIC_URL", "value": "https://<DOMAIN>" },
+        { "name": "TASKCORE_MIGRATION_AUTO_APPLY", "value": "true" },
+        { "name": "HEARTBEAT_SCHEDULER_ENABLED", "value": "true" }
+      ],
+      "secrets": [
+        {
+          "name": "DATABASE_URL",
+          "valueFrom": "arn:aws:secretsmanager:<REGION>:<ACCOUNT_ID>:secret:taskcore/database-url"
+        },
+        {
+          "name": "BETTER_AUTH_SECRET",
+          "valueFrom": "arn:aws:secretsmanager:<REGION>:<ACCOUNT_ID>:secret:taskcore/better-auth-secret"
+        },
+        {
+          "name": "ANTHROPIC_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:<REGION>:<ACCOUNT_ID>:secret:taskcore/anthropic-api-key"
+        },
+        {
+          "name": "OPENAI_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:<REGION>:<ACCOUNT_ID>:secret:taskcore/openai-api-key"
+        },
+        {
+          "name": "GITHUB_TOKEN",
+          "valueFrom": "arn:aws:secretsmanager:<REGION>:<ACCOUNT_ID>:secret:taskcore/github-token"
+        }
+      ],
+      "mountPoints": [
+        {
+          "sourceVolume": "taskcore-data",
+          "containerPath": "/taskcore",
+          "readOnly": false
+        }
+      ],
+      "healthCheck": {
+        "command": [
+          "CMD-SHELL",
+          "curl -f http://localhost:3100/api/health || exit 1"
+        ],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 60
+      },
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/taskcore",
+          "awslogs-region": "<REGION>",
+          "awslogs-stream-prefix": "server"
+        }
+      }
+    }
+  ],
+  "volumes": [
+    {
+      "name": "taskcore-data",
+      "efsVolumeConfiguration": {
+        "fileSystemId": "<EFS_ID>",
+        "rootDirectory": "/",
+        "transitEncryption": "ENABLED"
+      }
+    }
+  ]
+}

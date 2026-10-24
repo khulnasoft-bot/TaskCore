@@ -56,7 +56,9 @@ describe("normalizeGithubImportSource", () => {
   });
 
   it("applies --ref to shorthand imports", () => {
-    expect(normalizeGithubImportSource("taskcore/companies/gstack", "feature/demo")).toBe(
+    expect(
+      normalizeGithubImportSource("taskcore/companies/gstack", "feature/demo"),
+    ).toBe(
       "https://github.com/khulnasoft/companies?ref=feature%2Fdemo&path=gstack",
     );
   });

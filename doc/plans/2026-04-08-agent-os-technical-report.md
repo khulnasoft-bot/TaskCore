@@ -103,7 +103,7 @@ The session model is more uniform than most agent wrappers. It includes:
 
 This is directly relevant to Taskcore because our adapter layer still normalizes each CLI agent in a fairly bespoke way.
 
-## Taskcore anchor points
+## TaskCore anchor points
 
 The most relevant current Taskcore surfaces for any future `agent-os` integration are:
 

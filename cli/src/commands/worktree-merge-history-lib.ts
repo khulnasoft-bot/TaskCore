@@ -37,7 +37,8 @@ export type ImportAdjustment =
   | "clear_attachment_agent";
 
 export type IssueMergeAction = "skip_existing" | "insert";
-export type CommentMergeAction = "skip_existing" | "skip_missing_parent" | "insert";
+export type CommentMergeAction =
+  "skip_existing" | "skip_missing_parent" | "insert";
 
 export type PlannedIssueInsert = {
   source: IssueRow;
@@ -189,7 +190,11 @@ export type WorktreeMergePlan = {
   projectImports: PlannedProjectImport[];
   issuePlans: Array<PlannedIssueInsert | PlannedIssueSkip>;
   commentPlans: Array<PlannedCommentInsert | PlannedCommentSkip>;
-  documentPlans: Array<PlannedIssueDocumentInsert | PlannedIssueDocumentMerge | PlannedIssueDocumentSkip>;
+  documentPlans: Array<
+    | PlannedIssueDocumentInsert
+    | PlannedIssueDocumentMerge
+    | PlannedIssueDocumentSkip
+  >;
   attachmentPlans: Array<PlannedAttachmentInsert | PlannedAttachmentSkip>;
   counts: {
     projectsToImport: number;
@@ -215,15 +220,24 @@ export type WorktreeMergePlan = {
 function compareIssueCoreFields(source: IssueRow, target: IssueRow): string[] {
   const driftKeys: string[] = [];
   if (source.title !== target.title) driftKeys.push("title");
-  if ((source.description ?? null) !== (target.description ?? null)) driftKeys.push("description");
+  if ((source.description ?? null) !== (target.description ?? null))
+    driftKeys.push("description");
   if (source.status !== target.status) driftKeys.push("status");
   if (source.priority !== target.priority) driftKeys.push("priority");
-  if ((source.parentId ?? null) !== (target.parentId ?? null)) driftKeys.push("parentId");
-  if ((source.projectId ?? null) !== (target.projectId ?? null)) driftKeys.push("projectId");
-  if ((source.projectWorkspaceId ?? null) !== (target.projectWorkspaceId ?? null)) driftKeys.push("projectWorkspaceId");
-  if ((source.goalId ?? null) !== (target.goalId ?? null)) driftKeys.push("goalId");
-  if ((source.assigneeAgentId ?? null) !== (target.assigneeAgentId ?? null)) driftKeys.push("assigneeAgentId");
-  if ((source.assigneeUserId ?? null) !== (target.assigneeUserId ?? null)) driftKeys.push("assigneeUserId");
+  if ((source.parentId ?? null) !== (target.parentId ?? null))
+    driftKeys.push("parentId");
+  if ((source.projectId ?? null) !== (target.projectId ?? null))
+    driftKeys.push("projectId");
+  if (
+    (source.projectWorkspaceId ?? null) !== (target.projectWorkspaceId ?? null)
+  )
+    driftKeys.push("projectWorkspaceId");
+  if ((source.goalId ?? null) !== (target.goalId ?? null))
+    driftKeys.push("goalId");
+  if ((source.assigneeAgentId ?? null) !== (target.assigneeAgentId ?? null))
+    driftKeys.push("assigneeAgentId");
+  if ((source.assigneeUserId ?? null) !== (target.assigneeUserId ?? null))
+    driftKeys.push("assigneeUserId");
   return driftKeys;
 }
 
@@ -254,15 +268,19 @@ function sameDate(left: Date, right: Date): boolean {
 
 function sortDocumentRows(rows: IssueDocumentRow[]): IssueDocumentRow[] {
   return [...rows].sort((left, right) => {
-    const createdDelta = left.documentCreatedAt.getTime() - right.documentCreatedAt.getTime();
+    const createdDelta =
+      left.documentCreatedAt.getTime() - right.documentCreatedAt.getTime();
     if (createdDelta !== 0) return createdDelta;
-    const linkDelta = left.linkCreatedAt.getTime() - right.linkCreatedAt.getTime();
+    const linkDelta =
+      left.linkCreatedAt.getTime() - right.linkCreatedAt.getTime();
     if (linkDelta !== 0) return linkDelta;
     return left.documentId.localeCompare(right.documentId);
   });
 }
 
-function sortDocumentRevisions(rows: DocumentRevisionRow[]): DocumentRevisionRow[] {
+function sortDocumentRevisions(
+  rows: DocumentRevisionRow[],
+): DocumentRevisionRow[] {
   return [...rows].sort((left, right) => {
     const revisionDelta = left.revisionNumber - right.revisionNumber;
     if (revisionDelta !== 0) return revisionDelta;
@@ -274,7 +292,8 @@ function sortDocumentRevisions(rows: DocumentRevisionRow[]): DocumentRevisionRow
 
 function sortAttachments(rows: IssueAttachmentRow[]): IssueAttachmentRow[] {
   return [...rows].sort((left, right) => {
-    const createdDelta = left.attachmentCreatedAt.getTime() - right.attachmentCreatedAt.getTime();
+    const createdDelta =
+      left.attachmentCreatedAt.getTime() - right.attachmentCreatedAt.getTime();
     if (createdDelta !== 0) return createdDelta;
     return left.id.localeCompare(right.id);
   });
@@ -316,7 +335,9 @@ function sortIssuesForImport(sourceIssues: IssueRow[]): IssueRow[] {
   });
 }
 
-export function parseWorktreeMergeScopes(rawValue: string | undefined): WorktreeMergeScope[] {
+export function parseWorktreeMergeScopes(
+  rawValue: string | undefined,
+): WorktreeMergeScope[] {
   if (!rawValue || rawValue.trim().length === 0) {
     return ["issues", "comments"];
   }
@@ -362,16 +383,31 @@ export function buildWorktreeMergePlan(input: {
   importProjectIds?: Iterable<string>;
   projectIdOverrides?: Record<string, string | null | undefined>;
 }): WorktreeMergePlan {
-  const targetIssuesById = new Map(input.targetIssues.map((issue) => [issue.id, issue]));
-  const targetCommentIds = new Set(input.targetComments.map((comment) => comment.id));
+  const targetIssuesById = new Map(
+    input.targetIssues.map((issue) => [issue.id, issue]),
+  );
+  const targetCommentIds = new Set(
+    input.targetComments.map((comment) => comment.id),
+  );
   const targetAgentIds = new Set(input.targetAgents.map((agent) => agent.id));
-  const targetProjectIds = new Set(input.targetProjects.map((project) => project.id));
-  const targetProjectsById = new Map(input.targetProjects.map((project) => [project.id, project]));
-  const targetProjectWorkspaceIds = new Set(input.targetProjectWorkspaces.map((workspace) => workspace.id));
+  const targetProjectIds = new Set(
+    input.targetProjects.map((project) => project.id),
+  );
+  const targetProjectsById = new Map(
+    input.targetProjects.map((project) => [project.id, project]),
+  );
+  const targetProjectWorkspaceIds = new Set(
+    input.targetProjectWorkspaces.map((workspace) => workspace.id),
+  );
   const targetGoalIds = new Set(input.targetGoals.map((goal) => goal.id));
-  const sourceProjectsById = new Map((input.sourceProjects ?? []).map((project) => [project.id, project]));
+  const sourceProjectsById = new Map(
+    (input.sourceProjects ?? []).map((project) => [project.id, project]),
+  );
   const sourceProjectWorkspaces = input.sourceProjectWorkspaces ?? [];
-  const sourceProjectWorkspacesByProjectId = groupBy(sourceProjectWorkspaces, (workspace) => workspace.projectId);
+  const sourceProjectWorkspacesByProjectId = groupBy(
+    sourceProjectWorkspaces,
+    (workspace) => workspace.projectId,
+  );
   const importProjectIds = new Set(input.importProjectIds ?? []);
   const scopes = new Set(input.scopes);
 
@@ -395,24 +431,30 @@ export function buildWorktreeMergePlan(input: {
     projectImports.push({
       source: sourceProject,
       targetLeadAgentId:
-        sourceProject.leadAgentId && targetAgentIds.has(sourceProject.leadAgentId)
+        sourceProject.leadAgentId &&
+        targetAgentIds.has(sourceProject.leadAgentId)
           ? sourceProject.leadAgentId
           : null,
       targetGoalId:
         sourceProject.goalId && targetGoalIds.has(sourceProject.goalId)
           ? sourceProject.goalId
           : null,
-      workspaces: [...(sourceProjectWorkspacesByProjectId.get(projectId) ?? [])].sort((left, right) => {
+      workspaces: [
+        ...(sourceProjectWorkspacesByProjectId.get(projectId) ?? []),
+      ].sort((left, right) => {
         const primaryDelta = Number(right.isPrimary) - Number(left.isPrimary);
         if (primaryDelta !== 0) return primaryDelta;
-        const createdDelta = left.createdAt.getTime() - right.createdAt.getTime();
+        const createdDelta =
+          left.createdAt.getTime() - right.createdAt.getTime();
         if (createdDelta !== 0) return createdDelta;
         return left.id.localeCompare(right.id);
       }),
     });
   }
   const importedProjectWorkspaceIds = new Set(
-    projectImports.flatMap((project) => project.workspaces.map((workspace) => workspace.id)),
+    projectImports.flatMap((project) =>
+      project.workspaces.map((workspace) => workspace.id),
+    ),
   );
 
   const issuePlans: Array<PlannedIssueInsert | PlannedIssueSkip> = [];
@@ -431,29 +473,45 @@ export function buildWorktreeMergePlan(input: {
     nextPreviewIssueNumber += 1;
     const adjustments: ImportAdjustment[] = [];
     const targetAssigneeAgentId =
-      issue.assigneeAgentId && targetAgentIds.has(issue.assigneeAgentId) ? issue.assigneeAgentId : null;
+      issue.assigneeAgentId && targetAgentIds.has(issue.assigneeAgentId)
+        ? issue.assigneeAgentId
+        : null;
     if (issue.assigneeAgentId && !targetAssigneeAgentId) {
       adjustments.push("clear_assignee_agent");
       incrementAdjustment(adjustmentCounts, "clear_assignee_agent");
     }
 
     const targetCreatedByAgentId =
-      issue.createdByAgentId && targetAgentIds.has(issue.createdByAgentId) ? issue.createdByAgentId : null;
+      issue.createdByAgentId && targetAgentIds.has(issue.createdByAgentId)
+        ? issue.createdByAgentId
+        : null;
 
     let targetProjectId =
-      issue.projectId && targetProjectIds.has(issue.projectId) ? issue.projectId : null;
-    let projectResolution: PlannedIssueInsert["projectResolution"] = targetProjectId ? "preserved" : "cleared";
+      issue.projectId && targetProjectIds.has(issue.projectId)
+        ? issue.projectId
+        : null;
+    let projectResolution: PlannedIssueInsert["projectResolution"] =
+      targetProjectId ? "preserved" : "cleared";
     let mappedProjectName: string | null = null;
     const overrideProjectId =
       issue.projectId && input.projectIdOverrides
-        ? input.projectIdOverrides[issue.projectId] ?? null
+        ? (input.projectIdOverrides[issue.projectId] ?? null)
         : null;
-    if (!targetProjectId && overrideProjectId && targetProjectIds.has(overrideProjectId)) {
+    if (
+      !targetProjectId &&
+      overrideProjectId &&
+      targetProjectIds.has(overrideProjectId)
+    ) {
       targetProjectId = overrideProjectId;
       projectResolution = "mapped";
-      mappedProjectName = targetProjectsById.get(overrideProjectId)?.name ?? null;
+      mappedProjectName =
+        targetProjectsById.get(overrideProjectId)?.name ?? null;
     }
-    if (!targetProjectId && issue.projectId && importProjectIds.has(issue.projectId)) {
+    if (
+      !targetProjectId &&
+      issue.projectId &&
+      importProjectIds.has(issue.projectId)
+    ) {
       const sourceProject = sourceProjectsById.get(issue.projectId);
       if (sourceProject) {
         targetProjectId = sourceProject.id;
@@ -467,11 +525,11 @@ export function buildWorktreeMergePlan(input: {
     }
 
     const targetProjectWorkspaceId =
-      targetProjectId
-      && targetProjectId === issue.projectId
-      && issue.projectWorkspaceId
-      && (targetProjectWorkspaceIds.has(issue.projectWorkspaceId)
-        || importedProjectWorkspaceIds.has(issue.projectWorkspaceId))
+      targetProjectId &&
+      targetProjectId === issue.projectId &&
+      issue.projectWorkspaceId &&
+      (targetProjectWorkspaceIds.has(issue.projectWorkspaceId) ||
+        importedProjectWorkspaceIds.has(issue.projectWorkspaceId))
         ? issue.projectWorkspaceId
         : null;
     if (issue.projectWorkspaceId && !targetProjectWorkspaceId) {
@@ -488,9 +546,9 @@ export function buildWorktreeMergePlan(input: {
 
     let targetStatus = issue.status;
     if (
-      targetStatus === "in_progress"
-      && !targetAssigneeAgentId
-      && !(issue.assigneeUserId && issue.assigneeUserId.trim().length > 0)
+      targetStatus === "in_progress" &&
+      !targetAssigneeAgentId &&
+      !(issue.assigneeUserId && issue.assigneeUserId.trim().length > 0)
     ) {
       targetStatus = "todo";
       adjustments.push("coerce_in_progress_to_todo");
@@ -516,7 +574,9 @@ export function buildWorktreeMergePlan(input: {
 
   const issueIdsAvailableAfterImport = new Set<string>([
     ...input.targetIssues.map((issue) => issue.id),
-    ...issuePlans.filter((plan): plan is PlannedIssueInsert => plan.action === "insert").map((plan) => plan.source.id),
+    ...issuePlans
+      .filter((plan): plan is PlannedIssueInsert => plan.action === "insert")
+      .map((plan) => plan.source.id),
   ]);
 
   const commentPlans: Array<PlannedCommentInsert | PlannedCommentSkip> = [];
@@ -539,7 +599,9 @@ export function buildWorktreeMergePlan(input: {
 
       const adjustments: ImportAdjustment[] = [];
       const targetAuthorAgentId =
-        comment.authorAgentId && targetAgentIds.has(comment.authorAgentId) ? comment.authorAgentId : null;
+        comment.authorAgentId && targetAgentIds.has(comment.authorAgentId)
+          ? comment.authorAgentId
+          : null;
       if (comment.authorAgentId && !targetAuthorAgentId) {
         adjustments.push("clear_author_agent");
         incrementAdjustment(adjustmentCounts, "clear_author_agent");
@@ -559,16 +621,35 @@ export function buildWorktreeMergePlan(input: {
   const sourceDocumentRevisions = input.sourceDocumentRevisions ?? [];
   const targetDocumentRevisions = input.targetDocumentRevisions ?? [];
 
-  const targetDocumentsById = new Map(targetDocuments.map((document) => [document.documentId, document]));
-  const targetDocumentsByIssueKey = new Map(targetDocuments.map((document) => [`${document.issueId}:${document.key}`, document]));
-  const sourceRevisionsByDocumentId = groupBy(sourceDocumentRevisions, (revision) => revision.documentId);
-  const targetRevisionsByDocumentId = groupBy(targetDocumentRevisions, (revision) => revision.documentId);
+  const targetDocumentsById = new Map(
+    targetDocuments.map((document) => [document.documentId, document]),
+  );
+  const targetDocumentsByIssueKey = new Map(
+    targetDocuments.map((document) => [
+      `${document.issueId}:${document.key}`,
+      document,
+    ]),
+  );
+  const sourceRevisionsByDocumentId = groupBy(
+    sourceDocumentRevisions,
+    (revision) => revision.documentId,
+  );
+  const targetRevisionsByDocumentId = groupBy(
+    targetDocumentRevisions,
+    (revision) => revision.documentId,
+  );
   const commentIdsAvailableAfterImport = new Set<string>([
     ...input.targetComments.map((comment) => comment.id),
-    ...commentPlans.filter((plan): plan is PlannedCommentInsert => plan.action === "insert").map((plan) => plan.source.id),
+    ...commentPlans
+      .filter((plan): plan is PlannedCommentInsert => plan.action === "insert")
+      .map((plan) => plan.source.id),
   ]);
 
-  const documentPlans: Array<PlannedIssueDocumentInsert | PlannedIssueDocumentMerge | PlannedIssueDocumentSkip> = [];
+  const documentPlans: Array<
+    | PlannedIssueDocumentInsert
+    | PlannedIssueDocumentMerge
+    | PlannedIssueDocumentSkip
+  > = [];
   for (const document of sortDocumentRows(sourceDocuments)) {
     if (!issueIdsAvailableAfterImport.has(document.issueId)) {
       documentPlans.push({ source: document, action: "skip_missing_parent" });
@@ -576,33 +657,52 @@ export function buildWorktreeMergePlan(input: {
     }
 
     const existingDocument = targetDocumentsById.get(document.documentId);
-    const conflictingIssueKeyDocument = targetDocumentsByIssueKey.get(`${document.issueId}:${document.key}`);
-    if (!existingDocument && conflictingIssueKeyDocument && conflictingIssueKeyDocument.documentId !== document.documentId) {
+    const conflictingIssueKeyDocument = targetDocumentsByIssueKey.get(
+      `${document.issueId}:${document.key}`,
+    );
+    if (
+      !existingDocument &&
+      conflictingIssueKeyDocument &&
+      conflictingIssueKeyDocument.documentId !== document.documentId
+    ) {
       documentPlans.push({ source: document, action: "skip_conflicting_key" });
       continue;
     }
 
     const adjustments: ImportAdjustment[] = [];
     const targetCreatedByAgentId =
-      document.createdByAgentId && targetAgentIds.has(document.createdByAgentId) ? document.createdByAgentId : null;
+      document.createdByAgentId && targetAgentIds.has(document.createdByAgentId)
+        ? document.createdByAgentId
+        : null;
     const targetUpdatedByAgentId =
-      document.updatedByAgentId && targetAgentIds.has(document.updatedByAgentId) ? document.updatedByAgentId : null;
+      document.updatedByAgentId && targetAgentIds.has(document.updatedByAgentId)
+        ? document.updatedByAgentId
+        : null;
     if (
-      (document.createdByAgentId && !targetCreatedByAgentId)
-      || (document.updatedByAgentId && !targetUpdatedByAgentId)
+      (document.createdByAgentId && !targetCreatedByAgentId) ||
+      (document.updatedByAgentId && !targetUpdatedByAgentId)
     ) {
       adjustments.push("clear_document_agent");
       incrementAdjustment(adjustmentCounts, "clear_document_agent");
     }
 
-    const sourceRevisions = sortDocumentRevisions(sourceRevisionsByDocumentId.get(document.documentId) ?? []);
-    const targetRevisions = sortDocumentRevisions(targetRevisionsByDocumentId.get(document.documentId) ?? []);
-    const existingRevisionIds = new Set(targetRevisions.map((revision) => revision.id));
-    const usedRevisionNumbers = new Set(targetRevisions.map((revision) => revision.revisionNumber));
-    let nextRevisionNumber = targetRevisions.reduce(
-      (maxValue, revision) => Math.max(maxValue, revision.revisionNumber),
-      0,
-    ) + 1;
+    const sourceRevisions = sortDocumentRevisions(
+      sourceRevisionsByDocumentId.get(document.documentId) ?? [],
+    );
+    const targetRevisions = sortDocumentRevisions(
+      targetRevisionsByDocumentId.get(document.documentId) ?? [],
+    );
+    const existingRevisionIds = new Set(
+      targetRevisions.map((revision) => revision.id),
+    );
+    const usedRevisionNumbers = new Set(
+      targetRevisions.map((revision) => revision.revisionNumber),
+    );
+    let nextRevisionNumber =
+      targetRevisions.reduce(
+        (maxValue, revision) => Math.max(maxValue, revision.revisionNumber),
+        0,
+      ) + 1;
 
     const targetRevisionNumberById = new Map<string, number>(
       targetRevisions.map((revision) => [revision.id, revision.revisionNumber]),
@@ -624,7 +724,10 @@ export function buildWorktreeMergePlan(input: {
 
       const revisionAdjustments: ImportAdjustment[] = [];
       const targetCreatedByAgentId =
-        revision.createdByAgentId && targetAgentIds.has(revision.createdByAgentId) ? revision.createdByAgentId : null;
+        revision.createdByAgentId &&
+        targetAgentIds.has(revision.createdByAgentId)
+          ? revision.createdByAgentId
+          : null;
       if (revision.createdByAgentId && !targetCreatedByAgentId) {
         revisionAdjustments.push("clear_document_revision_agent");
         incrementAdjustment(adjustmentCounts, "clear_document_revision_agent");
@@ -638,12 +741,15 @@ export function buildWorktreeMergePlan(input: {
       });
     }
 
-    const latestRevisionId = document.latestRevisionId ?? existingDocument?.latestRevisionId ?? null;
+    const latestRevisionId =
+      document.latestRevisionId ?? existingDocument?.latestRevisionId ?? null;
     const latestRevisionNumber =
-      (latestRevisionId ? targetRevisionNumberById.get(latestRevisionId) : undefined)
-      ?? document.latestRevisionNumber
-      ?? existingDocument?.latestRevisionNumber
-      ?? 0;
+      (latestRevisionId
+        ? targetRevisionNumberById.get(latestRevisionId)
+        : undefined) ??
+      document.latestRevisionNumber ??
+      existingDocument?.latestRevisionNumber ??
+      0;
 
     if (!existingDocument) {
       documentPlans.push({
@@ -660,17 +766,21 @@ export function buildWorktreeMergePlan(input: {
     }
 
     const documentAlreadyMatches =
-      existingDocument.key === document.key
-      && existingDocument.title === document.title
-      && existingDocument.format === document.format
-      && existingDocument.latestBody === document.latestBody
-      && (existingDocument.latestRevisionId ?? null) === latestRevisionId
-      && existingDocument.latestRevisionNumber === latestRevisionNumber
-      && (existingDocument.updatedByAgentId ?? null) === targetUpdatedByAgentId
-      && (existingDocument.updatedByUserId ?? null) === (document.updatedByUserId ?? null)
-      && sameDate(existingDocument.documentUpdatedAt, document.documentUpdatedAt)
-      && sameDate(existingDocument.linkUpdatedAt, document.linkUpdatedAt)
-      && revisionsToInsert.length === 0;
+      existingDocument.key === document.key &&
+      existingDocument.title === document.title &&
+      existingDocument.format === document.format &&
+      existingDocument.latestBody === document.latestBody &&
+      (existingDocument.latestRevisionId ?? null) === latestRevisionId &&
+      existingDocument.latestRevisionNumber === latestRevisionNumber &&
+      (existingDocument.updatedByAgentId ?? null) === targetUpdatedByAgentId &&
+      (existingDocument.updatedByUserId ?? null) ===
+        (document.updatedByUserId ?? null) &&
+      sameDate(
+        existingDocument.documentUpdatedAt,
+        document.documentUpdatedAt,
+      ) &&
+      sameDate(existingDocument.linkUpdatedAt, document.linkUpdatedAt) &&
+      revisionsToInsert.length === 0;
 
     if (documentAlreadyMatches) {
       documentPlans.push({ source: document, action: "skip_existing" });
@@ -690,21 +800,29 @@ export function buildWorktreeMergePlan(input: {
   }
 
   const sourceAttachments = input.sourceAttachments ?? [];
-  const targetAttachmentIds = new Set((input.targetAttachments ?? []).map((attachment) => attachment.id));
-  const attachmentPlans: Array<PlannedAttachmentInsert | PlannedAttachmentSkip> = [];
+  const targetAttachmentIds = new Set(
+    (input.targetAttachments ?? []).map((attachment) => attachment.id),
+  );
+  const attachmentPlans: Array<
+    PlannedAttachmentInsert | PlannedAttachmentSkip
+  > = [];
   for (const attachment of sortAttachments(sourceAttachments)) {
     if (targetAttachmentIds.has(attachment.id)) {
       attachmentPlans.push({ source: attachment, action: "skip_existing" });
       continue;
     }
     if (!issueIdsAvailableAfterImport.has(attachment.issueId)) {
-      attachmentPlans.push({ source: attachment, action: "skip_missing_parent" });
+      attachmentPlans.push({
+        source: attachment,
+        action: "skip_missing_parent",
+      });
       continue;
     }
 
     const adjustments: ImportAdjustment[] = [];
     const targetCreatedByAgentId =
-      attachment.createdByAgentId && targetAgentIds.has(attachment.createdByAgentId)
+      attachment.createdByAgentId &&
+      targetAgentIds.has(attachment.createdByAgentId)
         ? attachment.createdByAgentId
         : null;
     if (attachment.createdByAgentId && !targetCreatedByAgentId) {
@@ -716,7 +834,8 @@ export function buildWorktreeMergePlan(input: {
       source: attachment,
       action: "insert",
       targetIssueCommentId:
-        attachment.issueCommentId && commentIdsAvailableAfterImport.has(attachment.issueCommentId)
+        attachment.issueCommentId &&
+        commentIdsAvailableAfterImport.has(attachment.issueCommentId)
           ? attachment.issueCommentId
           : null,
       targetCreatedByAgentId,
@@ -726,25 +845,52 @@ export function buildWorktreeMergePlan(input: {
 
   const counts = {
     projectsToImport: projectImports.length,
-    issuesToInsert: issuePlans.filter((plan) => plan.action === "insert").length,
-    issuesExisting: issuePlans.filter((plan) => plan.action === "skip_existing").length,
-    issueDrift: issuePlans.filter((plan) => plan.action === "skip_existing" && plan.driftKeys.length > 0).length,
-    commentsToInsert: commentPlans.filter((plan) => plan.action === "insert").length,
-    commentsExisting: commentPlans.filter((plan) => plan.action === "skip_existing").length,
-    commentsMissingParent: commentPlans.filter((plan) => plan.action === "skip_missing_parent").length,
-    documentsToInsert: documentPlans.filter((plan) => plan.action === "insert").length,
-    documentsToMerge: documentPlans.filter((plan) => plan.action === "merge_existing").length,
-    documentsExisting: documentPlans.filter((plan) => plan.action === "skip_existing").length,
-    documentsConflictingKey: documentPlans.filter((plan) => plan.action === "skip_conflicting_key").length,
-    documentsMissingParent: documentPlans.filter((plan) => plan.action === "skip_missing_parent").length,
+    issuesToInsert: issuePlans.filter((plan) => plan.action === "insert")
+      .length,
+    issuesExisting: issuePlans.filter((plan) => plan.action === "skip_existing")
+      .length,
+    issueDrift: issuePlans.filter(
+      (plan) => plan.action === "skip_existing" && plan.driftKeys.length > 0,
+    ).length,
+    commentsToInsert: commentPlans.filter((plan) => plan.action === "insert")
+      .length,
+    commentsExisting: commentPlans.filter(
+      (plan) => plan.action === "skip_existing",
+    ).length,
+    commentsMissingParent: commentPlans.filter(
+      (plan) => plan.action === "skip_missing_parent",
+    ).length,
+    documentsToInsert: documentPlans.filter((plan) => plan.action === "insert")
+      .length,
+    documentsToMerge: documentPlans.filter(
+      (plan) => plan.action === "merge_existing",
+    ).length,
+    documentsExisting: documentPlans.filter(
+      (plan) => plan.action === "skip_existing",
+    ).length,
+    documentsConflictingKey: documentPlans.filter(
+      (plan) => plan.action === "skip_conflicting_key",
+    ).length,
+    documentsMissingParent: documentPlans.filter(
+      (plan) => plan.action === "skip_missing_parent",
+    ).length,
     documentRevisionsToInsert: documentPlans.reduce(
       (sum, plan) =>
-        sum + (plan.action === "insert" || plan.action === "merge_existing" ? plan.revisionsToInsert.length : 0),
+        sum +
+        (plan.action === "insert" || plan.action === "merge_existing"
+          ? plan.revisionsToInsert.length
+          : 0),
       0,
     ),
-    attachmentsToInsert: attachmentPlans.filter((plan) => plan.action === "insert").length,
-    attachmentsExisting: attachmentPlans.filter((plan) => plan.action === "skip_existing").length,
-    attachmentsMissingParent: attachmentPlans.filter((plan) => plan.action === "skip_missing_parent").length,
+    attachmentsToInsert: attachmentPlans.filter(
+      (plan) => plan.action === "insert",
+    ).length,
+    attachmentsExisting: attachmentPlans.filter(
+      (plan) => plan.action === "skip_existing",
+    ).length,
+    attachmentsMissingParent: attachmentPlans.filter(
+      (plan) => plan.action === "skip_missing_parent",
+    ).length,
   };
 
   return {

@@ -1,4 +1,8 @@
-import { readConfig, configExists, resolveConfigPath } from "../config/store.js";
+import {
+  readConfig,
+  configExists,
+  resolveConfigPath,
+} from "../config/store.js";
 import type { CheckResult } from "./index.js";
 
 export function configCheck(configPath?: string): CheckResult {
@@ -27,7 +31,8 @@ export function configCheck(configPath?: string): CheckResult {
       status: "fail",
       message: `Invalid config: ${err instanceof Error ? err.message : String(err)}`,
       canRepair: false,
-      repairHint: "Run `taskcore configure --section database` (or `taskcore onboard` to recreate)",
+      repairHint:
+        "Run `taskcore configure --section database` (or `taskcore onboard` to recreate)",
     };
   }
 }

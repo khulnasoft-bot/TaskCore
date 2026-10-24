@@ -2,9 +2,14 @@ import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import pc from "picocolors";
 import { Command } from "commander";
-import type { Company, FeedbackTrace, FeedbackTraceBundle } from "@taskcore/shared";
+import type {
+  Company,
+  FeedbackTrace,
+  FeedbackTraceBundle,
+} from "@taskcore/shared";
 import {
   addCommonClientOptions,
+  apiPath,
   handleCommandError,
   printOutput,
   resolveCommandContext,
@@ -73,7 +78,9 @@ interface FeedbackExportResult {
 }
 
 export function registerFeedbackCommands(program: Command): void {
-  const feedback = program.command("feedback").description("Inspect and export local feedback traces");
+  const feedback = program
+    .command("feedback")
+    .description("Inspect and export local feedback traces");
 
   addCommonClientOptions(
     feedback
@@ -85,10 +92,23 @@ export function registerFeedbackCommands(program: Command): void {
       .option("--status <status>", "Filter by trace status")
       .option("--project-id <id>", "Filter by project ID")
       .option("--issue-id <id>", "Filter by issue ID")
-      .option("--from <iso8601>", "Only include traces created at or after this timestamp")
-      .option("--to <iso8601>", "Only include traces created at or before this timestamp")
-      .option("--shared-only", "Only include traces eligible for sharing/export")
-      .option("--payloads", "Include raw payload dumps in the terminal report", false)
+      .option(
+        "--from <iso8601>",
+        "Only include traces created at or after this timestamp",
+      )
+      .option(
+        "--to <iso8601>",
+        "Only include traces created at or before this timestamp",
+      )
+      .option(
+        "--shared-only",
+        "Only include traces eligible for sharing/export",
+      )
+      .option(
+        "--payloads",
+        "Include raw payload dumps in the terminal report",
+        false,
+      )
       .action(async (opts: FeedbackReportOptions) => {
         try {
           const ctx = resolveCommandContext(opts);
@@ -107,13 +127,15 @@ export function registerFeedbackCommands(program: Command): void {
             );
             return;
           }
-          console.log(renderFeedbackReport({
-            apiBase: ctx.api.apiBase,
-            companyId,
-            traces,
-            summary,
-            includePayloads: Boolean(opts.payloads),
-          }));
+          console.log(
+            renderFeedbackReport({
+              apiBase: ctx.api.apiBase,
+              companyId,
+              traces,
+              summary,
+              includePayloads: Boolean(opts.payloads),
+            }),
+          );
         } catch (err) {
           handleCommandError(err);
         }
@@ -124,29 +146,46 @@ export function registerFeedbackCommands(program: Command): void {
   addCommonClientOptions(
     feedback
       .command("export")
-      .description("Export feedback votes and raw trace bundles into a folder plus zip archive")
+      .description(
+        "Export feedback votes and raw trace bundles into a folder plus zip archive",
+      )
       .option("-C, --company-id <id>", "Company ID (overrides context default)")
       .option("--target-type <type>", "Filter by target type")
       .option("--vote <vote>", "Filter by vote value")
       .option("--status <status>", "Filter by trace status")
       .option("--project-id <id>", "Filter by project ID")
       .option("--issue-id <id>", "Filter by issue ID")
-      .option("--from <iso8601>", "Only include traces created at or after this timestamp")
-      .option("--to <iso8601>", "Only include traces created at or before this timestamp")
-      .option("--shared-only", "Only include traces eligible for sharing/export")
-      .option("--out <path>", "Output directory (default: ./feedback-export-<timestamp>)")
+      .option(
+        "--from <iso8601>",
+        "Only include traces created at or after this timestamp",
+      )
+      .option(
+        "--to <iso8601>",
+        "Only include traces created at or before this timestamp",
+      )
+      .option(
+        "--shared-only",
+        "Only include traces eligible for sharing/export",
+      )
+      .option(
+        "--out <path>",
+        "Output directory (default: ./feedback-export-<timestamp>)",
+      )
       .action(async (opts: FeedbackExportOptions) => {
         try {
           const ctx = resolveCommandContext(opts);
           const companyId = await resolveFeedbackCompanyId(ctx, opts.companyId);
           const traces = await fetchCompanyFeedbackTraces(ctx, companyId, opts);
-          const outputDir = path.resolve(opts.out?.trim() || defaultFeedbackExportDirName());
+          const outputDir = path.resolve(
+            opts.out?.trim() || defaultFeedbackExportDirName(),
+          );
           const exported = await writeFeedbackExportBundle({
             apiBase: ctx.api.apiBase,
             companyId,
             traces,
             outputDir,
-            traceBundleFetcher: (trace) => fetchFeedbackTraceBundle(ctx, trace.id),
+            traceBundleFetcher: (trace) =>
+              fetchFeedbackTraceBundle(ctx, trace.id),
           });
           if (ctx.json) {
             printOutput(
@@ -167,6 +206,42 @@ export function registerFeedbackCommands(program: Command): void {
       }),
     { includeCompany: false },
   );
+
+  addCommonClientOptions(
+    feedback
+      .command("trace")
+      .description("Get a feedback trace")
+      .argument("<traceId>", "Feedback trace ID")
+      .action(async (traceId: string, opts: BaseClientOptions) => {
+        try {
+          const ctx = resolveCommandContext(opts);
+          printOutput(
+            await ctx.api.get(apiPath`/api/feedback-traces/${traceId}`),
+            { json: ctx.json },
+          );
+        } catch (err) {
+          handleCommandError(err);
+        }
+      }),
+  );
+
+  addCommonClientOptions(
+    feedback
+      .command("bundle")
+      .description("Get a feedback trace bundle")
+      .argument("<traceId>", "Feedback trace ID")
+      .action(async (traceId: string, opts: BaseClientOptions) => {
+        try {
+          const ctx = resolveCommandContext(opts);
+          printOutput(
+            await ctx.api.get(apiPath`/api/feedback-traces/${traceId}/bundle`),
+            { json: ctx.json },
+          );
+        } catch (err) {
+          handleCommandError(err);
+        }
+      }),
+  );
 }
 
 export async function resolveFeedbackCompanyId(
@@ -185,7 +260,10 @@ export async function resolveFeedbackCompanyId(
   return companyId;
 }
 
-export function buildFeedbackTraceQuery(opts: FeedbackTraceQueryOptions, includePayload = true): string {
+export function buildFeedbackTraceQuery(
+  opts: FeedbackTraceQueryOptions,
+  includePayload = true,
+): string {
   const params = new URLSearchParams();
   if (opts.targetType) params.set("targetType", opts.targetType);
   if (opts.vote) params.set("vote", opts.vote);
@@ -200,13 +278,18 @@ export function buildFeedbackTraceQuery(opts: FeedbackTraceQueryOptions, include
   return query ? `?${query}` : "";
 }
 
-export function normalizeFeedbackTraceExportFormat(value: string | undefined): "json" | "ndjson" {
+export function normalizeFeedbackTraceExportFormat(
+  value: string | undefined,
+): "json" | "ndjson" {
   if (!value || value === "ndjson") return "ndjson";
   if (value === "json") return "json";
   throw new Error(`Unsupported export format: ${value}`);
 }
 
-export function serializeFeedbackTraces(traces: FeedbackTrace[], format: string | undefined): string {
+export function serializeFeedbackTraces(
+  traces: FeedbackTrace[],
+  format: string | undefined,
+): string {
   if (normalizeFeedbackTraceExportFormat(format) === "json") {
     return JSON.stringify(traces, null, 2);
   }
@@ -220,7 +303,7 @@ export async function fetchCompanyFeedbackTraces(
 ): Promise<FeedbackTrace[]> {
   return (
     (await ctx.api.get<FeedbackTrace[]>(
-      `/api/companies/${companyId}/feedback-traces${buildFeedbackTraceQuery(opts, true)}`,
+      `${apiPath`/api/companies/${companyId}/feedback-traces`}${buildFeedbackTraceQuery(opts, true)}`,
     )) ?? []
   );
 }
@@ -229,14 +312,18 @@ export async function fetchFeedbackTraceBundle(
   ctx: ResolvedClientContext,
   traceId: string,
 ): Promise<FeedbackTraceBundle> {
-  const bundle = await ctx.api.get<FeedbackTraceBundle>(`/api/feedback-traces/${traceId}/bundle`);
+  const bundle = await ctx.api.get<FeedbackTraceBundle>(
+    apiPath`/api/feedback-traces/${traceId}/bundle`,
+  );
   if (!bundle) {
     throw new Error(`Feedback trace bundle ${traceId} not found`);
   }
   return bundle;
 }
 
-export function summarizeFeedbackTraces(traces: FeedbackTrace[]): FeedbackSummary {
+export function summarizeFeedbackTraces(
+  traces: FeedbackTrace[],
+): FeedbackSummary {
   const statuses: Record<string, number> = {};
   let thumbsUp = 0;
   let thumbsDown = 0;
@@ -282,14 +369,22 @@ export function renderFeedbackReport(input: {
 
   lines.push(pc.bold(pc.cyan("Summary")));
   lines.push(horizontalRule());
-  lines.push(`  ${pc.green(pc.bold(String(input.summary.thumbsUp)))}  thumbs up`);
-  lines.push(`  ${pc.red(pc.bold(String(input.summary.thumbsDown)))}  thumbs down`);
-  lines.push(`  ${pc.yellow(pc.bold(String(input.summary.withReason)))}  downvotes with a reason`);
+  lines.push(
+    `  ${pc.green(pc.bold(String(input.summary.thumbsUp)))}  thumbs up`,
+  );
+  lines.push(
+    `  ${pc.red(pc.bold(String(input.summary.thumbsDown)))}  thumbs down`,
+  );
+  lines.push(
+    `  ${pc.yellow(pc.bold(String(input.summary.withReason)))}  downvotes with a reason`,
+  );
   lines.push(`  ${pc.bold(String(input.summary.total))}  total traces`);
   lines.push("");
   lines.push(pc.dim("Export status:"));
   for (const status of ["pending", "sent", "local_only", "failed"]) {
-    lines.push(`  ${padRight(status, 10)} ${input.summary.statuses[status] ?? 0}`);
+    lines.push(
+      `  ${padRight(status, 10)} ${input.summary.statuses[status] ?? 0}`,
+    );
   }
   lines.push("");
   lines.push(pc.bold(pc.cyan("Trace Details")));
@@ -325,7 +420,8 @@ export function renderFeedbackReport(input: {
       if (!trace.payloadSnapshot) continue;
       const issueRef = trace.issueIdentifier ?? trace.issueId;
       lines.push(`  ${pc.bold(`${issueRef} (${trace.id.slice(0, 8)})`)}`);
-      const body = JSON.stringify(trace.payloadSnapshot, null, 2)?.split("\n") ?? [];
+      const body =
+        JSON.stringify(trace.payloadSnapshot, null, 2)?.split("\n") ?? [];
       for (const line of body) {
         lines.push(`    ${pc.dim(line)}`);
       }
@@ -334,7 +430,9 @@ export function renderFeedbackReport(input: {
   }
 
   lines.push(horizontalRule());
-  lines.push(pc.dim(`Report complete. ${input.traces.length} trace(s) displayed.`));
+  lines.push(
+    pc.dim(`Report complete. ${input.traces.length} trace(s) displayed.`),
+  );
   lines.push("");
   return lines.join("\n");
 }
@@ -359,7 +457,9 @@ export async function writeFeedbackExportBundle(input: {
   const issueSet = new Set<string>();
 
   for (const trace of input.traces) {
-    const issueRef = sanitizeFileSegment(trace.issueIdentifier ?? trace.issueId);
+    const issueRef = sanitizeFileSegment(
+      trace.issueIdentifier ?? trace.issueId,
+    );
     const voteRecord = buildFeedbackVoteRecord(trace);
     const voteFileName = `${issueRef}-${trace.feedbackVoteId.slice(0, 8)}.json`;
     const traceFileName = `${issueRef}-${trace.id.slice(0, 8)}.json`;
@@ -380,7 +480,11 @@ export async function writeFeedbackExportBundle(input: {
     if (input.traceBundleFetcher) {
       const bundle = await input.traceBundleFetcher(trace);
       const bundleDirName = `${issueRef}-${trace.id.slice(0, 8)}`;
-      const bundleDir = path.join(input.outputDir, "full-traces", bundleDirName);
+      const bundleDir = path.join(
+        input.outputDir,
+        "full-traces",
+        bundleDirName,
+      );
       await mkdir(bundleDir, { recursive: true });
       fullTraceDirs.push(bundleDirName);
       await writeFile(
@@ -388,12 +492,20 @@ export async function writeFeedbackExportBundle(input: {
         `${JSON.stringify(bundle, null, 2)}\n`,
         "utf8",
       );
-      fullTraceFiles.push(path.posix.join("full-traces", bundleDirName, "bundle.json"));
+      fullTraceFiles.push(
+        path.posix.join("full-traces", bundleDirName, "bundle.json"),
+      );
       for (const file of bundle.files) {
         const targetPath = path.join(bundleDir, file.path);
         await mkdir(path.dirname(targetPath), { recursive: true });
         await writeFile(targetPath, file.contents, "utf8");
-        fullTraceFiles.push(path.posix.join("full-traces", bundleDirName, file.path.replace(/\\/g, "/")));
+        fullTraceFiles.push(
+          path.posix.join(
+            "full-traces",
+            bundleDirName,
+            file.path.replace(/\\/g, "/"),
+          ),
+        );
       }
     }
   }
@@ -406,12 +518,18 @@ export async function writeFeedbackExportBundle(input: {
     summary: {
       ...summary,
       uniqueIssues: issueSet.size,
-      issues: Array.from(issueSet).sort((left, right) => left.localeCompare(right)),
+      issues: Array.from(issueSet).sort((left, right) =>
+        left.localeCompare(right),
+      ),
     },
     files: {
       votes: voteFiles.slice().sort((left, right) => left.localeCompare(right)),
-      traces: traceFiles.slice().sort((left, right) => left.localeCompare(right)),
-      fullTraces: fullTraceDirs.slice().sort((left, right) => left.localeCompare(right)),
+      traces: traceFiles
+        .slice()
+        .sort((left, right) => left.localeCompare(right)),
+      fullTraces: fullTraceDirs
+        .slice()
+        .sort((left, right) => left.localeCompare(right)),
       zip: path.basename(zipPath),
     },
   };
@@ -427,7 +545,10 @@ export async function writeFeedbackExportBundle(input: {
     ...manifest.files.traces.map((file) => path.posix.join("traces", file)),
     ...fullTraceFiles,
   ]);
-  await writeFile(zipPath, createStoredZipArchive(archiveFiles, path.basename(input.outputDir)));
+  await writeFile(
+    zipPath,
+    createStoredZipArchive(archiveFiles, path.basename(input.outputDir)),
+  );
 
   return {
     outputDir: input.outputDir,
@@ -436,7 +557,9 @@ export async function writeFeedbackExportBundle(input: {
   };
 }
 
-export function renderFeedbackExportSummary(exported: FeedbackExportResult): string {
+export function renderFeedbackExportSummary(
+  exported: FeedbackExportResult,
+): string {
   const lines: string[] = [];
   lines.push("");
   lines.push(pc.bold(pc.magenta("Taskcore Feedback Export")));
@@ -448,16 +571,30 @@ export function renderFeedbackExportSummary(exported: FeedbackExportResult): str
   lines.push("");
   lines.push(pc.bold("Export Summary"));
   lines.push(horizontalRule());
-  lines.push(`  ${pc.green(pc.bold(String(exported.manifest.summary.thumbsUp)))}  thumbs up`);
-  lines.push(`  ${pc.red(pc.bold(String(exported.manifest.summary.thumbsDown)))}  thumbs down`);
-  lines.push(`  ${pc.yellow(pc.bold(String(exported.manifest.summary.withReason)))}  with reason`);
-  lines.push(`  ${pc.bold(String(exported.manifest.summary.uniqueIssues))}  unique issues`);
+  lines.push(
+    `  ${pc.green(pc.bold(String(exported.manifest.summary.thumbsUp)))}  thumbs up`,
+  );
+  lines.push(
+    `  ${pc.red(pc.bold(String(exported.manifest.summary.thumbsDown)))}  thumbs down`,
+  );
+  lines.push(
+    `  ${pc.yellow(pc.bold(String(exported.manifest.summary.withReason)))}  with reason`,
+  );
+  lines.push(
+    `  ${pc.bold(String(exported.manifest.summary.uniqueIssues))}  unique issues`,
+  );
   lines.push("");
   lines.push(pc.dim("Files:"));
   lines.push(`  ${path.join(exported.outputDir, "index.json")}`);
-  lines.push(`  ${path.join(exported.outputDir, "votes")} (${exported.manifest.files.votes.length} files)`);
-  lines.push(`  ${path.join(exported.outputDir, "traces")} (${exported.manifest.files.traces.length} files)`);
-  lines.push(`  ${path.join(exported.outputDir, "full-traces")} (${exported.manifest.files.fullTraces.length} bundles)`);
+  lines.push(
+    `  ${path.join(exported.outputDir, "votes")} (${exported.manifest.files.votes.length} files)`,
+  );
+  lines.push(
+    `  ${path.join(exported.outputDir, "traces")} (${exported.manifest.files.traces.length} files)`,
+  );
+  lines.push(
+    `  ${path.join(exported.outputDir, "full-traces")} (${exported.manifest.files.fullTraces.length} bundles)`,
+  );
   lines.push(`  ${exported.zipPath}`);
   lines.push("");
   return lines.join("\n");
@@ -494,7 +631,10 @@ function asRecord(value: unknown): Record<string, unknown> | null {
   return value as Record<string, unknown>;
 }
 
-function compactText(value: string | null | undefined, maxLength = 88): string | null {
+function compactText(
+  value: string | null | undefined,
+  maxLength = 88,
+): string | null {
   if (!value) return null;
   const compact = value.replace(/\s+/g, " ").trim();
   if (!compact) return null;
@@ -503,7 +643,8 @@ function compactText(value: string | null | undefined, maxLength = 88): string |
 }
 
 function formatTimestamp(value: unknown): string {
-  if (value instanceof Date) return value.toISOString().slice(0, 19).replace("T", " ");
+  if (value instanceof Date)
+    return value.toISOString().slice(0, 19).replace("T", " ");
   if (typeof value === "string") return value.slice(0, 19).replace("T", " ");
   return "-";
 }
@@ -517,7 +658,10 @@ function padRight(value: string, width: number): string {
 }
 
 function defaultFeedbackExportDirName(): string {
-  const iso = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
+  const iso = new Date()
+    .toISOString()
+    .replace(/[-:]/g, "")
+    .replace(/\.\d{3}Z$/, "Z");
   return `feedback-export-${iso}`;
 }
 
@@ -525,11 +669,15 @@ async function ensureEmptyOutputDirectory(outputDir: string): Promise<void> {
   try {
     const info = await stat(outputDir);
     if (!info.isDirectory()) {
-      throw new Error(`Output path already exists and is not a directory: ${outputDir}`);
+      throw new Error(
+        `Output path already exists and is not a directory: ${outputDir}`,
+      );
     }
     const entries = await readdir(outputDir);
     if (entries.length > 0) {
-      throw new Error(`Output directory already exists and is not empty: ${outputDir}`);
+      throw new Error(
+        `Output directory already exists and is not empty: ${outputDir}`,
+      );
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
@@ -548,13 +696,19 @@ async function collectJsonFilesForArchive(
   const files: Record<string, string> = {};
   for (const relativePath of relativePaths) {
     const normalized = relativePath.replace(/\\/g, "/");
-    files[normalized] = await readFile(path.join(outputDir, normalized), "utf8");
+    files[normalized] = await readFile(
+      path.join(outputDir, normalized),
+      "utf8",
+    );
   }
   return files;
 }
 
 function sanitizeFileSegment(value: string): string {
-  return value.replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/^-+|-+$/g, "") || "feedback";
+  return (
+    value.replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/^-+|-+$/g, "") ||
+    "feedback"
+  );
 }
 
 function writeUint16(target: Uint8Array, offset: number, value: number) {
@@ -580,14 +734,19 @@ function crc32(bytes: Uint8Array) {
   return (crc ^ 0xffffffff) >>> 0;
 }
 
-function createStoredZipArchive(files: Record<string, string>, rootPath: string): Uint8Array {
+function createStoredZipArchive(
+  files: Record<string, string>,
+  rootPath: string,
+): Uint8Array {
   const encoder = new TextEncoder();
   const localChunks: Uint8Array[] = [];
   const centralChunks: Uint8Array[] = [];
   let localOffset = 0;
   let entryCount = 0;
 
-  for (const [relativePath, content] of Object.entries(files).sort(([left], [right]) => left.localeCompare(right))) {
+  for (const [relativePath, content] of Object.entries(files).sort(
+    ([left], [right]) => left.localeCompare(right),
+  )) {
     const fileName = encoder.encode(`${rootPath}/${relativePath}`);
     const body = encoder.encode(content);
     const checksum = crc32(body);
@@ -622,9 +781,14 @@ function createStoredZipArchive(files: Record<string, string>, rootPath: string)
     entryCount += 1;
   }
 
-  const centralDirectoryLength = centralChunks.reduce((sum, chunk) => sum + chunk.length, 0);
+  const centralDirectoryLength = centralChunks.reduce(
+    (sum, chunk) => sum + chunk.length,
+    0,
+  );
   const archive = new Uint8Array(
-    localChunks.reduce((sum, chunk) => sum + chunk.length, 0) + centralDirectoryLength + 22,
+    localChunks.reduce((sum, chunk) => sum + chunk.length, 0) +
+      centralDirectoryLength +
+      22,
   );
   let offset = 0;
   for (const chunk of localChunks) {

@@ -1,0 +1,5 @@
+schema: taskcore/v1
+agents:
+  cto:
+    permissions:
+      canCreateAgents: true

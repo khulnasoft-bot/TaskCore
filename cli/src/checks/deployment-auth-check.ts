@@ -15,7 +15,8 @@ export function deploymentAuthCheck(config: TaskcoreConfig): CheckResult {
         status: "fail",
         message: `local_trusted requires loopback binding (found ${bind})`,
         canRepair: false,
-        repairHint: "Run `taskcore configure --section server` and choose Local trusted / loopback reachability",
+        repairHint:
+          "Run `taskcore configure --section server` and choose Local trusted / loopback reachability",
       };
     }
     return {
@@ -32,7 +33,8 @@ export function deploymentAuthCheck(config: TaskcoreConfig): CheckResult {
     return {
       name: "Deployment/auth mode",
       status: "fail",
-      message: "authenticated mode requires BETTER_AUTH_SECRET (or TASKCORE_AGENT_JWT_SECRET)",
+      message:
+        "authenticated mode requires BETTER_AUTH_SECRET (or TASKCORE_AGENT_JWT_SECRET)",
       canRepair: false,
       repairHint: "Set BETTER_AUTH_SECRET before starting Taskcore",
     };
@@ -44,7 +46,8 @@ export function deploymentAuthCheck(config: TaskcoreConfig): CheckResult {
       status: "fail",
       message: "auth.baseUrlMode=explicit requires auth.publicBaseUrl",
       canRepair: false,
-      repairHint: "Run `taskcore configure --section server` and provide a base URL",
+      repairHint:
+        "Run `taskcore configure --section server` and provide a base URL",
     };
   }
 
@@ -55,7 +58,8 @@ export function deploymentAuthCheck(config: TaskcoreConfig): CheckResult {
         status: "fail",
         message: "authenticated/public requires explicit auth.publicBaseUrl",
         canRepair: false,
-        repairHint: "Run `taskcore configure --section server` and select public exposure",
+        repairHint:
+          "Run `taskcore configure --section server` and select public exposure",
       };
     }
     try {
@@ -75,7 +79,8 @@ export function deploymentAuthCheck(config: TaskcoreConfig): CheckResult {
         status: "fail",
         message: "auth.publicBaseUrl is not a valid URL",
         canRepair: false,
-        repairHint: "Run `taskcore configure --section server` and provide a valid URL",
+        repairHint:
+          "Run `taskcore configure --section server` and provide a valid URL",
       };
     }
   }

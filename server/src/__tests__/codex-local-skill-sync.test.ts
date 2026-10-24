@@ -20,7 +20,7 @@ describe("codex local skill sync", () => {
     cleanupDirs.clear();
   });
 
-  it("reports configured Taskcore skills for workspace injection on the next run", async () => {
+  it("defaults the operational Taskcore skill for workspace injection on the next run", async () => {
     const codexHome = await makeTempDir("taskcore-codex-skill-sync-");
     cleanupDirs.add(codexHome);
 
@@ -32,18 +32,27 @@ describe("codex local skill sync", () => {
         env: {
           CODEX_HOME: codexHome,
         },
-        taskcoreSkillSync: {
-          desiredSkills: [taskcoreKey],
-        },
       },
     } as const;
 
     const before = await listCodexSkills(ctx);
     expect(before.mode).toBe("ephemeral");
     expect(before.desiredSkills).toContain(taskcoreKey);
-    expect(before.entries.find((entry) => entry.key === taskcoreKey)?.required).toBe(true);
     expect(before.entries.find((entry) => entry.key === taskcoreKey)?.state).toBe("configured");
     expect(before.entries.find((entry) => entry.key === taskcoreKey)?.detail).toContain("CODEX_HOME/skills/");
+  });
+
+  it("does not apply the legacy operational skill default to the native runner", async () => {
+    const snapshot = await listCodexSkills({
+      agentId: "agent-native",
+      companyId: "company-1",
+      adapterType: "taskcore_runner",
+      config: {},
+    });
+
+    expect(snapshot.adapterType).toBe("taskcore_runner");
+    expect(snapshot.desiredSkills).toEqual([]);
+    expect(snapshot.entries.find((entry) => entry.key === taskcoreKey)?.state).toBe("available");
   });
 
   it("does not persist Taskcore skills into CODEX_HOME during sync", async () => {
@@ -70,29 +79,6 @@ describe("codex local skill sync", () => {
     await expect(fs.lstat(path.join(codexHome, "skills", "taskcore"))).rejects.toMatchObject({
       code: "ENOENT",
     });
-  });
-
-  it("keeps required bundled Taskcore skills configured even when the desired set is emptied", async () => {
-    const codexHome = await makeTempDir("taskcore-codex-skill-required-");
-    cleanupDirs.add(codexHome);
-
-    const configuredCtx = {
-      agentId: "agent-2",
-      companyId: "company-1",
-      adapterType: "codex_local",
-      config: {
-        env: {
-          CODEX_HOME: codexHome,
-        },
-        taskcoreSkillSync: {
-          desiredSkills: [],
-        },
-      },
-    } as const;
-
-    const after = await syncCodexSkills(configuredCtx, []);
-    expect(after.desiredSkills).toContain(taskcoreKey);
-    expect(after.entries.find((entry) => entry.key === taskcoreKey)?.state).toBe("configured");
   });
 
   it("normalizes legacy flat Taskcore skill refs before reporting configured state", async () => {

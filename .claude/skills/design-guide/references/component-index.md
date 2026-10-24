@@ -1,4 +1,4 @@
-# Taskcore Component Index
+# TaskCore Component Index
 
 Complete inventory of all UI components. Update this file when adding new reusable components.
 
@@ -22,29 +22,29 @@ Location: `ui/src/components/ui/`
 
 These are shadcn/ui base components. Do not modify directly — extend via composition.
 
-| Component | File | Key Props | Notes |
-|-----------|------|-----------|-------|
-| Button | `button.tsx` | `variant` (default, secondary, outline, ghost, destructive, link), `size` (xs, sm, default, lg, icon, icon-xs, icon-sm, icon-lg) | Primary interactive element. Uses CVA. |
-| Card | `card.tsx` | CardHeader, CardTitle, CardDescription, CardAction, CardContent, CardFooter | Compound component. `py-6` default padding. |
-| Input | `input.tsx` | `disabled` | Standard text input. |
-| Badge | `badge.tsx` | `variant` (default, secondary, outline, destructive, ghost) | Generic label/tag. For status, use StatusBadge instead. |
-| Label | `label.tsx` | — | Form label, wraps Radix Label. |
-| Select | `select.tsx` | Trigger, Content, Item, etc. | Radix-based dropdown select. |
-| Separator | `separator.tsx` | `orientation` (horizontal, vertical) | Divider line. |
-| Checkbox | `checkbox.tsx` | `checked`, `onCheckedChange` | Radix checkbox with indicator. |
-| Textarea | `textarea.tsx` | Standard textarea props | Multi-line input. |
-| Avatar | `avatar.tsx` | `size` (sm, default, lg). Includes AvatarGroup, AvatarGroupCount | Image or fallback initials. |
-| Breadcrumb | `breadcrumb.tsx` | BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator, BreadcrumbPage | Navigation breadcrumbs. |
-| Command | `command.tsx` | CommandInput, CommandList, CommandGroup, CommandItem | Command palette / search. Based on cmdk. |
-| Dialog | `dialog.tsx` | DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter | Modal overlay. |
-| DropdownMenu | `dropdown-menu.tsx` | Trigger, Content, Item, Separator, etc. | Context/action menus. |
-| Popover | `popover.tsx` | PopoverTrigger, PopoverContent | Floating content panel. |
-| Tabs | `tabs.tsx` | `variant` (pill, line). TabsList, TabsTrigger, TabsContent | Tabbed navigation. Pill = default, line = underline style. |
-| Tooltip | `tooltip.tsx` | TooltipTrigger, TooltipContent | Hover tooltips. App is wrapped in TooltipProvider. |
-| ScrollArea | `scroll-area.tsx` | — | Custom scrollable container. |
-| Collapsible | `collapsible.tsx` | CollapsibleTrigger, CollapsibleContent | Expand/collapse sections. |
-| Skeleton | `skeleton.tsx` | className for sizing | Loading placeholder with shimmer. |
-| Sheet | `sheet.tsx` | SheetTrigger, SheetContent, SheetHeader, etc. | Side panel overlay. |
+| Component    | File                | Key Props                                                                                                                        | Notes                                                      |
+| ------------ | ------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| Button       | `button.tsx`        | `variant` (default, secondary, outline, ghost, destructive, link), `size` (xs, sm, default, lg, icon, icon-xs, icon-sm, icon-lg) | Primary interactive element. Uses CVA.                     |
+| Card         | `card.tsx`          | CardHeader, CardTitle, CardDescription, CardAction, CardContent, CardFooter                                                      | Compound component. `py-6` default padding.                |
+| Input        | `input.tsx`         | `disabled`                                                                                                                       | Standard text input.                                       |
+| Badge        | `badge.tsx`         | `variant` (default, secondary, outline, destructive, ghost)                                                                      | Generic label/tag. For status, use StatusBadge instead.    |
+| Label        | `label.tsx`         | —                                                                                                                                | Form label, wraps Radix Label.                             |
+| Select       | `select.tsx`        | Trigger, Content, Item, etc.                                                                                                     | Radix-based dropdown select.                               |
+| Separator    | `separator.tsx`     | `orientation` (horizontal, vertical)                                                                                             | Divider line.                                              |
+| Checkbox     | `checkbox.tsx`      | `checked`, `onCheckedChange`                                                                                                     | Radix checkbox with indicator.                             |
+| Textarea     | `textarea.tsx`      | Standard textarea props                                                                                                          | Multi-line input.                                          |
+| Avatar       | `avatar.tsx`        | `size` (sm, default, lg). Includes AvatarGroup, AvatarGroupCount                                                                 | Image or fallback initials.                                |
+| Breadcrumb   | `breadcrumb.tsx`    | BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator, BreadcrumbPage                                              | Navigation breadcrumbs.                                    |
+| Command      | `command.tsx`       | CommandInput, CommandList, CommandGroup, CommandItem                                                                             | Command palette / search. Based on cmdk.                   |
+| Dialog       | `dialog.tsx`        | DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter                                         | Modal overlay.                                             |
+| DropdownMenu | `dropdown-menu.tsx` | Trigger, Content, Item, Separator, etc.                                                                                          | Context/action menus.                                      |
+| Popover      | `popover.tsx`       | PopoverTrigger, PopoverContent                                                                                                   | Floating content panel.                                    |
+| Tabs         | `tabs.tsx`          | `variant` (pill, line). TabsList, TabsTrigger, TabsContent                                                                       | Tabbed navigation. Pill = default, line = underline style. |
+| Tooltip      | `tooltip.tsx`       | TooltipTrigger, TooltipContent                                                                                                   | Hover tooltips. App is wrapped in TooltipProvider.         |
+| ScrollArea   | `scroll-area.tsx`   | —                                                                                                                                | Custom scrollable container.                               |
+| Collapsible  | `collapsible.tsx`   | CollapsibleTrigger, CollapsibleContent                                                                                           | Expand/collapse sections.                                  |
+| Skeleton     | `skeleton.tsx`      | className for sizing                                                                                                             | Loading placeholder with shimmer.                          |
+| Sheet        | `sheet.tsx`         | SheetTrigger, SheetContent, SheetHeader, etc.                                                                                    | Side panel overlay.                                        |
 
 ---
 
@@ -96,7 +96,12 @@ Supports: critical, high, medium, low. Use alongside StatusIcon in entity row le
 
 ```tsx
 <EntityRow
-  leading={<><StatusIcon status="todo" /><PriorityIcon priority="medium" /></>}
+  leading={
+    <>
+      <StatusIcon status="todo" />
+      <PriorityIcon priority="medium" />
+    </>
+  }
   identifier="PAP-003"
   title="Write API documentation"
   trailing={<StatusBadge status="todo" />}
@@ -113,7 +118,12 @@ Wrap multiple EntityRows in a `border border-border rounded-md` container.
 **Usage:** Dashboard stat card with icon, large value, label, and optional description.
 
 ```tsx
-<MetricCard icon={Bot} value={12} label="Active Agents" description="+3 this week" />
+<MetricCard
+  icon={Bot}
+  value={12}
+  label="Active Agents"
+  description="+3 this week"
+/>
 ```
 
 Always use in a responsive grid: `grid md:grid-cols-2 xl:grid-cols-4 gap-4`.
@@ -125,7 +135,12 @@ Always use in a responsive grid: `grid md:grid-cols-2 xl:grid-cols-4 gap-4`.
 **Usage:** Empty list placeholder with icon, message, and optional CTA button.
 
 ```tsx
-<EmptyState icon={Inbox} message="No items yet." action="Create Item" onAction={handleCreate} />
+<EmptyState
+  icon={Inbox}
+  message="No items yet."
+  action="Create Item"
+  onAction={handleCreate}
+/>
 ```
 
 ### FilterBar
@@ -136,7 +151,11 @@ Always use in a responsive grid: `grid md:grid-cols-2 xl:grid-cols-4 gap-4`.
 **Usage:** Filter chip display with remove buttons and clear all.
 
 ```tsx
-<FilterBar filters={filters} onRemove={handleRemove} onClear={() => setFilters([])} />
+<FilterBar
+  filters={filters}
+  onRemove={handleRemove}
+  onClear={() => setFilters([])}
+/>
 ```
 
 ### Identity
@@ -160,7 +179,12 @@ Use in property rows, comment headers, assignee displays, and anywhere a user/ag
 **Usage:** Click-to-edit text. Renders as display text, clicking enters edit mode. Enter saves, Escape cancels.
 
 ```tsx
-<InlineEditor value={title} onSave={updateTitle} as="h2" className="text-xl font-bold" />
+<InlineEditor
+  value={title}
+  onSave={updateTitle}
+  as="h2"
+  className="text-xl font-bold"
+/>
 ```
 
 ### PageSkeleton
@@ -258,12 +282,12 @@ Use in property rows, comment headers, assignee displays, and anywhere a user/ag
 
 These render inside the PropertiesPanel for different entity types:
 
-| Component | File | Entity |
-|-----------|------|--------|
-| IssueProperties | `IssueProperties.tsx` | Issues |
-| AgentProperties | `AgentProperties.tsx` | Agents |
+| Component         | File                    | Entity   |
+| ----------------- | ----------------------- | -------- |
+| IssueProperties   | `IssueProperties.tsx`   | Issues   |
+| AgentProperties   | `AgentProperties.tsx`   | Agents   |
 | ProjectProperties | `ProjectProperties.tsx` | Projects |
-| GoalProperties | `GoalProperties.tsx` | Goals |
+| GoalProperties    | `GoalProperties.tsx`    | Goals    |
 
 All follow the property row pattern: `text-xs text-muted-foreground` label on left, value on right, `py-1.5` spacing.
 
@@ -293,19 +317,19 @@ All follow the property row pattern: `text-xs text-muted-foreground` label on le
 
 ```tsx
 import { cn } from "@/lib/utils";
-<div className={cn("base-classes", conditional && "extra", className)} />
+<div className={cn("base-classes", conditional && "extra", className)} />;
 ```
 
 ### Formatting Utilities
 
 **File:** `ui/src/lib/utils.ts`
 
-| Function | Usage |
-|----------|-------|
-| `formatCents(cents)` | Money display: `$12.34` |
-| `formatDate(date)` | Date display: `Jan 15, 2025` |
-| `relativeTime(date)` | Relative time: `2m ago`, `Jan 15` |
-| `formatTokens(count)` | Token counts: `1.2M`, `500k` |
+| Function              | Usage                             |
+| --------------------- | --------------------------------- |
+| `formatCents(cents)`  | Money display: `$12.34`           |
+| `formatDate(date)`    | Date display: `Jan 15, 2025`      |
+| `relativeTime(date)`  | Relative time: `2m ago`, `Jan 15` |
+| `formatTokens(count)` | Token counts: `1.2M`, `500k`      |
 
 ### useKeyboardShortcuts
 

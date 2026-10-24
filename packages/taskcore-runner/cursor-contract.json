@@ -1,0 +1,23 @@
+{
+  "schema": "taskcore.cursor.production-contract.v1",
+  "profileVersion": 14,
+  "sourceSnapshot": "22c78242a4e0c2369fecf0c2dc4e7600fbad6706",
+  "base": "dd868ed125cd709506dd9b29fca640a44d580501",
+  "vendor": "2026.09.26-dd393fe",
+  "nativePatch": "taskcore-cursor-usage-v4",
+  "acpxPatchSha256": "72f2d860bd78f888ede1c21a89bd48d1ad7198da2f581eafc47d1b3fe445bbb2",
+  "publicSetup": "taskcore runtime setup cursor",
+  "assets": "public-server-and-provider-pack",
+  "modes": [
+    "agent",
+    "plan",
+    "ask"
+  ],
+  "questions": "taskcore-semantic-native-defensive",
+  "accounting": "unknown-partial-diagnostics-only",
+  "warmFiles": "mainline-owned-checkpoint-handoff",
+  "planAcceptance": "successful-run-open-task-explicit-continuation",
+  "otherProviders": "mainline-gated",
+  "modelSelection": "explicit-provider-verified-startup-and-reconnect",
+  "commandDigest": "sha256:5b439b2079078067b86955d8046bfaa436f34611f965a41c93d5f845e2b31a8d"
+}

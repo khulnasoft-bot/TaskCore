@@ -1,6 +1,6 @@
 {
   "name": "@taskcore/adapter-claude-local",
-  "version": "0.2.1",
+  "version": "0.3.1",
   "license": "MIT",
   "homepage": "https://github.com/khulnasoft/taskcore",
   "bugs": {
@@ -53,11 +53,17 @@
     "probe:quota:raw": "pnpm exec tsx src/cli/quota-probe.ts --json --raw-cli"
   },
   "dependencies": {
+    "@agentclientprotocol/claude-agent-acp": "^0.73.0",
+    "@anthropic-ai/sdk": "0.129.0",
     "@taskcore/adapter-utils": "workspace:*",
+    "@taskcore/shared": "workspace:*",
     "picocolors": "^1.1.1"
   },
   "devDependencies": {
-    "@types/node": "^24.6.0",
-    "typescript": "^5.7.3"
+    "@types/node": "^24.0.0",
+    "typescript": "^7.0.2"
+  },
+  "engines": {
+    "node": ">=24.11.0"
   }
 }

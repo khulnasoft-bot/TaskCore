@@ -13,7 +13,7 @@
   },
   "type": "module",
   "bin": {
-    "create-taskcore-plugin": "./dist/index.js"
+    "create-taskcore-plugin": "./dist/bin.js"
   },
   "exports": {
     ".": "./src/index.ts"
@@ -21,7 +21,7 @@
   "publishConfig": {
     "access": "public",
     "bin": {
-      "create-taskcore-plugin": "./dist/index.js"
+      "create-taskcore-plugin": "./dist/bin.js"
     },
     "exports": {
       ".": {
@@ -38,13 +38,17 @@
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist",
+    "test": "pnpm -w exec vitest run --root packages/plugins/create-taskcore-plugin --config vitest.config.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@taskcore/plugin-sdk": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "^24.6.0",
-    "typescript": "^5.7.3"
+    "@types/node": "^24.0.0",
+    "typescript": "^7.0.2"
+  },
+  "engines": {
+    "node": ">=24.11.0"
   }
 }

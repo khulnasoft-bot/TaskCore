@@ -157,7 +157,7 @@ export function generateReadme(
   lines.push("## Getting Started");
   lines.push("");
   lines.push("```bash");
-  lines.push("pnpm taskcore company import this-github-url-or-folder");
+  lines.push("npx taskcore company import this-github-url-or-folder");
   lines.push("```");
   lines.push("");
   lines.push("See [Taskcore](https://taskcore.ing) for more information.");

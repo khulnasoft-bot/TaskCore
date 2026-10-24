@@ -8,3 +8,39 @@ coverage
 data
 tmp
 *.log
+packages/taskcore-runner/dist
+packages/taskcore-runner/runner/target
+packages/taskcore-runner/devtools
+packages/taskcore-runner/docs
+packages/taskcore-runner/examples
+packages/taskcore-runner/test
+packages/taskcore-runner/test-fixtures
+packages/taskcore-runner/test-support
+packages/taskcore-runner/**/*.md
+packages/taskcore-runner/**/*.spec.ts
+packages/taskcore-runner/**/*.spec.tsx
+packages/taskcore-runner/**/*.test.cjs
+packages/taskcore-runner/**/*.test.cts
+packages/taskcore-runner/**/*.test.js
+packages/taskcore-runner/**/*.test.jsx
+packages/taskcore-runner/**/*.test.mjs
+packages/taskcore-runner/**/*.test.mts
+packages/taskcore-runner/**/*.test.ts
+packages/taskcore-runner/**/*.test.tsx
+packages/taskcore-runner/runner/crates/*/tests
+packages/taskcore-runner/scripts/*-smoke.mjs
+# Exceptions (last match wins): the image build re-runs the runner's
+# generated-file drift checks, so their committed outputs and inputs must
+# survive the slimming above. 2026-09-04: the *.md rule stripped the
+# committed capability contract out of the context and every image build
+# on master failed its drift check — .github/docker-context-checks.Dockerfile
+# now guards this in PR CI.
+!packages/taskcore-runner/generated/**
+!packages/taskcore-runner/docs/capability-contract.md
+# check:runner-workflow-traceability access()es every regression test the
+# stress-traceability spec names — those are src/**/*.test.ts files, so
+# they must survive the *.test.ts rule above.
+!packages/taskcore-runner/src/**/*.test.ts
+!packages/taskcore-runner/src/**/*.test.tsx
+
+packages/grok-acp/bin

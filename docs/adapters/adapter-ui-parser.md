@@ -71,11 +71,11 @@ With a parser, the UI renders:
 
 The Taskcore host checks this field. If the major version is unsupported, the host logs a warning and falls back to the generic parser instead of executing potentially incompatible code.
 
-| Host expects | Adapter declares | Result |
-|---|---|---|
-| `1.x` | `1.0.0` | Parser loaded |
-| `1.x` | `2.0.0` | Warning logged, generic parser used |
-| `1.x` | (missing) | Parser loaded (grace period — future versions may require it) |
+| Host expects | Adapter declares | Result                                                        |
+| ------------ | ---------------- | ------------------------------------------------------------- |
+| `1.x`        | `1.0.0`          | Parser loaded                                                 |
+| `1.x`        | `2.0.0`          | Warning logged, generic parser used                           |
+| `1.x`        | (missing)        | Parser loaded (grace period — future versions may require it) |
 
 ### 2. `exports["./ui-parser"]` — file path
 
@@ -132,7 +132,13 @@ export function createStdoutParser() {
       suppressContinuation = true;
       return [
         { kind: "tool_call", ts, name: "shell", input: {}, toolUseId: id },
-        { kind: "tool_result", ts, toolUseId: id, content: trimmed, isError: false },
+        {
+          kind: "tool_result",
+          ts,
+          toolUseId: id,
+          content: trimmed,
+          isError: false,
+        },
       ];
     }
 
@@ -186,8 +192,20 @@ Use `toolUseId` to pair `tool_call` and `tool_result` entries. The UI renders th
 ```ts
 const id = `my-tool-${++counter}`;
 return [
-  { kind: "tool_call", ts, name: "read", input: { path: "/src/main.ts" }, toolUseId: id },
-  { kind: "tool_result", ts, toolUseId: id, content: "const main = () => {...}", isError: false },
+  {
+    kind: "tool_call",
+    ts,
+    name: "read",
+    input: { path: "/src/main.ts" },
+    toolUseId: id,
+  },
+  {
+    kind: "tool_result",
+    ts,
+    toolUseId: id,
+    content: "const main = () => {...}",
+    isError: false,
+  },
 ];
 ```
 
@@ -215,24 +233,24 @@ Set `isError: true` on tool results to show a red indicator:
 
 ## Lifecycle
 
-| Event | What happens |
-|---|---|
-| Server starts | Plugin loader reads `exports["./ui-parser"]`, reads the file, caches in memory |
-| UI opens run | `getUIAdapter(type)` called. If no built-in parser, kicks off async `fetch(/api/:type/ui-parser.js)` |
-| First lines arrive | Generic process parser handles them immediately (no blocking). Dynamic parser loads in background |
-| Parser loads | `registerUIAdapter()` called. All subsequent line parsing uses the real parser |
-| Parser fails (404, eval error) | Warning logged to console. Generic parser continues. Failed type is cached — no retries |
-| Server restart | In-memory cache is repopulated from adapter packages |
+| Event                          | What happens                                                                                         |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------- |
+| Server starts                  | Plugin loader reads `exports["./ui-parser"]`, reads the file, caches in memory                       |
+| UI opens run                   | `getUIAdapter(type)` called. If no built-in parser, kicks off async `fetch(/api/:type/ui-parser.js)` |
+| First lines arrive             | Generic process parser handles them immediately (no blocking). Dynamic parser loads in background    |
+| Parser loads                   | `registerUIAdapter()` called. All subsequent line parsing uses the real parser                       |
+| Parser fails (404, eval error) | Warning logged to console. Generic parser continues. Failed type is cached — no retries              |
+| Server restart                 | In-memory cache is repopulated from adapter packages                                                 |
 
 ## Error Behavior
 
-| Failure | What happens |
-|---|---|
-| Module syntax error (import fails) | Caught, logged, falls back to generic parser. No retries. |
-| Returns wrong shape | Individual entries with missing fields are silently ignored by the transcript builder. |
-| Throws at runtime | Caught per-line. That line falls back to generic. Parser stays registered for future lines. |
-| 404 (no ui-parser export) | Type added to failed-loads set. Generic parser from first call onward. |
-| Contract version mismatch | Server logs warning, skips loading. Generic parser used. |
+| Failure                            | What happens                                                                                |
+| ---------------------------------- | ------------------------------------------------------------------------------------------- |
+| Module syntax error (import fails) | Caught, logged, falls back to generic parser. No retries.                                   |
+| Returns wrong shape                | Individual entries with missing fields are silently ignored by the transcript builder.      |
+| Throws at runtime                  | Caught per-line. That line falls back to generic. Parser stays registered for future lines. |
+| 404 (no ui-parser export)          | Type added to failed-loads set. Generic parser from first call onward.                      |
+| Contract version mismatch          | Server logs warning, skips loading. Generic parser used.                                    |
 
 ## Building
 

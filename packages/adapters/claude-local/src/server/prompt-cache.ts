@@ -1,12 +1,13 @@
 import { constants as fsConstants } from "node:fs";
 import fs from "node:fs/promises";
-import os from "node:os";
 import path from "node:path";
 import { createHash, type Hash } from "node:crypto";
 import type { AdapterExecutionContext } from "@taskcore/adapter-utils";
-import { ensureTaskcoreSkillSymlink, type TaskcoreSkillEntry } from "@taskcore/adapter-utils/server-utils";
-
-const DEFAULT_TASKCORE_INSTANCE_ID = "default";
+import {
+  ensureTaskcoreSkillSymlink,
+  resolveTaskcoreInstanceRootForAdapter,
+  type TaskcoreSkillEntry,
+} from "@taskcore/adapter-utils/server-utils";
 
 type SkillEntry = TaskcoreSkillEntry;
 
@@ -18,19 +19,22 @@ export interface ClaudePromptBundle {
 }
 
 function nonEmpty(value: string | undefined): string | null {
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : null;
 }
 
 function resolveManagedClaudePromptCacheRoot(
   env: NodeJS.ProcessEnv,
   companyId: string,
 ): string {
-  const taskcoreHome = nonEmpty(env.TASKCORE_HOME) ?? path.resolve(os.homedir(), ".taskcore");
-  const instanceId = nonEmpty(env.TASKCORE_INSTANCE_ID) ?? DEFAULT_TASKCORE_INSTANCE_ID;
+  const instanceRoot = resolveTaskcoreInstanceRootForAdapter({
+    homeDir: nonEmpty(env.TASKCORE_HOME) ?? undefined,
+    instanceId: nonEmpty(env.TASKCORE_INSTANCE_ID) ?? undefined,
+    env,
+  });
   return path.resolve(
-    taskcoreHome,
-    "instances",
-    instanceId,
+    instanceRoot,
     "companies",
     companyId,
     "claude-prompt-cache",
@@ -67,8 +71,14 @@ async function hashPathContents(
     const entries = await fs.readdir(candidate, { withFileTypes: true });
     entries.sort((left, right) => left.name.localeCompare(right.name));
     for (const entry of entries) {
-      const childRelativePath = relativePath.length > 0 ? `${relativePath}/${entry.name}` : entry.name;
-      await hashPathContents(path.join(candidate, entry.name), hash, childRelativePath, seenDirectories);
+      const childRelativePath =
+        relativePath.length > 0 ? `${relativePath}/${entry.name}` : entry.name;
+      await hashPathContents(
+        path.join(candidate, entry.name),
+        hash,
+        childRelativePath,
+        seenDirectories,
+      );
     }
     return;
   }
@@ -97,16 +107,26 @@ async function buildClaudePromptBundleKey(input: {
     hash.update("instructions:none\n");
   }
 
-  const sortedSkills = [...input.skills].sort((left, right) => left.runtimeName.localeCompare(right.runtimeName));
+  const sortedSkills = [...input.skills].sort((left, right) =>
+    left.runtimeName.localeCompare(right.runtimeName),
+  );
   for (const entry of sortedSkills) {
     hash.update(`skill:${entry.key}:${entry.runtimeName}\n`);
-    await hashPathContents(entry.source, hash, entry.runtimeName, new Set<string>());
+    await hashPathContents(
+      entry.source,
+      hash,
+      entry.runtimeName,
+      new Set<string>(),
+    );
   }
 
   return hash.digest("hex");
 }
 
-async function ensureReadableFile(targetPath: string, contents: string): Promise<void> {
+async function ensureReadableFile(
+  targetPath: string,
+  contents: string,
+): Promise<void> {
   try {
     await fs.access(targetPath, fsConstants.R_OK);
     return;
@@ -120,7 +140,10 @@ async function ensureReadableFile(targetPath: string, contents: string): Promise
     await fs.writeFile(tempPath, contents, "utf8");
     await fs.rename(tempPath, targetPath);
   } catch (err) {
-    const targetReadable = await fs.access(targetPath, fsConstants.R_OK).then(() => true).catch(() => false);
+    const targetReadable = await fs
+      .access(targetPath, fsConstants.R_OK)
+      .then(() => true)
+      .catch(() => false);
     if (!targetReadable) {
       throw err;
     }
@@ -140,7 +163,10 @@ export async function prepareClaudePromptBundle(input: {
     skills,
     instructionsContents,
   });
-  const rootDir = path.join(resolveManagedClaudePromptCacheRoot(process.env, companyId), bundleKey);
+  const rootDir = path.join(
+    resolveManagedClaudePromptCacheRoot(process.env, companyId),
+    bundleKey,
+  );
   const skillsHome = path.join(rootDir, ".claude", "skills");
   await fs.mkdir(skillsHome, { recursive: true });
 

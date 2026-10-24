@@ -20,7 +20,7 @@ describe("gemini local skill sync", () => {
     cleanupDirs.clear();
   });
 
-  it("reports configured Taskcore skills and installs them into the Gemini skills home", async () => {
+  it("defaults and installs the operational Taskcore skill in the Gemini skills home", async () => {
     const home = await makeTempDir("taskcore-gemini-skill-sync-");
     cleanupDirs.add(home);
 
@@ -32,57 +32,15 @@ describe("gemini local skill sync", () => {
         env: {
           HOME: home,
         },
-        taskcoreSkillSync: {
-          desiredSkills: [taskcoreKey],
-        },
       },
     } as const;
 
     const before = await listGeminiSkills(ctx);
     expect(before.mode).toBe("persistent");
     expect(before.desiredSkills).toContain(taskcoreKey);
-    expect(before.entries.find((entry) => entry.key === taskcoreKey)?.required).toBe(true);
     expect(before.entries.find((entry) => entry.key === taskcoreKey)?.state).toBe("missing");
 
     const after = await syncGeminiSkills(ctx, [taskcoreKey]);
-    expect(after.entries.find((entry) => entry.key === taskcoreKey)?.state).toBe("installed");
-    expect((await fs.lstat(path.join(home, ".gemini", "skills", "taskcore"))).isSymbolicLink()).toBe(true);
-  });
-
-  it("keeps required bundled Taskcore skills installed even when the desired set is emptied", async () => {
-    const home = await makeTempDir("taskcore-gemini-skill-prune-");
-    cleanupDirs.add(home);
-
-    const configuredCtx = {
-      agentId: "agent-2",
-      companyId: "company-1",
-      adapterType: "gemini_local",
-      config: {
-        env: {
-          HOME: home,
-        },
-        taskcoreSkillSync: {
-          desiredSkills: [taskcoreKey],
-        },
-      },
-    } as const;
-
-    await syncGeminiSkills(configuredCtx, [taskcoreKey]);
-
-    const clearedCtx = {
-      ...configuredCtx,
-      config: {
-        env: {
-          HOME: home,
-        },
-        taskcoreSkillSync: {
-          desiredSkills: [],
-        },
-      },
-    } as const;
-
-    const after = await syncGeminiSkills(clearedCtx, []);
-    expect(after.desiredSkills).toContain(taskcoreKey);
     expect(after.entries.find((entry) => entry.key === taskcoreKey)?.state).toBe("installed");
     expect((await fs.lstat(path.join(home, ".gemini", "skills", "taskcore"))).isSymbolicLink()).toBe(true);
   });

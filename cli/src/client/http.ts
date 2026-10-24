@@ -5,7 +5,12 @@ export class ApiRequestError extends Error {
   details?: unknown;
   body?: unknown;
 
-  constructor(status: number, message: string, details?: unknown, body?: unknown) {
+  constructor(
+    status: number,
+    message: string,
+    details?: unknown,
+    body?: unknown,
+  ) {
     super(message);
     this.status = status;
     this.details = details;
@@ -26,7 +31,14 @@ export class ApiConnectionError extends Error {
   }) {
     const url = buildUrl(input.apiBase, input.path);
     const causeMessage = formatConnectionCause(input.cause);
-    super(buildConnectionErrorMessage({ apiBase: input.apiBase, url, method: input.method, causeMessage }));
+    super(
+      buildConnectionErrorMessage({
+        apiBase: input.apiBase,
+        url,
+        method: input.method,
+        causeMessage,
+      }),
+    );
     this.url = url;
     this.method = input.method;
     this.causeMessage = causeMessage;
@@ -67,18 +79,66 @@ export class TaskcoreApiClient {
     return this.request<T>(path, { method: "GET" }, opts);
   }
 
-  post<T>(path: string, body?: unknown, opts?: RequestOptions): Promise<T | null> {
-    return this.request<T>(path, {
-      method: "POST",
-      body: body === undefined ? undefined : JSON.stringify(body),
-    }, opts);
+  post<T>(
+    path: string,
+    body?: unknown,
+    opts?: RequestOptions,
+  ): Promise<T | null> {
+    return this.request<T>(
+      path,
+      {
+        method: "POST",
+        body: body === undefined ? undefined : JSON.stringify(body),
+      },
+      opts,
+    );
   }
 
-  patch<T>(path: string, body?: unknown, opts?: RequestOptions): Promise<T | null> {
-    return this.request<T>(path, {
-      method: "PATCH",
-      body: body === undefined ? undefined : JSON.stringify(body),
-    }, opts);
+  patch<T>(
+    path: string,
+    body?: unknown,
+    opts?: RequestOptions,
+  ): Promise<T | null> {
+    return this.request<T>(
+      path,
+      {
+        method: "PATCH",
+        body: body === undefined ? undefined : JSON.stringify(body),
+      },
+      opts,
+    );
+  }
+
+  put<T>(
+    path: string,
+    body?: unknown,
+    opts?: RequestOptions,
+  ): Promise<T | null> {
+    return this.request<T>(
+      path,
+      {
+        method: "PUT",
+        body: body === undefined ? undefined : JSON.stringify(body),
+      },
+      opts,
+    );
+  }
+
+  /** Raw binary upload (e.g. one chunked import-transfer part); the body travels as-is. */
+  putRaw<T>(
+    path: string,
+    body: Uint8Array,
+    opts?: RequestOptions,
+  ): Promise<T | null> {
+    return this.request<T>(
+      path,
+      {
+        method: "PUT",
+        body: body as unknown as BodyInit,
+        headers: { "content-type": "application/octet-stream" },
+      },
+      opts,
+    );
   }
 
   delete<T>(path: string, opts?: RequestOptions): Promise<T | null> {
@@ -194,7 +254,12 @@ async function toApiError(response: Response): Promise<ApiRequestError> {
     return new ApiRequestError(response.status, message, body.details, parsed);
   }
 
-  return new ApiRequestError(response.status, `Request failed with status ${response.status}`, undefined, parsed);
+  return new ApiRequestError(
+    response.status,
+    `Request failed with status ${response.status}`,
+    undefined,
+    parsed,
+  );
 }
 
 function buildConnectionErrorMessage(input: {
@@ -217,7 +282,7 @@ function buildConnectionErrorMessage(input: {
     "This usually means the Taskcore server is not running, the configured URL is wrong, or the request is being blocked before it reaches Taskcore.",
     "",
     "Try:",
-    "- Start Taskcore with `pnpm dev` or `pnpm taskcore run`.",
+    "- Start Taskcore with `pnpm dev` (from a source checkout) or `npx taskcore run`.",
     `- Verify the server is reachable with \`curl ${healthUrl}\`.`,
     `- If Taskcore is running elsewhere, pass \`--api-base ${input.apiBase.replace(/\/+$/, "")}\` or set \`TASKCORE_API_URL\`.`,
   );
@@ -241,10 +306,14 @@ function formatConnectionCause(error: unknown): string | undefined {
   return message || undefined;
 }
 
-function toStringRecord(headers: HeadersInit | undefined): Record<string, string> {
+function toStringRecord(
+  headers: HeadersInit | undefined,
+): Record<string, string> {
   if (!headers) return {};
   if (Array.isArray(headers)) {
-    return Object.fromEntries(headers.map(([key, value]) => [key, String(value)]));
+    return Object.fromEntries(
+      headers.map(([key, value]) => [key, String(value)]),
+    );
   }
   if (headers instanceof Headers) {
     return Object.fromEntries(headers.entries());

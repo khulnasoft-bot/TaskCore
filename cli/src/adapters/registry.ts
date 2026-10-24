@@ -2,7 +2,12 @@ import type { CLIAdapterModule } from "@taskcore/adapter-utils";
 import { printClaudeStreamEvent } from "@taskcore/adapter-claude-local/cli";
 import { printCodexStreamEvent } from "@taskcore/adapter-codex-local/cli";
 import { printCursorStreamEvent } from "@taskcore/adapter-cursor-local/cli";
+import { printCursorCloudEvent } from "@taskcore/adapter-cursor-cloud/cli";
 import { printGeminiStreamEvent } from "@taskcore/adapter-gemini-local/cli";
+import { printGrokStreamEvent } from "@taskcore/adapter-grok-local/cli";
+import { printKimiStreamEvent } from "@taskcore/adapter-kimi-local/cli";
+import { formatStdoutEvent as printHermesGatewayStreamEvent } from "@taskcore/hermes-taskcore-adapter/gateway/cli";
+import { printHermesStreamEvent } from "@taskcore/hermes-taskcore-adapter/cli";
 import { printOpenCodeStreamEvent } from "@taskcore/adapter-opencode-local/cli";
 import { printPiStreamEvent } from "@taskcore/adapter-pi-local/cli";
 import { printOpenClawGatewayStreamEvent } from "@taskcore/adapter-openclaw-gateway/cli";
@@ -34,9 +39,34 @@ const cursorLocalCLIAdapter: CLIAdapterModule = {
   formatStdoutEvent: printCursorStreamEvent,
 };
 
+const cursorCloudCLIAdapter: CLIAdapterModule = {
+  type: "cursor_cloud",
+  formatStdoutEvent: printCursorCloudEvent,
+};
+
 const geminiLocalCLIAdapter: CLIAdapterModule = {
   type: "gemini_local",
   formatStdoutEvent: printGeminiStreamEvent,
+};
+
+const grokLocalCLIAdapter: CLIAdapterModule = {
+  type: "grok_local",
+  formatStdoutEvent: printGrokStreamEvent,
+};
+
+const kimiLocalCLIAdapter: CLIAdapterModule = {
+  type: "kimi_local",
+  formatStdoutEvent: printKimiStreamEvent,
+};
+
+const hermesGatewayCLIAdapter: CLIAdapterModule = {
+  type: "hermes_gateway",
+  formatStdoutEvent: printHermesGatewayStreamEvent,
+};
+
+const hermesLocalCLIAdapter: CLIAdapterModule = {
+  type: "hermes_local",
+  formatStdoutEvent: printHermesStreamEvent,
 };
 
 const openclawGatewayCLIAdapter: CLIAdapterModule = {
@@ -51,7 +81,12 @@ const adaptersByType = new Map<string, CLIAdapterModule>(
     openCodeLocalCLIAdapter,
     piLocalCLIAdapter,
     cursorLocalCLIAdapter,
+    cursorCloudCLIAdapter,
     geminiLocalCLIAdapter,
+    grokLocalCLIAdapter,
+    kimiLocalCLIAdapter,
+    hermesGatewayCLIAdapter,
+    hermesLocalCLIAdapter,
     openclawGatewayCLIAdapter,
     processCLIAdapter,
     httpCLIAdapter,

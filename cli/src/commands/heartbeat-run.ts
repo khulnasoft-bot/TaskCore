@@ -1,12 +1,27 @@
 import { setTimeout as delay } from "node:timers/promises";
 import pc from "picocolors";
-import type { Agent, HeartbeatRun, HeartbeatRunEvent, HeartbeatRunStatus } from "@taskcore/shared";
+import type {
+  Agent,
+  HeartbeatRun,
+  HeartbeatRunEvent,
+  HeartbeatRunStatus,
+} from "@taskcore/shared";
 import { getCLIAdapter } from "../adapters/index.js";
 import { resolveCommandContext } from "./client/common.js";
 
-const HEARTBEAT_SOURCES = ["timer", "assignment", "on_demand", "automation"] as const;
+const HEARTBEAT_SOURCES = [
+  "timer",
+  "assignment",
+  "on_demand",
+  "automation",
+] as const;
 const HEARTBEAT_TRIGGERS = ["manual", "ping", "callback", "system"] as const;
-const TERMINAL_STATUSES = new Set<HeartbeatRunStatus>(["succeeded", "failed", "cancelled", "timed_out"]);
+const TERMINAL_STATUSES = new Set<HeartbeatRunStatus>([
+  "succeeded",
+  "failed",
+  "cancelled",
+  "timed_out",
+]);
 const POLL_INTERVAL_MS = 200;
 
 type HeartbeatSource = (typeof HEARTBEAT_SOURCES)[number];
@@ -62,7 +77,9 @@ export async function heartbeatRun(opts: HeartbeatRunOptions): Promise<void> {
   const source = HEARTBEAT_SOURCES.includes(opts.source as HeartbeatSource)
     ? (opts.source as HeartbeatSource)
     : "on_demand";
-  const triggerDetail = HEARTBEAT_TRIGGERS.includes(opts.trigger as HeartbeatTrigger)
+  const triggerDetail = HEARTBEAT_TRIGGERS.includes(
+    opts.trigger as HeartbeatTrigger,
+  )
     ? (opts.trigger as HeartbeatTrigger)
     : "manual";
 
@@ -99,7 +116,11 @@ export async function heartbeatRun(opts: HeartbeatRunOptions): Promise<void> {
   }
 
   const run = invokeRes as HeartbeatRun;
-  console.log(pc.cyan(`Invoked heartbeat run ${run.id} for agent ${agent.name} (${agent.id})`));
+  console.log(
+    pc.cyan(
+      `Invoked heartbeat run ${run.id} for agent ${agent.name} (${agent.id})`,
+    ),
+  );
 
   const runId = run.id;
   let activeRunId: string | null = null;
@@ -107,14 +128,20 @@ export async function heartbeatRun(opts: HeartbeatRunOptions): Promise<void> {
   let logOffset = 0;
   let stdoutJsonBuffer = "";
 
-  const printRawChunk = (stream: "stdout" | "stderr" | "system", chunk: string) => {
-    if (stream === "stdout") process.stdout.write(pc.green("[stdout] ") + chunk);
-    else if (stream === "stderr") process.stdout.write(pc.red("[stderr] ") + chunk);
+  const printRawChunk = (
+    stream: "stdout" | "stderr" | "system",
+    chunk: string,
+  ) => {
+    if (stream === "stdout")
+      process.stdout.write(pc.green("[stdout] ") + chunk);
+    else if (stream === "stderr")
+      process.stdout.write(pc.red("[stderr] ") + chunk);
     else process.stdout.write(pc.yellow("[system] ") + chunk);
   };
 
   const printAdapterInvoke = (payload: Record<string, unknown>) => {
-    const adapterType = typeof payload.adapterType === "string" ? payload.adapterType : "unknown";
+    const adapterType =
+      typeof payload.adapterType === "string" ? payload.adapterType : "unknown";
     const command = typeof payload.command === "string" ? payload.command : "";
     const cwd = typeof payload.cwd === "string" ? payload.cwd : "";
     const args =
@@ -123,19 +150,24 @@ export async function heartbeatRun(opts: HeartbeatRunOptions): Promise<void> {
         ? (payload.commandArgs as string[])
         : [];
     const env =
-      typeof payload.env === "object" && payload.env !== null && !Array.isArray(payload.env)
+      typeof payload.env === "object" &&
+      payload.env !== null &&
+      !Array.isArray(payload.env)
         ? (payload.env as Record<string, unknown>)
         : null;
     const prompt = typeof payload.prompt === "string" ? payload.prompt : "";
     const context =
-      typeof payload.context === "object" && payload.context !== null && !Array.isArray(payload.context)
+      typeof payload.context === "object" &&
+      payload.context !== null &&
+      !Array.isArray(payload.context)
         ? (payload.context as Record<string, unknown>)
         : null;
 
     console.log(pc.cyan(`Adapter: ${adapterType}`));
     if (cwd) console.log(pc.cyan(`Working dir: ${cwd}`));
     if (command) {
-      const rendered = args.length > 0 ? `${command} ${args.join(" ")}` : command;
+      const rendered =
+        args.length > 0 ? `${command} ${args.join(" ")}` : command;
       console.log(pc.cyan(`Command: ${rendered}`));
     }
     if (env) {
@@ -155,7 +187,10 @@ export async function heartbeatRun(opts: HeartbeatRunOptions): Promise<void> {
   const adapterType: AdapterType = agent.adapterType ?? "claude_local";
   const cliAdapter = getCLIAdapter(adapterType);
 
-  const handleStreamChunk = (stream: "stdout" | "stderr" | "system", chunk: string) => {
+  const handleStreamChunk = (
+    stream: "stdout" | "stderr" | "system",
+    chunk: string,
+  ) => {
     if (debug) {
       printRawChunk(stream, chunk);
       return;
@@ -177,11 +212,12 @@ export async function heartbeatRun(opts: HeartbeatRunOptions): Promise<void> {
   const handleEvent = (event: HeartbeatRunEventRecord) => {
     const payload = normalizePayload(event.payload);
     if (event.runId !== runId) return;
-    const eventType = typeof event.eventType === "string"
-      ? event.eventType
-      : typeof event.type === "string"
-      ? event.type
-      : "";
+    const eventType =
+      typeof event.eventType === "string"
+        ? event.eventType
+        : typeof event.type === "string"
+          ? event.type
+          : "";
 
     if (eventType === "heartbeat.run.status") {
       const status = typeof payload.status === "string" ? payload.status : null;
@@ -191,14 +227,19 @@ export async function heartbeatRun(opts: HeartbeatRunOptions): Promise<void> {
     } else if (eventType === "adapter.invoke") {
       printAdapterInvoke(payload);
     } else if (eventType === "heartbeat.run.log") {
-      const stream = typeof payload.stream === "string" ? payload.stream : "system";
+      const stream =
+        typeof payload.stream === "string" ? payload.stream : "system";
       const chunk = typeof payload.chunk === "string" ? payload.chunk : "";
       if (!chunk) return;
       if (stream === "stdout" || stream === "stderr" || stream === "system") {
         handleStreamChunk(stream, chunk);
       }
     } else if (typeof event.message === "string") {
-      console.log(pc.gray(`[event] ${eventType || "heartbeat.run.event"}: ${event.message}`));
+      console.log(
+        pc.gray(
+          `[event] ${eventType || "heartbeat.run.event"}: ${event.message}`,
+        ),
+      );
     }
 
     lastEventSeq = Math.max(lastEventSeq, event.seq ?? 0);
@@ -216,17 +257,20 @@ export async function heartbeatRun(opts: HeartbeatRunOptions): Promise<void> {
   }
 
   while (true) {
-      const events = await api.get<HeartbeatRunEvent[]>(
-        `/api/heartbeat-runs/${activeRunId}/events?afterSeq=${lastEventSeq}&limit=100`,
-      );
-    for (const event of Array.isArray(events) ? (events as HeartbeatRunEventRecord[]) : []) {
+    const events = await api.get<HeartbeatRunEvent[]>(
+      `/api/heartbeat-runs/${activeRunId}/events?afterSeq=${lastEventSeq}&limit=100`,
+    );
+    for (const event of Array.isArray(events)
+      ? (events as HeartbeatRunEventRecord[])
+      : []) {
       handleEvent(event);
     }
 
-      const runList = (await api.get<(HeartbeatRun | null)[]>(
+    const runList =
+      (await api.get<(HeartbeatRun | null)[]>(
         `/api/companies/${agent.companyId}/heartbeat-runs?agentId=${agent.id}`,
       )) || [];
-      const currentRun = runList.find((r) => r && r.id === activeRunId) ?? null;
+    const currentRun = runList.find((r) => r && r.id === activeRunId) ?? null;
 
     if (!currentRun) {
       console.error(pc.red("Heartbeat run disappeared"));
@@ -292,21 +336,32 @@ export async function heartbeatRun(opts: HeartbeatRunOptions): Promise<void> {
     if (finalRun) {
       const resultObj = asRecord(finalRun.resultJson);
       if (resultObj) {
-        const subtype = typeof resultObj.subtype === "string" ? resultObj.subtype : "";
+        const subtype =
+          typeof resultObj.subtype === "string" ? resultObj.subtype : "";
         const isError = resultObj.is_error === true;
-        const errors = Array.isArray(resultObj.errors) ? resultObj.errors.map(asErrorText).filter(Boolean) : [];
-        const resultText = typeof resultObj.result === "string" ? resultObj.result.trim() : "";
+        const errors = Array.isArray(resultObj.errors)
+          ? resultObj.errors.map(asErrorText).filter(Boolean)
+          : [];
+        const resultText =
+          typeof resultObj.result === "string" ? resultObj.result.trim() : "";
         if (subtype || isError || errors.length > 0 || resultText) {
           console.log(pc.red("Claude result details:"));
           if (subtype) console.log(pc.red(`  subtype: ${subtype}`));
           if (isError) console.log(pc.red("  is_error: true"));
-          if (errors.length > 0) console.log(pc.red(`  errors: ${errors.join(" | ")}`));
+          if (errors.length > 0)
+            console.log(pc.red(`  errors: ${errors.join(" | ")}`));
           if (resultText) console.log(pc.red(`  result: ${resultText}`));
         }
       }
 
-      const stderrExcerpt = typeof finalRun.stderrExcerpt === "string" ? finalRun.stderrExcerpt.trim() : "";
-      const stdoutExcerpt = typeof finalRun.stdoutExcerpt === "string" ? finalRun.stdoutExcerpt.trim() : "";
+      const stderrExcerpt =
+        typeof finalRun.stderrExcerpt === "string"
+          ? finalRun.stderrExcerpt.trim()
+          : "";
+      const stdoutExcerpt =
+        typeof finalRun.stdoutExcerpt === "string"
+          ? finalRun.stdoutExcerpt.trim()
+          : "";
       if (stderrExcerpt) {
         console.log(pc.red("stderr excerpt:"));
         console.log(stderrExcerpt);
@@ -324,14 +379,20 @@ export async function heartbeatRun(opts: HeartbeatRunOptions): Promise<void> {
 }
 
 function normalizePayload(payload: unknown): Record<string, unknown> {
-  return typeof payload === "object" && payload !== null ? (payload as Record<string, unknown>) : {};
+  return typeof payload === "object" && payload !== null
+    ? (payload as Record<string, unknown>)
+    : {};
 }
 
-function safeParseLogLine(line: string): { stream: "stdout" | "stderr" | "system"; chunk: string } | null {
+function safeParseLogLine(
+  line: string,
+): { stream: "stdout" | "stderr" | "system"; chunk: string } | null {
   try {
     const parsed = JSON.parse(line) as { stream?: unknown; chunk?: unknown };
     const stream =
-      parsed.stream === "stdout" || parsed.stream === "stderr" || parsed.stream === "system"
+      parsed.stream === "stdout" ||
+      parsed.stream === "stderr" ||
+      parsed.stream === "system"
         ? parsed.stream
         : "system";
     const chunk = typeof parsed.chunk === "string" ? parsed.chunk : "";

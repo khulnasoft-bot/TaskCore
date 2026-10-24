@@ -19,7 +19,10 @@ function resolveDbUrl(configPath?: string, explicitDbUrl?: string) {
   if (explicitDbUrl) return explicitDbUrl;
   const config = readConfig(configPath);
   if (process.env.DATABASE_URL) return process.env.DATABASE_URL;
-  if (config?.database.mode === "postgres" && config.database.connectionString) {
+  if (
+    config?.database.mode === "postgres" &&
+    config.database.connectionString
+  ) {
     return config.database.connectionString;
   }
   if (config?.database.mode === "embedded-postgres") {
@@ -41,11 +44,12 @@ function resolveBaseUrl(configPath?: string, explicitBaseUrl?: string) {
   if (config?.auth.baseUrlMode === "explicit" && config.auth.publicBaseUrl) {
     return config.auth.publicBaseUrl.replace(/\/+$/, "");
   }
-  const bind = config?.server.bind ?? inferBindModeFromHost(config?.server.host);
+  const bind =
+    config?.server.bind ?? inferBindModeFromHost(config?.server.host);
   const host =
     bind === "custom"
-      ? config?.server.customBindHost ?? config?.server.host ?? "localhost"
-      : config?.server.host ?? "localhost";
+      ? (config?.server.customBindHost ?? config?.server.host ?? "localhost")
+      : (config?.server.host ?? "localhost");
   const port = config?.server.port ?? 3100;
   const publicHost = host === "0.0.0.0" || bind === "lan" ? "localhost" : host;
   return `http://${publicHost}:${port}`;
@@ -62,20 +66,22 @@ export async function bootstrapCeoInvite(opts: {
   loadTaskcoreEnvFile(configPath);
   const config = readConfig(configPath);
   if (!config) {
-    p.log.error(`No config found at ${configPath}. Run ${pc.cyan("taskcore onboard")} first.`);
+    p.log.error(
+      `No config found at ${configPath}. Run ${pc.cyan("taskcore onboard")} first.`,
+    );
     return;
   }
 
   if (config.server.deploymentMode !== "authenticated") {
-    p.log.info("Deployment mode is local_trusted. Bootstrap CEO invite is only required for authenticated mode.");
+    p.log.info(
+      "Deployment mode is local_trusted. Bootstrap CEO invite is only required for authenticated mode.",
+    );
     return;
   }
 
   const dbUrl = resolveDbUrl(configPath, opts.dbUrl);
   if (!dbUrl) {
-    p.log.error(
-      "Could not resolve database connection for bootstrap.",
-    );
+    p.log.error("Could not resolve database connection for bootstrap.");
     return;
   }
 
@@ -93,7 +99,9 @@ export async function bootstrapCeoInvite(opts: {
       .then((rows) => rows.length);
 
     if (existingAdminCount > 0 && !opts.force) {
-      p.log.info("Instance already has an admin user. Use --force to generate a new bootstrap invite.");
+      p.log.info(
+        "Instance already has an admin user. Use --force to generate a new bootstrap invite.",
+      );
       return;
     }
 
@@ -111,7 +119,10 @@ export async function bootstrapCeoInvite(opts: {
       );
 
     const token = createInviteToken();
-    const expiresHours = Math.max(1, Math.min(24 * 30, opts.expiresHours ?? 72));
+    const expiresHours = Math.max(
+      1,
+      Math.min(24 * 30, opts.expiresHours ?? 72),
+    );
     const created = await db
       .insert(invites)
       .values({
@@ -130,8 +141,12 @@ export async function bootstrapCeoInvite(opts: {
     p.log.message(`Invite URL: ${pc.cyan(inviteUrl)}`);
     p.log.message(`Expires: ${pc.dim(created.expiresAt.toISOString())}`);
   } catch (err) {
-    p.log.error(`Could not create bootstrap invite: ${err instanceof Error ? err.message : String(err)}`);
-    p.log.info("If using embedded-postgres, start the Taskcore server and run this command again.");
+    p.log.error(
+      `Could not create bootstrap invite: ${err instanceof Error ? err.message : String(err)}`,
+    );
+    p.log.info(
+      "If using embedded-postgres, start the Taskcore server and run this command again.",
+    );
   } finally {
     await closableDb.$client?.end?.({ timeout: 5 }).catch(() => undefined);
   }

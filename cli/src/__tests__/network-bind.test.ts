@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { resolveRuntimeBind, validateConfiguredBindMode } from "@taskcore/shared";
+import {
+  resolveRuntimeBind,
+  validateConfiguredBindMode,
+} from "@taskcore/shared";
 import { buildPresetServerConfig } from "../config/server-bind.js";
+
+const ORIGINAL_PATH = process.env.PATH;
 
 describe("network bind helpers", () => {
   it("rejects non-loopback bind modes in local_trusted", () => {
@@ -31,7 +36,9 @@ describe("network bind helpers", () => {
       host: "127.0.0.1",
     });
 
-    expect(resolved.errors).toContain("server.customBindHost is required when server.bind=custom");
+    expect(resolved.errors).toContain(
+      "server.customBindHost is required when server.bind=custom",
+    );
   });
 
   it("stores the detected tailscale address for tailnet presets", () => {
@@ -50,13 +57,18 @@ describe("network bind helpers", () => {
 
   it("falls back to loopback when no tailscale address is available for tailnet presets", () => {
     delete process.env.TASKCORE_TAILNET_BIND_HOST;
+    process.env.PATH = "";
 
-    const preset = buildPresetServerConfig("tailnet", {
-      port: 3100,
-      allowedHostnames: [],
-      serveUi: true,
-    });
+    try {
+      const preset = buildPresetServerConfig("tailnet", {
+        port: 3100,
+        allowedHostnames: [],
+        serveUi: true,
+      });
 
-    expect(preset.server.host).toBe("127.0.0.1");
+      expect(preset.server.host).toBe("127.0.0.1");
+    } finally {
+      process.env.PATH = ORIGINAL_PATH;
+    }
   });
 });

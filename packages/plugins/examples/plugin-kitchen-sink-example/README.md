@@ -21,7 +21,7 @@ This plugin is for local development, contributor onboarding, and runtime regres
 
 ```sh
 pnpm --filter @taskcore/plugin-kitchen-sink-example build
-pnpm taskcore plugin install ./packages/plugins/examples/plugin-kitchen-sink-example
+npx taskcore plugin install ./packages/plugins/examples/plugin-kitchen-sink-example
 ```
 
 Or install it from the Taskcore plugin manager as a bundled example once this repo is built.

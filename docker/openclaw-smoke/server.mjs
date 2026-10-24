@@ -86,10 +86,18 @@ const server = http.createServer(async (req, res) => {
       };
       events.push(event);
       trimEvents();
-      writeJson(res, 200, { ok: true, received: true, eventId: event.id, count: events.length });
+      writeJson(res, 200, {
+        ok: true,
+        received: true,
+        eventId: event.id,
+        count: events.length,
+      });
     } catch (err) {
-      const code = err instanceof Error && err.message === "payload_too_large" ? 413 : 500;
-      writeJson(res, code, { error: err instanceof Error ? err.message : "unknown_error" });
+      const code =
+        err instanceof Error && err.message === "payload_too_large" ? 413 : 500;
+      writeJson(res, code, {
+        error: err instanceof Error ? err.message : "unknown_error",
+      });
     }
     return;
   }

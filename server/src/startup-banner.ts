@@ -93,7 +93,7 @@ function resolveAgentJwtSecretStatus(
 
   return {
     status: "warn",
-    message: "missing (run `pnpm taskcore onboard`)",
+    message: "missing (run `npx taskcore onboard`)",
   };
 }
 

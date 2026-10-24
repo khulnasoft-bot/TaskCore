@@ -1,6 +1,6 @@
 {
   "name": "taskcore",
-  "version": "0.2.1",
+  "version": "0.3.1",
   "description": "Taskcore CLI — orchestrate AI agent teams to run a business",
   "type": "module",
   "bin": {
@@ -36,11 +36,14 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@clack/prompts": "^0.10.0",
+    "@clack/prompts": "^1.7.0",
     "@taskcore/adapter-claude-local": "workspace:*",
     "@taskcore/adapter-codex-local": "workspace:*",
+    "@taskcore/adapter-cursor-cloud": "workspace:*",
     "@taskcore/adapter-cursor-local": "workspace:*",
     "@taskcore/adapter-gemini-local": "workspace:*",
+    "@taskcore/adapter-grok-local": "workspace:*",
+    "@taskcore/adapter-kimi-local": "workspace:*",
     "@taskcore/adapter-opencode-local": "workspace:*",
     "@taskcore/adapter-pi-local": "workspace:*",
     "@taskcore/adapter-openclaw-gateway": "workspace:*",
@@ -48,15 +51,19 @@
     "@taskcore/db": "workspace:*",
     "@taskcore/server": "workspace:*",
     "@taskcore/shared": "workspace:*",
-    "drizzle-orm": "0.38.4",
-    "dotenv": "^17.0.1",
-    "commander": "^13.1.0",
+    "@taskcore/hermes-taskcore-adapter": "workspace:*",
+    "drizzle-orm": "0.45.2",
+    "dotenv": "^17.4.2",
+    "commander": "^15.0.0",
     "embedded-postgres": "^18.1.0-beta.16",
     "picocolors": "^1.1.1"
   },
   "devDependencies": {
-    "@types/node": "^22.12.0",
-    "tsx": "^4.19.2",
-    "typescript": "^5.7.3"
+    "@types/node": "^24.0.0",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  },
+  "engines": {
+    "node": ">=24.11.0"
   }
 }

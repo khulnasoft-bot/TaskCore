@@ -32,6 +32,7 @@ async function createCustomSkill(root: string, skillName: string) {
 
 describe("codex local adapter skill injection", () => {
   const taskcoreKey = "taskcore/taskcore/taskcore";
+  const createAgentKey = "taskcore/taskcore/taskcore-create-agent";
   const cleanupDirs = new Set<string>();
 
   afterEach(async () => {
@@ -48,6 +49,7 @@ describe("codex local adapter skill injection", () => {
     cleanupDirs.add(skillsHome);
 
     await createTaskcoreRepoSkill(currentRepo, "taskcore");
+    await createTaskcoreRepoSkill(currentRepo, "taskcore-create-agent");
     await createTaskcoreRepoSkill(oldRepo, "taskcore");
     await fs.symlink(path.join(oldRepo, "skills", "taskcore"), path.join(skillsHome, "taskcore"));
 
@@ -58,21 +60,37 @@ describe("codex local adapter skill injection", () => {
       },
       {
         skillsHome,
-        skillsEntries: [{
-          key: taskcoreKey,
-          runtimeName: "taskcore",
-          source: path.join(currentRepo, "skills", "taskcore"),
-        }],
+        skillsEntries: [
+          {
+            key: taskcoreKey,
+            runtimeName: "taskcore",
+            source: path.join(currentRepo, "skills", "taskcore"),
+          },
+          {
+            key: createAgentKey,
+            runtimeName: "taskcore-create-agent",
+            source: path.join(currentRepo, "skills", "taskcore-create-agent"),
+          },
+        ],
       },
     );
 
     expect(await fs.realpath(path.join(skillsHome, "taskcore"))).toBe(
       await fs.realpath(path.join(currentRepo, "skills", "taskcore")),
     );
+    expect(await fs.realpath(path.join(skillsHome, "taskcore-create-agent"))).toBe(
+      await fs.realpath(path.join(currentRepo, "skills", "taskcore-create-agent")),
+    );
     expect(logs).toContainEqual(
       expect.objectContaining({
         stream: "stdout",
         chunk: expect.stringContaining('Repaired Codex skill "taskcore"'),
+      }),
+    );
+    expect(logs).toContainEqual(
+      expect.objectContaining({
+        stream: "stdout",
+        chunk: expect.stringContaining('Injected Codex skill "taskcore-create-agent"'),
       }),
     );
   });

@@ -73,6 +73,7 @@ GET /api/approvals/{approvalId}/issues
 ```
 
 For each linked issue:
+
 - Close it if the approval fully resolves the requested work
 - Comment on it explaining what happens next if it remains open
 

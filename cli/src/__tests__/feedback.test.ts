@@ -67,10 +67,21 @@ describe("registerFeedbackCommands", () => {
 
     expect(() => registerFeedbackCommands(program)).not.toThrow();
 
-    const feedback = program.commands.find((command) => command.name() === "feedback");
+    const feedback = program.commands.find(
+      (command) => command.name() === "feedback",
+    );
     expect(feedback).toBeDefined();
-    expect(feedback?.commands.map((command) => command.name())).toEqual(["report", "export"]);
-    expect(feedback?.commands[0]?.options.filter((option) => option.long === "--company-id")).toHaveLength(1);
+    expect(feedback?.commands.map((command) => command.name())).toEqual([
+      "report",
+      "export",
+      "trace",
+      "bundle",
+    ]);
+    expect(
+      feedback?.commands[0]?.options.filter(
+        (option) => option.long === "--company-id",
+      ),
+    ).toHaveLength(1);
   });
 });
 
@@ -128,7 +139,9 @@ describe("renderFeedbackReport", () => {
 
 describe("writeFeedbackExportBundle", () => {
   it("writes votes, traces, a manifest, and a zip archive", async () => {
-    const tempDir = await mkdtemp(path.join(os.tmpdir(), "taskcore-feedback-export-"));
+    const tempDir = await mkdtemp(
+      path.join(os.tmpdir(), "taskcore-feedback-export-"),
+    );
     const outputDir = path.join(tempDir, "feedback-export");
     const traces = [
       makeTrace(),
@@ -158,7 +171,9 @@ describe("writeFeedbackExportBundle", () => {
     expect(exported.manifest.summary.total).toBe(2);
     expect(exported.manifest.summary.withReason).toBe(1);
 
-    const manifest = JSON.parse(await readFile(path.join(outputDir, "index.json"), "utf8")) as {
+    const manifest = JSON.parse(
+      await readFile(path.join(outputDir, "index.json"), "utf8"),
+    ) as {
       files: { votes: string[]; traces: string[]; zip: string };
     };
     expect(manifest.files.votes).toHaveLength(2);

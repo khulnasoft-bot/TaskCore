@@ -1,32 +1,31 @@
-import os from "node:os";
 import path from "node:path";
+import {
+  expandHomePrefix,
+  resolveDefaultBackupDir as resolveSharedDefaultBackupDir,
+  resolveDefaultEmbeddedPostgresDir as resolveSharedDefaultEmbeddedPostgresDir,
+  resolveDefaultLogsDir as resolveSharedDefaultLogsDir,
+  resolveDefaultSecretsKeyFilePath as resolveSharedDefaultSecretsKeyFilePath,
+  resolveDefaultStorageDir as resolveSharedDefaultStorageDir,
+  resolveHomeAwarePath,
+  resolveTaskcoreConfigPathForInstance,
+  resolveTaskcoreHomeDir,
+  resolveTaskcoreInstanceId,
+  resolveTaskcoreInstanceRoot as resolveSharedTaskcoreInstanceRoot,
+} from "@taskcore/shared/home-paths";
 
-const DEFAULT_INSTANCE_ID = "default";
-const INSTANCE_ID_RE = /^[a-zA-Z0-9_-]+$/;
-
-export function resolveTaskcoreHomeDir(): string {
-  const envHome = process.env.TASKCORE_HOME?.trim();
-  if (envHome) return path.resolve(expandHomePrefix(envHome));
-  return path.resolve(os.homedir(), ".taskcore");
-}
-
-export function resolveTaskcoreInstanceId(override?: string): string {
-  const raw = override?.trim() || process.env.TASKCORE_INSTANCE_ID?.trim() || DEFAULT_INSTANCE_ID;
-  if (!INSTANCE_ID_RE.test(raw)) {
-    throw new Error(
-      `Invalid instance id '${raw}'. Allowed characters: letters, numbers, '_' and '-'.`,
-    );
-  }
-  return raw;
-}
+export {
+  expandHomePrefix,
+  resolveHomeAwarePath,
+  resolveTaskcoreHomeDir,
+  resolveTaskcoreInstanceId,
+};
 
 export function resolveTaskcoreInstanceRoot(instanceId?: string): string {
-  const id = resolveTaskcoreInstanceId(instanceId);
-  return path.resolve(resolveTaskcoreHomeDir(), "instances", id);
+  return resolveSharedTaskcoreInstanceRoot({ instanceId });
 }
 
 export function resolveDefaultConfigPath(instanceId?: string): string {
-  return path.resolve(resolveTaskcoreInstanceRoot(instanceId), "config.json");
+  return resolveTaskcoreConfigPathForInstance({ instanceId });
 }
 
 export function resolveDefaultContextPath(): string {
@@ -38,29 +37,23 @@ export function resolveDefaultCliAuthPath(): string {
 }
 
 export function resolveDefaultEmbeddedPostgresDir(instanceId?: string): string {
-  return path.resolve(resolveTaskcoreInstanceRoot(instanceId), "db");
+  return resolveSharedDefaultEmbeddedPostgresDir({ instanceId });
 }
 
 export function resolveDefaultLogsDir(instanceId?: string): string {
-  return path.resolve(resolveTaskcoreInstanceRoot(instanceId), "logs");
+  return resolveSharedDefaultLogsDir({ instanceId });
 }
 
 export function resolveDefaultSecretsKeyFilePath(instanceId?: string): string {
-  return path.resolve(resolveTaskcoreInstanceRoot(instanceId), "secrets", "master.key");
+  return resolveSharedDefaultSecretsKeyFilePath({ instanceId });
 }
 
 export function resolveDefaultStorageDir(instanceId?: string): string {
-  return path.resolve(resolveTaskcoreInstanceRoot(instanceId), "data", "storage");
+  return resolveSharedDefaultStorageDir({ instanceId });
 }
 
 export function resolveDefaultBackupDir(instanceId?: string): string {
-  return path.resolve(resolveTaskcoreInstanceRoot(instanceId), "data", "backups");
-}
-
-export function expandHomePrefix(value: string): string {
-  if (value === "~") return os.homedir();
-  if (value.startsWith("~/")) return path.resolve(os.homedir(), value.slice(2));
-  return value;
+  return resolveSharedDefaultBackupDir({ instanceId });
 }
 
 export function describeLocalInstancePaths(instanceId?: string) {
@@ -71,7 +64,8 @@ export function describeLocalInstancePaths(instanceId?: string) {
     instanceId: resolvedInstanceId,
     instanceRoot,
     configPath: resolveDefaultConfigPath(resolvedInstanceId),
-    embeddedPostgresDataDir: resolveDefaultEmbeddedPostgresDir(resolvedInstanceId),
+    embeddedPostgresDataDir:
+      resolveDefaultEmbeddedPostgresDir(resolvedInstanceId),
     backupDir: resolveDefaultBackupDir(resolvedInstanceId),
     logDir: resolveDefaultLogsDir(resolvedInstanceId),
     secretsKeyFilePath: resolveDefaultSecretsKeyFilePath(resolvedInstanceId),

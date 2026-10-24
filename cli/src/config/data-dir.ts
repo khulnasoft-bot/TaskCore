@@ -29,7 +29,9 @@ export function applyDataDirOverride(
   process.env.TASKCORE_HOME = resolvedDataDir;
 
   if (support.hasConfigOption) {
-    const hasConfigOverride = Boolean(options.config?.trim()) || Boolean(process.env.TASKCORE_CONFIG?.trim());
+    const hasConfigOverride =
+      Boolean(options.config?.trim()) ||
+      Boolean(process.env.TASKCORE_CONFIG?.trim());
     if (!hasConfigOverride) {
       const instanceId = resolveTaskcoreInstanceId(options.instance);
       process.env.TASKCORE_INSTANCE_ID = instanceId;
@@ -38,7 +40,9 @@ export function applyDataDirOverride(
   }
 
   if (support.hasContextOption) {
-    const hasContextOverride = Boolean(options.context?.trim()) || Boolean(process.env.TASKCORE_CONTEXT?.trim());
+    const hasContextOverride =
+      Boolean(options.context?.trim()) ||
+      Boolean(process.env.TASKCORE_CONTEXT?.trim());
     if (!hasContextOverride) {
       process.env.TASKCORE_CONTEXT = resolveDefaultContextPath();
     }

@@ -1,15 +1,22 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ApiConnectionError, ApiRequestError, TaskcoreApiClient } from "../client/http.js";
+import {
+  ApiConnectionError,
+  ApiRequestError,
+  TaskcoreApiClient,
+} from "../client/http.js";
 
 describe("TaskcoreApiClient", () => {
   afterEach(() => {
+    vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
 
   it("adds authorization and run-id headers", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ ok: true }), { status: 200 }),
-    );
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(JSON.stringify({ ok: true }), { status: 200 }),
+      );
     vi.stubGlobal("fetch", fetchMock);
 
     const client = new TaskcoreApiClient({
@@ -31,9 +38,11 @@ describe("TaskcoreApiClient", () => {
   });
 
   it("returns null on ignoreNotFound", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ error: "Not found" }), { status: 404 }),
-    );
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(JSON.stringify({ error: "Not found" }), { status: 404 }),
+      );
     vi.stubGlobal("fetch", fetchMock);
 
     const client = new TaskcoreApiClient({ apiBase: "http://localhost:3100" });
@@ -42,17 +51,24 @@ describe("TaskcoreApiClient", () => {
   });
 
   it("throws ApiRequestError with details", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response(
-        JSON.stringify({ error: "Issue checkout conflict", details: { issueId: "1" } }),
-        { status: 409 },
-      ),
-    );
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            error: "Issue checkout conflict",
+            details: { issueId: "1" },
+          }),
+          { status: 409 },
+        ),
+      );
     vi.stubGlobal("fetch", fetchMock);
 
     const client = new TaskcoreApiClient({ apiBase: "http://localhost:3100" });
 
-    await expect(client.post("/api/issues/1/checkout", {})).rejects.toMatchObject({
+    await expect(
+      client.post("/api/issues/1/checkout", {}),
+    ).rejects.toMatchObject({
       status: 409,
       message: "Issue checkout conflict",
       details: { issueId: "1" },
@@ -65,28 +81,38 @@ describe("TaskcoreApiClient", () => {
 
     const client = new TaskcoreApiClient({ apiBase: "http://localhost:3100" });
 
-    await expect(client.post("/api/companies/import/preview", {})).rejects.toBeInstanceOf(ApiConnectionError);
-    await expect(client.post("/api/companies/import/preview", {})).rejects.toMatchObject({
+    await expect(
+      client.post("/api/companies/import/preview", {}),
+    ).rejects.toBeInstanceOf(ApiConnectionError);
+    await expect(
+      client.post("/api/companies/import/preview", {}),
+    ).rejects.toMatchObject({
       url: "http://localhost:3100/api/companies/import/preview",
       method: "POST",
       causeMessage: "fetch failed",
     } satisfies Partial<ApiConnectionError>);
-    await expect(client.post("/api/companies/import/preview", {})).rejects.toThrow(
-      /Could not reach the Taskcore API\./,
-    );
-    await expect(client.post("/api/companies/import/preview", {})).rejects.toThrow(
-      /curl http:\/\/localhost:3100\/api\/health/,
-    );
-    await expect(client.post("/api/companies/import/preview", {})).rejects.toThrow(
-      /pnpm dev|pnpm taskcore run/,
-    );
+    await expect(
+      client.post("/api/companies/import/preview", {}),
+    ).rejects.toThrow(/Could not reach the Taskcore API\./);
+    await expect(
+      client.post("/api/companies/import/preview", {}),
+    ).rejects.toThrow(/curl http:\/\/localhost:3100\/api\/health/);
+    await expect(
+      client.post("/api/companies/import/preview", {}),
+    ).rejects.toThrow(/pnpm dev|npx taskcore run/);
   });
 
   it("retries once after interactive auth recovery", async () => {
     const fetchMock = vi
       .fn()
-      .mockResolvedValueOnce(new Response(JSON.stringify({ error: "Board access required" }), { status: 403 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true }), { status: 200 }));
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ error: "Board access required" }), {
+          status: 403,
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ ok: true }), { status: 200 }),
+      );
     vi.stubGlobal("fetch", fetchMock);
 
     const recoverAuth = vi.fn().mockResolvedValue("board-token-123");
@@ -95,12 +121,17 @@ describe("TaskcoreApiClient", () => {
       recoverAuth,
     });
 
-    const result = await client.post<{ ok: boolean }>("/api/test", { hello: "world" });
+    const result = await client.post<{ ok: boolean }>("/api/test", {
+      hello: "world",
+    });
 
     expect(result).toEqual({ ok: true });
     expect(recoverAuth).toHaveBeenCalledOnce();
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    const retryHeaders = fetchMock.mock.calls[1]?.[1]?.headers as Record<string, string>;
+    const retryHeaders = fetchMock.mock.calls[1]?.[1]?.headers as Record<
+      string,
+      string
+    >;
     expect(retryHeaders.authorization).toBe("Bearer board-token-123");
   });
 });

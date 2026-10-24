@@ -9,13 +9,17 @@ import {
   deploymentAuthCheck,
   llmCheck,
   logCheck,
+  managedInstallChecks,
+  nodeRuntimeCheck,
   portCheck,
   secretsCheck,
+  serviceHealthChecks,
   storageCheck,
   type CheckResult,
 } from "../checks/index.js";
 import { loadTaskcoreEnvFile } from "../config/env.js";
 import { printTaskcoreCliBanner } from "../utils/banner.js";
+import { printUpdateNotice } from "../update-notice.js";
 
 const STATUS_ICON = {
   pass: pc.green("✓"),
@@ -28,6 +32,7 @@ export async function doctor(opts: {
   repair?: boolean;
   yes?: boolean;
 }): Promise<{ passed: number; warned: number; failed: number }> {
+  await printUpdateNotice(opts.config);
   printTaskcoreCliBanner();
   p.intro(pc.bgCyan(pc.black(" taskcore doctor ")));
 
@@ -53,7 +58,8 @@ export async function doctor(opts: {
       status: "fail",
       message: `Could not read config: ${err instanceof Error ? err.message : String(err)}`,
       canRepair: false,
-      repairHint: "Run `taskcore configure --section database` or `taskcore onboard`",
+      repairHint:
+        "Run `taskcore configure --section database` or `taskcore onboard`",
     };
     results.push(readResult);
     printResult(readResult);
@@ -120,6 +126,21 @@ export async function doctor(opts: {
   results.push(portResult);
   printResult(portResult);
 
+  // 10. Runtime and managed install checks
+  const nodeResult = nodeRuntimeCheck();
+  results.push(nodeResult);
+  printResult(nodeResult);
+  for (const result of managedInstallChecks()) {
+    results.push(result);
+    printResult(result);
+  }
+
+  // 11. Background service checks
+  for (const result of await serviceHealthChecks(config)) {
+    results.push(result);
+    printResult(result);
+  }
+
   // Summary
   return printSummary(results);
 }
@@ -136,7 +157,8 @@ async function maybeRepair(
   result: CheckResult,
   opts: { repair?: boolean; yes?: boolean },
 ): Promise<boolean> {
-  if (result.status === "pass" || !result.canRepair || !result.repair) return false;
+  if (result.status === "pass" || !result.canRepair || !result.repair)
+    return false;
   if (!opts.repair) return false;
 
   let shouldRepair = opts.yes;
@@ -155,7 +177,9 @@ async function maybeRepair(
       p.log.success(`Repaired: ${result.name}`);
       return true;
     } catch (err) {
-      p.log.error(`Repair failed: ${err instanceof Error ? err.message : String(err)}`);
+      p.log.error(
+        `Repair failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
   }
   return false;
@@ -179,7 +203,11 @@ async function runRepairableCheck(input: {
   return result;
 }
 
-function printSummary(results: CheckResult[]): { passed: number; warned: number; failed: number } {
+function printSummary(results: CheckResult[]): {
+  passed: number;
+  warned: number;
+  failed: number;
+} {
   const passed = results.filter((r) => r.status === "pass").length;
   const warned = results.filter((r) => r.status === "warn").length;
   const failed = results.filter((r) => r.status === "fail").length;
@@ -192,7 +220,9 @@ function printSummary(results: CheckResult[]): { passed: number; warned: number;
   p.note(parts.join(", "), "Summary");
 
   if (failed > 0) {
-    p.outro(pc.red("Some checks failed. Fix the issues above and re-run doctor."));
+    p.outro(
+      pc.red("Some checks failed. Fix the issues above and re-run doctor."),
+    );
   } else if (warned > 0) {
     p.outro(pc.yellow("All critical checks passed with some warnings."));
   } else {
