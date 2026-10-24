@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { Command } from "commander";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CompanyPortabilityPreviewResult } from "@taskcore/shared";
 import {
   buildCompanyDashboardUrl,
@@ -8,9 +9,215 @@ import {
   buildSelectedFilesFromImportSelection,
   renderCompanyImportPreview,
   renderCompanyImportResult,
+  registerCompanyCommands,
   resolveCompanyImportApplyConfirmationMode,
   resolveCompanyImportApiPath,
 } from "../commands/client/company.js";
+
+const ORIGINAL_ENV = { ...process.env };
+const COMPANY_ID = "22222222-2222-4222-8222-222222222222";
+
+function makeProgram(): Command {
+  const program = new Command();
+  program.exitOverride();
+  program.configureOutput({
+    writeOut: () => undefined,
+    writeErr: () => undefined,
+  });
+  registerCompanyCommands(program);
+  return program;
+}
+
+async function runCommand(args: string[]): Promise<void> {
+  await makeProgram().parseAsync(args, { from: "user" });
+}
+
+function jsonResponse(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "content-type": "application/json" },
+  });
+}
+
+function company(overrides: Record<string, unknown> = {}) {
+  return {
+    id: COMPANY_ID,
+    name: "Taskcore",
+    description: null,
+    status: "active",
+    issuePrefix: "PAP",
+    issueCounter: 1,
+    budgetMonthlyCents: 0,
+    spentMonthlyCents: 0,
+    requireBoardApprovalForNewAgents: false,
+    feedbackDataSharingEnabled: false,
+    feedbackDataSharingConsentAt: null,
+    feedbackDataSharingConsentByUserId: null,
+    feedbackDataSharingTermsVersion: null,
+    logoAssetId: null,
+    createdAt: "2026-06-04T00:00:00.000Z",
+    updatedAt: "2026-06-04T00:00:00.000Z",
+    logoUrl: null,
+    ...overrides,
+  };
+}
+
+describe("company CLI commands", () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+  let logSpy: ReturnType<typeof vi.spyOn>;
+  let errorSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    process.env = { ...ORIGINAL_ENV };
+    delete process.env.TASKCORE_API_URL;
+    delete process.env.TASKCORE_API_KEY;
+    delete process.env.TASKCORE_COMPANY_ID;
+    fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    logSpy = vi.spyOn(console, "log").mockImplementation(() => undefined);
+    errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+  });
+
+  afterEach(() => {
+    process.env = { ...ORIGINAL_ENV };
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it("gets the current company from an explicit company context without board-wide listing", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse(company()));
+
+    await runCommand([
+      "company",
+      "current",
+      "--company-id",
+      COMPANY_ID,
+      "--api-base",
+      "http://taskcore.test",
+      "--api-key",
+      "agent-token",
+      "--json",
+    ]);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith(
+      `http://taskcore.test/api/companies/${COMPANY_ID}`,
+      expect.objectContaining({ method: "GET" }),
+    );
+    expect(JSON.parse(String(logSpy.mock.calls[0]?.[0]))).toMatchObject({
+      id: COMPANY_ID,
+      name: "Taskcore",
+    });
+  });
+
+  it("gets the current company from agent authentication when no company context is set", async () => {
+    fetchMock
+      .mockResolvedValueOnce(
+        jsonResponse({ id: "agent-1", companyId: COMPANY_ID }),
+      )
+      .mockResolvedValueOnce(jsonResponse(company()));
+
+    await runCommand([
+      "company",
+      "current",
+      "--api-base",
+      "http://taskcore.test",
+      "--api-key",
+      "agent-token",
+      "--json",
+    ]);
+
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      "http://taskcore.test/api/agents/me",
+      expect.objectContaining({ method: "GET" }),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      `http://taskcore.test/api/companies/${COMPANY_ID}`,
+      expect.objectContaining({ method: "GET" }),
+    );
+    expect(JSON.parse(String(logSpy.mock.calls[0]?.[0]))).toMatchObject({
+      id: COMPANY_ID,
+      name: "Taskcore",
+    });
+  });
+
+  it("lists the scoped agent company when board-wide company listing is denied", async () => {
+    fetchMock
+      .mockResolvedValueOnce(
+        jsonResponse({ error: "Board access required" }, 403),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({ id: "agent-1", companyId: COMPANY_ID }),
+      )
+      .mockResolvedValueOnce(jsonResponse(company()));
+
+    await runCommand([
+      "company",
+      "list",
+      "--api-base",
+      "http://taskcore.test",
+      "--api-key",
+      "agent-token",
+      "--json",
+    ]);
+
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      "http://taskcore.test/api/companies",
+      expect.objectContaining({ method: "GET" }),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      "http://taskcore.test/api/agents/me",
+      expect.objectContaining({ method: "GET" }),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      3,
+      `http://taskcore.test/api/companies/${COMPANY_ID}`,
+      expect.objectContaining({ method: "GET" }),
+    );
+    expect(JSON.parse(String(logSpy.mock.calls[0]?.[0]))).toMatchObject([
+      { id: COMPANY_ID, name: "Taskcore" },
+    ]);
+  });
+
+  it("explains that company creation requires board instance-admin authentication under agent auth", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({ error: "Board access required" }, 403),
+    );
+    vi.spyOn(process, "exit").mockImplementation(((
+      code?: string | number | null,
+    ) => {
+      throw new Error(`exit:${code ?? 0}`);
+    }) as typeof process.exit);
+
+    await expect(
+      runCommand([
+        "company",
+        "create",
+        "--payload-json",
+        '{"name":"Disposable"}',
+        "--api-base",
+        "http://taskcore.test",
+        "--api-key",
+        "agent-token",
+        "--json",
+      ]),
+    ).rejects.toThrow("exit:1");
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://taskcore.test/api/companies",
+      expect.objectContaining({ method: "POST" }),
+    );
+    const rendered = String(errorSpy.mock.calls[0]?.[0]);
+    expect(rendered).toContain(
+      "Creating companies requires board/instance-admin authentication",
+    );
+    expect(rendered).toContain("company list --json");
+  });
+});
 
 describe("resolveCompanyImportApiPath", () => {
   it("uses company-scoped preview route for existing-company dry runs", () => {
@@ -55,7 +262,7 @@ describe("resolveCompanyImportApiPath", () => {
         dryRun: true,
         targetMode: "existing_company",
         companyId: " ",
-      })
+      }),
     ).toThrow(/require a companyId/i);
   });
 });
@@ -87,7 +294,7 @@ describe("resolveCompanyImportApplyConfirmationMode", () => {
         yes: false,
         interactive: false,
         json: false,
-      })
+      }),
     ).toThrow(/non-interactive terminal requires --yes/i);
   });
 
@@ -97,16 +304,16 @@ describe("resolveCompanyImportApplyConfirmationMode", () => {
         yes: false,
         interactive: false,
         json: true,
-      })
+      }),
     ).toThrow(/with --json requires --yes/i);
   });
 });
 
 describe("buildCompanyDashboardUrl", () => {
   it("preserves the configured base path when building a dashboard URL", () => {
-    expect(buildCompanyDashboardUrl("https://taskcore.example/app/", "PAP")).toBe(
-      "https://taskcore.example/app/PAP/dashboard",
-    );
+    expect(
+      buildCompanyDashboardUrl("https://taskcore.example/app/", "PAP"),
+    ).toBe("https://taskcore.example/app/PAP/dashboard");
   });
 });
 
@@ -123,23 +330,84 @@ describe("renderCompanyImportPreview", () => {
       targetCompanyId: "company-123",
       targetCompanyName: "Imported Co",
       collisionStrategy: "rename",
-      selectedAgentSlugs: ["ceo", "cto", "eng-1", "eng-2", "eng-3", "eng-4", "eng-5"],
+      selectedAgentSlugs: [
+        "ceo",
+        "cto",
+        "eng-1",
+        "eng-2",
+        "eng-3",
+        "eng-4",
+        "eng-5",
+      ],
       plan: {
         companyAction: "update",
         agentPlans: [
-          { slug: "ceo", action: "create", plannedName: "CEO", existingAgentId: null, reason: null },
-          { slug: "cto", action: "update", plannedName: "CTO", existingAgentId: "agent-2", reason: "replace strategy" },
-          { slug: "eng-1", action: "skip", plannedName: "Engineer 1", existingAgentId: "agent-3", reason: "skip strategy" },
-          { slug: "eng-2", action: "create", plannedName: "Engineer 2", existingAgentId: null, reason: null },
-          { slug: "eng-3", action: "create", plannedName: "Engineer 3", existingAgentId: null, reason: null },
-          { slug: "eng-4", action: "create", plannedName: "Engineer 4", existingAgentId: null, reason: null },
-          { slug: "eng-5", action: "create", plannedName: "Engineer 5", existingAgentId: null, reason: null },
+          {
+            slug: "ceo",
+            action: "create",
+            plannedName: "CEO",
+            existingAgentId: null,
+            reason: null,
+          },
+          {
+            slug: "cto",
+            action: "update",
+            plannedName: "CTO",
+            existingAgentId: "agent-2",
+            reason: "replace strategy",
+          },
+          {
+            slug: "eng-1",
+            action: "skip",
+            plannedName: "Engineer 1",
+            existingAgentId: "agent-3",
+            reason: "skip strategy",
+          },
+          {
+            slug: "eng-2",
+            action: "create",
+            plannedName: "Engineer 2",
+            existingAgentId: null,
+            reason: null,
+          },
+          {
+            slug: "eng-3",
+            action: "create",
+            plannedName: "Engineer 3",
+            existingAgentId: null,
+            reason: null,
+          },
+          {
+            slug: "eng-4",
+            action: "create",
+            plannedName: "Engineer 4",
+            existingAgentId: null,
+            reason: null,
+          },
+          {
+            slug: "eng-5",
+            action: "create",
+            plannedName: "Engineer 5",
+            existingAgentId: null,
+            reason: null,
+          },
         ],
         projectPlans: [
-          { slug: "alpha", action: "create", plannedName: "Alpha", existingProjectId: null, reason: null },
+          {
+            slug: "alpha",
+            action: "create",
+            plannedName: "Alpha",
+            existingProjectId: null,
+            reason: null,
+          },
         ],
         issuePlans: [
-          { slug: "kickoff", action: "create", plannedTitle: "Kickoff", reason: null },
+          {
+            slug: "kickoff",
+            action: "create",
+            plannedTitle: "Kickoff",
+            reason: null,
+          },
         ],
       },
       manifest: {
@@ -160,7 +428,6 @@ describe("renderCompanyImportPreview", () => {
           path: "COMPANY.md",
           name: "Source Co",
           description: null,
-          brandColor: null,
           logoPath: null,
           requireBoardApprovalForNewAgents: false,
           feedbackDataSharingEnabled: false,
@@ -183,10 +450,13 @@ describe("renderCompanyImportPreview", () => {
             icon: null,
             capabilities: null,
             reportsToSlug: null,
+            reportsToExistingAgentId: null,
+            reportsToExistingAgentSlug: null,
             adapterType: "codex_local",
             adapterConfig: {},
             runtimeConfig: {},
             permissions: {},
+            permissionGrants: [],
             budgetMonthlyCents: 0,
             metadata: null,
           },
@@ -217,6 +487,7 @@ describe("renderCompanyImportPreview", () => {
             leadAgentSlug: null,
             targetDate: null,
             color: null,
+            icon: null,
             status: null,
             executionWorkspacePolicy: null,
             workspaces: [],
@@ -243,6 +514,7 @@ describe("renderCompanyImportPreview", () => {
             billingCode: null,
             executionWorkspaceSettings: null,
             assigneeAdapterOverrides: null,
+            comments: [],
             metadata: null,
           },
         ],
@@ -307,14 +579,70 @@ describe("renderCompanyImportResult", () => {
           action: "updated",
         },
         agents: [
-          { slug: "ceo", id: "agent-1", action: "created", name: "CEO", reason: null },
-          { slug: "cto", id: "agent-2", action: "updated", name: "CTO", reason: "replace strategy" },
-          { slug: "ops", id: null, action: "skipped", name: "Ops", reason: "skip strategy" },
+          {
+            slug: "ceo",
+            id: "agent-1",
+            action: "created",
+            name: "CEO",
+            reason: null,
+          },
+          {
+            slug: "cto",
+            id: "agent-2",
+            action: "updated",
+            name: "CTO",
+            reason: "replace strategy",
+          },
+          {
+            slug: "ops",
+            id: null,
+            action: "skipped",
+            name: "Ops",
+            reason: "skip strategy",
+          },
+        ],
+        skills: [
+          {
+            originalKey: "company/source/review",
+            originalSlug: "review",
+            key: "company/target/review-2",
+            slug: "review-2",
+            id: "skill-1",
+            action: "renamed",
+            reason: "rename strategy",
+          },
         ],
         projects: [
-          { slug: "app", id: "project-1", action: "created", name: "App", reason: null },
-          { slug: "ops", id: "project-2", action: "updated", name: "Operations", reason: "replace strategy" },
-          { slug: "archive", id: null, action: "skipped", name: "Archive", reason: "skip strategy" },
+          {
+            slug: "app",
+            id: "project-1",
+            action: "created",
+            name: "App",
+            reason: null,
+          },
+          {
+            slug: "ops",
+            id: "project-2",
+            action: "updated",
+            name: "Operations",
+            reason: "replace strategy",
+          },
+          {
+            slug: "archive",
+            id: null,
+            action: "skipped",
+            name: "Archive",
+            reason: "skip strategy",
+          },
+        ],
+        routines: [
+          {
+            slug: "weekly-report",
+            id: "routine-1",
+            action: "created",
+            title: "Weekly report",
+            status: "paused",
+          },
         ],
         envInputs: [],
         warnings: ["Review API keys"],
@@ -328,9 +656,15 @@ describe("renderCompanyImportResult", () => {
 
     expect(rendered).toContain("Company");
     expect(rendered).toContain("https://taskcore.example/PAP/dashboard");
-    expect(rendered).toContain("3 agents total (1 created, 1 updated, 1 skipped)");
-    expect(rendered).toContain("3 projects total (1 created, 1 updated, 1 skipped)");
+    expect(rendered).toContain(
+      "3 agents total (1 created, 1 updated, 1 skipped)",
+    );
+    expect(rendered).toContain("1 skill total (1 renamed)");
+    expect(rendered).toContain(
+      "3 projects total (1 created, 1 updated, 1 skipped)",
+    );
     expect(rendered).toContain("Agent results");
+    expect(rendered).toContain("Skill results");
     expect(rendered).toContain("Project results");
     expect(rendered).toContain("Using claude-local adapter");
     expect(rendered).toContain("Review API keys");
@@ -375,7 +709,6 @@ describe("import selection catalog", () => {
           path: "COMPANY.md",
           name: "Source Co",
           description: null,
-          brandColor: null,
           logoPath: "images/company-logo.png",
           requireBoardApprovalForNewAgents: false,
           feedbackDataSharingEnabled: false,
@@ -398,10 +731,13 @@ describe("import selection catalog", () => {
             icon: null,
             capabilities: null,
             reportsToSlug: null,
+            reportsToExistingAgentId: null,
+            reportsToExistingAgentSlug: null,
             adapterType: "codex_local",
             adapterConfig: {},
             runtimeConfig: {},
             permissions: {},
+            permissionGrants: [],
             budgetMonthlyCents: 0,
             metadata: null,
           },
@@ -432,6 +768,7 @@ describe("import selection catalog", () => {
             leadAgentSlug: null,
             targetDate: null,
             color: null,
+            icon: null,
             status: null,
             executionWorkspacePolicy: null,
             workspaces: [],
@@ -458,6 +795,7 @@ describe("import selection catalog", () => {
             billingCode: null,
             executionWorkspaceSettings: null,
             assigneeAdapterOverrides: null,
+            comments: [],
             metadata: null,
           },
         ],
@@ -505,8 +843,89 @@ describe("import selection catalog", () => {
     expect(selectedFiles).toContain(".taskcore.yaml");
     expect(selectedFiles).toContain("projects/alpha/PROJECT.md");
     expect(selectedFiles).toContain("projects/alpha/notes.md");
-    expect(selectedFiles).not.toContain("projects/alpha/issues/kickoff/TASK.md");
-    expect(selectedFiles).not.toContain("projects/alpha/issues/kickoff/details.md");
+    expect(selectedFiles).not.toContain(
+      "projects/alpha/issues/kickoff/TASK.md",
+    );
+    expect(selectedFiles).not.toContain(
+      "projects/alpha/issues/kickoff/details.md",
+    );
+  });
+
+  it("includes extension file even when all entities are deselected", () => {
+    const preview: CompanyPortabilityPreviewResult = {
+      include: {
+        company: true,
+        agents: true,
+        projects: true,
+        issues: true,
+        skills: true,
+      },
+      targetCompanyId: "company-123",
+      targetCompanyName: "Imported Co",
+      collisionStrategy: "rename",
+      selectedAgentSlugs: [],
+      plan: {
+        companyAction: "create",
+        agentPlans: [],
+        projectPlans: [],
+        issuePlans: [],
+      },
+      manifest: {
+        schemaVersion: 1,
+        generatedAt: "2026-03-23T18:00:00.000Z",
+        source: {
+          companyId: "company-src",
+          companyName: "Source Co",
+        },
+        includes: {
+          company: true,
+          agents: true,
+          projects: true,
+          issues: true,
+          skills: true,
+        },
+        company: {
+          path: "COMPANY.md",
+          name: "Source Co",
+          description: null,
+          logoPath: null,
+          requireBoardApprovalForNewAgents: false,
+          feedbackDataSharingEnabled: false,
+          feedbackDataSharingConsentAt: null,
+          feedbackDataSharingConsentByUserId: null,
+          feedbackDataSharingTermsVersion: null,
+        },
+        sidebar: {
+          agents: [],
+          projects: [],
+        },
+        agents: [],
+        skills: [],
+        projects: [],
+        issues: [],
+        envInputs: [],
+      },
+      files: {
+        ".taskcore.yaml": "schema: taskcore/v1\n",
+      },
+      envInputs: [],
+      warnings: [],
+      errors: [],
+    };
+
+    const catalog = buildImportSelectionCatalog(preview);
+    const state = buildDefaultImportSelectionState(catalog);
+
+    state.company = false;
+    state.projects.clear();
+    state.issues.clear();
+    state.agents.clear();
+    state.skills.clear();
+
+    const selectedFiles = buildSelectedFilesFromImportSelection(catalog, state);
+
+    expect(selectedFiles).toContain(".taskcore.yaml");
+    expect(selectedFiles).toHaveLength(1);
   });
 });
 
@@ -554,10 +973,13 @@ describe("default adapter overrides", () => {
             icon: null,
             capabilities: null,
             reportsToSlug: null,
+            reportsToExistingAgentId: null,
+            reportsToExistingAgentSlug: null,
             adapterType: "process",
             adapterConfig: {},
             runtimeConfig: {},
             permissions: {},
+            permissionGrants: [],
             budgetMonthlyCents: 0,
             metadata: null,
           },
@@ -571,10 +993,13 @@ describe("default adapter overrides", () => {
             icon: null,
             capabilities: null,
             reportsToSlug: null,
+            reportsToExistingAgentId: null,
+            reportsToExistingAgentSlug: null,
             adapterType: "codex_local",
             adapterConfig: {},
             runtimeConfig: {},
             permissions: {},
+            permissionGrants: [],
             budgetMonthlyCents: 0,
             metadata: null,
           },

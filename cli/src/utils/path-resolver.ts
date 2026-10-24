@@ -6,7 +6,10 @@ function unique(items: string[]): string[] {
   return Array.from(new Set(items));
 }
 
-export function resolveRuntimeLikePath(value: string, configPath?: string): string {
+export function resolveRuntimeLikePath(
+  value: string,
+  configPath?: string,
+): string {
   const expanded = expandHomePrefix(value);
   if (path.isAbsolute(expanded)) return path.resolve(expanded);
 
@@ -21,5 +24,7 @@ export function resolveRuntimeLikePath(value: string, configPath?: string): stri
     path.resolve(cwd, expanded),
   ]);
 
-  return candidates.find((candidate) => fs.existsSync(candidate)) ?? candidates[0];
+  return (
+    candidates.find((candidate) => fs.existsSync(candidate)) ?? candidates[0]
+  );
 }

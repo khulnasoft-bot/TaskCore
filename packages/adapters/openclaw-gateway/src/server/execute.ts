@@ -7,9 +7,15 @@ import {
   asNumber,
   asString,
   buildTaskcoreEnv,
+  buildRuntimeToolsEnv,
   parseObject,
-  renderTaskcoreWakePrompt,
+  readTaskcoreIssueWorkModeFromContext,
+  hydrateFreshSessionHandoff,
+  selectTaskcorePromptSections,
+  selectInitialCommunicationGuidance,
+  joinPromptSections,
   stringifyTaskcoreWakePayload,
+  taskcoreWakeCommentsArePromptOwned,
 } from "@taskcore/adapter-utils/server-utils";
 import crypto, { randomUUID } from "node:crypto";
 import { WebSocket } from "ws";
@@ -85,7 +91,7 @@ type GatewayClientRequestOptions = {
   expectFinal?: boolean;
 };
 
-const PROTOCOL_VERSION = 3;
+const PROTOCOL_VERSION = 4;
 const DEFAULT_SCOPES = ["operator.admin"];
 const DEFAULT_CLIENT_ID = "gateway-client";
 const DEFAULT_CLIENT_MODE = "backend";
@@ -242,7 +248,11 @@ function resolveAuthToken(config: Record<string, unknown>, headers: Record<strin
   const authHeader =
     headerMapGetIgnoreCase(headers, "x-openclaw-auth") ??
     headerMapGetIgnoreCase(headers, "authorization");
-  return tokenFromAuthHeader(authHeader);
+  const fromHeader = tokenFromAuthHeader(authHeader);
+  if (fromHeader) return fromHeader;
+
+  // Fallback to environment variable
+  return nonEmpty(process.env.OPENCLAW_TOKEN);
 }
 
 function isSensitiveLogKey(key: string): boolean {
@@ -332,7 +342,7 @@ function resolveTaskcoreApiUrlOverride(value: unknown): string | null {
 
 const DEFAULT_CLAIMED_API_KEY_PATH = "~/.openclaw/workspace/taskcore-claimed-api-key.json";
 
-function resolveClaimedApiKeyPath(value: unknown): string {
+export function resolveClaimedApiKeyPath(value: unknown): string {
   return nonEmpty(value) ?? DEFAULT_CLAIMED_API_KEY_PATH;
 }
 
@@ -340,6 +350,7 @@ function buildTaskcoreEnvForWake(ctx: AdapterExecutionContext, wakePayload: Wake
   const taskcoreApiUrlOverride = resolveTaskcoreApiUrlOverride(ctx.config.taskcoreApiUrl);
   const taskcoreEnv: Record<string, string> = {
     ...buildTaskcoreEnv(ctx.agent),
+    ...buildRuntimeToolsEnv(ctx.runtimeTools),
     TASKCORE_RUN_ID: ctx.runId,
   };
 
@@ -347,6 +358,8 @@ function buildTaskcoreEnvForWake(ctx: AdapterExecutionContext, wakePayload: Wake
     taskcoreEnv.TASKCORE_API_URL = taskcoreApiUrlOverride;
   }
   if (wakePayload.taskId) taskcoreEnv.TASKCORE_TASK_ID = wakePayload.taskId;
+  const issueWorkMode = readTaskcoreIssueWorkModeFromContext(ctx.context);
+  if (issueWorkMode) taskcoreEnv.TASKCORE_ISSUE_WORK_MODE = issueWorkMode;
   if (wakePayload.wakeReason) taskcoreEnv.TASKCORE_WAKE_REASON = wakePayload.wakeReason;
   if (wakePayload.wakeCommentId) taskcoreEnv.TASKCORE_WAKE_COMMENT_ID = wakePayload.wakeCommentId;
   if (wakePayload.approvalId) taskcoreEnv.TASKCORE_APPROVAL_ID = wakePayload.approvalId;
@@ -362,8 +375,9 @@ function buildWakeText(
   payload: WakePayload,
   taskcoreEnv: Record<string, string>,
   structuredWakePrompt: string,
+  claimedApiKeyPath: string,
+  conversationTaskMarkdown?: string,
 ): string {
-  const claimedApiKeyPath = "~/.openclaw/workspace/taskcore-claimed-api-key.json";
   const orderedKeys = [
     "TASKCORE_RUN_ID",
     "TASKCORE_AGENT_ID",
@@ -386,6 +400,19 @@ function buildWakeText(
 
   const issueIdHint = payload.taskId ?? payload.issueId ?? "";
   const apiBaseHint = taskcoreEnv.TASKCORE_API_URL ?? "<set TASKCORE_API_URL>";
+
+  if (conversationTaskMarkdown !== undefined) {
+    return [
+      "Taskcore conversation turn for a cloud adapter.",
+      "Set these values in your run context:",
+      ...envLines,
+      `Load TASKCORE_API_KEY from ${claimedApiKeyPath} (the token saved after claim-api-key).`,
+      "Use Authorization: Bearer $TASKCORE_API_KEY on every API call and X-Taskcore-Run-Id: $TASKCORE_RUN_ID on every mutation.",
+      "Follow the supplied chat mode directive. Keep this conversation available for the next message.",
+      structuredWakePrompt,
+      conversationTaskMarkdown,
+    ].join("\n\n");
+  }
 
   const lines = [
     "Taskcore wake event for a cloud adapter.",
@@ -416,6 +443,7 @@ function buildWakeText(
     "Workflow:",
     "1) GET /api/agents/me",
     `2) Determine issueId: TASKCORE_TASK_ID if present, otherwise issue_id (${issueIdHint}).`,
+    '   Replace {issueId} in every endpoint below with that determined id. Never send the literal text "{issueId}" in a URL.',
     "3) If issueId exists:",
     "   - POST /api/issues/{issueId}/checkout with {\"agentId\":\"$TASKCORE_AGENT_ID\",\"expectedStatuses\":[\"todo\",\"backlog\",\"blocked\",\"in_review\"]}",
     "   - GET /api/issues/{issueId}",
@@ -463,60 +491,32 @@ function joinWakePayloadSections(structuredWakePrompt: string, structuredWakeJso
   return sections.join("\n");
 }
 
-function buildStandardTaskcorePayload(
-  ctx: AdapterExecutionContext,
-  wakePayload: WakePayload,
-  taskcoreEnv: Record<string, string>,
-  payloadTemplate: Record<string, unknown>,
-): Record<string, unknown> {
-  const templateTaskcore = parseObject(payloadTemplate.taskcore);
-  const workspace = asRecord(ctx.context.taskcoreWorkspace);
-  const workspaces = Array.isArray(ctx.context.taskcoreWorkspaces)
-    ? ctx.context.taskcoreWorkspaces.filter((entry): entry is Record<string, unknown> => Boolean(asRecord(entry)))
-    : [];
-  const configuredWorkspaceRuntime = parseObject(ctx.config.workspaceRuntime);
-  const runtimeServiceIntents = Array.isArray(ctx.context.taskcoreRuntimeServiceIntents)
-    ? ctx.context.taskcoreRuntimeServiceIntents.filter(
-        (entry): entry is Record<string, unknown> => Boolean(asRecord(entry)),
-      )
-    : [];
-
-  const standardTaskcore: Record<string, unknown> = {
-    runId: ctx.runId,
-    companyId: ctx.agent.companyId,
-    agentId: ctx.agent.id,
-    agentName: ctx.agent.name,
-    taskId: wakePayload.taskId,
-    issueId: wakePayload.issueId,
-    issueIds: wakePayload.issueIds,
-    wakeReason: wakePayload.wakeReason,
-    wakeCommentId: wakePayload.wakeCommentId,
-    approvalId: wakePayload.approvalId,
-    approvalStatus: wakePayload.approvalStatus,
-    apiUrl: taskcoreEnv.TASKCORE_API_URL ?? null,
+export function buildAgentParams(input: {
+  payloadTemplate: Record<string, unknown>;
+  message: string;
+  sessionKey: string;
+  runId: string;
+  configuredAgentId: string | null;
+  waitTimeoutMs: number;
+}): Record<string, unknown> {
+  const agentParams: Record<string, unknown> = {
+    ...input.payloadTemplate,
+    message: input.message,
+    sessionKey: input.sessionKey,
+    idempotencyKey: input.runId,
   };
-  const structuredWake = parseObject(ctx.context.taskcoreWake);
-  if (Object.keys(structuredWake).length > 0) {
-    standardTaskcore.wake = structuredWake;
+  delete agentParams.text;
+  delete agentParams.taskcore;
+
+  if (input.configuredAgentId && !nonEmpty(agentParams.agentId)) {
+    agentParams.agentId = input.configuredAgentId;
   }
 
-  if (workspace) {
-    standardTaskcore.workspace = workspace;
-  }
-  if (workspaces.length > 0) {
-    standardTaskcore.workspaces = workspaces;
-  }
-  if (runtimeServiceIntents.length > 0 || Object.keys(configuredWorkspaceRuntime).length > 0) {
-    standardTaskcore.workspaceRuntime = {
-      ...configuredWorkspaceRuntime,
-      ...(runtimeServiceIntents.length > 0 ? { services: runtimeServiceIntents } : {}),
-    };
+  if (typeof agentParams.timeout !== "number") {
+    agentParams.timeout = input.waitTimeoutMs;
   }
 
-  return {
-    ...templateTaskcore,
-    ...standardTaskcore,
-  };
+  return agentParams;
 }
 
 function normalizeUrl(input: string): URL | null {
@@ -1105,47 +1105,54 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
 
   const wakePayload = buildWakePayload(ctx);
   const taskcoreEnv = buildTaskcoreEnvForWake(ctx, wakePayload);
-  const structuredWakePrompt = renderTaskcoreWakePrompt(ctx.context.taskcoreWake);
-  const structuredWakeJson = stringifyTaskcoreWakePayload(ctx.context.taskcoreWake);
+  // No heartbeat prompt template is sent over the gateway, so the wake prompt
+  // must carry the execution contract itself.
+  await hydrateFreshSessionHandoff(ctx, { resumedSession: Boolean(ctx.runtime?.sessionId) });
+  const { taskContextNote, wakePrompt: structuredWakePrompt } = selectTaskcorePromptSections(ctx.context, {
+    resumedSession: Boolean(ctx.runtime?.sessionId),
+    includeExecutionContract: true,
+    includeCommunicationGuidance: false,
+  });
+  const structuredWakeJson = taskcoreWakeCommentsArePromptOwned(ctx.context)
+    ? null
+    : stringifyTaskcoreWakePayload(ctx.context.taskcoreWake, {
+        omitIssueDescription: Boolean(taskContextNote),
+      });
   const wakeText = buildWakeText(
     wakePayload,
     taskcoreEnv,
     structuredWakeJson
       ? joinWakePayloadSections(structuredWakePrompt, structuredWakeJson)
       : structuredWakePrompt,
+    resolveClaimedApiKeyPath(ctx.config.claimedApiKeyPath),
+    taskContextNote || undefined,
   );
 
   const sessionKeyStrategy = normalizeSessionKeyStrategy(ctx.config.sessionKeyStrategy);
   const configuredSessionKey = nonEmpty(ctx.config.sessionKey);
+  const configuredAgentId = nonEmpty(ctx.config.agentId);
   const sessionKey = resolveSessionKey({
     strategy: sessionKeyStrategy,
     configuredSessionKey,
-    agentId: nonEmpty(ctx.config.agentId),
+    agentId: configuredAgentId,
     runId: ctx.runId,
     issueId: wakePayload.issueId,
   });
 
   const templateMessage = nonEmpty(payloadTemplate.message) ?? nonEmpty(payloadTemplate.text);
-  const message = templateMessage ? appendWakeText(templateMessage, wakeText) : wakeText;
-  const taskcorePayload = buildStandardTaskcorePayload(ctx, wakePayload, taskcoreEnv, payloadTemplate);
+  const message = joinPromptSections([
+    selectInitialCommunicationGuidance(ctx.context, { resumedSession: Boolean(ctx.runtime?.sessionId) }),
+    templateMessage ? appendWakeText(templateMessage, wakeText) : wakeText,
+  ]);
 
-  const agentParams: Record<string, unknown> = {
-    ...payloadTemplate,
+  const agentParams = buildAgentParams({
+    payloadTemplate,
     message,
     sessionKey,
-    idempotencyKey: ctx.runId,
-  };
-  delete agentParams.text;
-  agentParams.taskcore = taskcorePayload;
-
-  const configuredAgentId = nonEmpty(ctx.config.agentId);
-  if (configuredAgentId && !nonEmpty(agentParams.agentId)) {
-    agentParams.agentId = configuredAgentId;
-  }
-
-  if (typeof agentParams.timeout !== "number") {
-    agentParams.timeout = waitTimeoutMs;
-  }
+    runId: ctx.runId,
+    configuredAgentId,
+    waitTimeoutMs,
+  });
 
   if (ctx.onMeta) {
     await ctx.onMeta({
@@ -1182,6 +1189,15 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   const autoPairOnFirstConnect = parseBoolean(ctx.config.autoPairOnFirstConnect, true);
   let autoPairAttempted = false;
   let latestResultPayload: unknown = null;
+  let retryCount = 0;
+  let dispatchReported = false;
+  const MAX_RETRIES = 2;
+
+  const reportDispatch = () => {
+    if (dispatchReported) return;
+    dispatchReported = true;
+    ctx.onDispatch?.();
+  };
 
   while (true) {
     const trackedRunIds = new Set<string>([ctx.runId]);
@@ -1310,6 +1326,11 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
         `[openclaw-gateway] connected protocol=${asNumber(asRecord(hello)?.protocol, PROTOCOL_VERSION)}\n`,
       );
 
+      // Keep any server-side continuation lock through retryable websocket
+      // setup and backoff. The first agent request is the remote-work boundary:
+      // once it is sent, retrying would be unsafe because the gateway may have
+      // accepted work even if the response is lost.
+      reportDispatch();
       const acceptedPayload = await client.request<Record<string, unknown>>("agent", agentParams, {
         timeoutMs: connectTimeoutMs,
       });
@@ -1469,6 +1490,25 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
           "stderr",
           `[openclaw-gateway] auto-pairing failed: ${pairResult.reason}\n`,
         );
+      }
+
+      // Retry transient errors (connection refused, reset, socket hang up)
+      const isTransient =
+        !pairingRequired &&
+        (lower.includes("econnrefused") ||
+          lower.includes("econnreset") ||
+          lower.includes("socket hang up") ||
+          (timedOut && !lower.includes("agent.wait")));
+
+      if (isTransient && !dispatchReported && retryCount < MAX_RETRIES) {
+        retryCount++;
+        const backoffMs = retryCount * 2000;
+        await ctx.onLog(
+          "stdout",
+          `[openclaw-gateway] transient error, retry ${retryCount}/${MAX_RETRIES} after ${backoffMs}ms: ${message}\n`,
+        );
+        await new Promise((r) => setTimeout(r, backoffMs));
+        continue;
       }
 
       const detailedMessage = pairingRequired

@@ -29,6 +29,16 @@ my-company/
 - **SKILL.md** files are compatible with the Agent Skills ecosystem.
 - **.taskcore.yaml** holds Taskcore-specific config (adapter types, env inputs, budgets) as an optional sidecar.
 
+## Export & Import in the App
+
+Both flows are also available in the web UI as company settings pages: **Export** and **Import** appear in the company settings navigation.
+
+> **Cloud-managed instances:** when a hosting platform manages the instance, the company is provisioned by the platform and importing is disabled — the Import page and buttons are hidden, and every import API route answers `403` with `code: "cloud_managed"`. Export stays available, so you can always take your company's data with you. Self-hosted instances keep the full import surface.
+
+The **Export** page lets you pick exactly which files go into the bundle before downloading it. Above the file tree it shows a **"Not included in this export"** panel — the export fidelity report — listing data the bundle will not carry (for example attachments, approvals, cost history, or activity log entries), with blocking issues highlighted.
+
+The **Import** page previews the package, lets you resolve name collisions and adapter assignments, and applies the import. A **"Start imported agents and routines paused"** checkbox (on by default) makes imported agents and routines land paused instead of live. After the import finishes, an **"Activate imported agents and routines"** panel lists everything that was imported paused so you can resume the agents and activate the routines you select — nothing starts running until you say so.
+
 ## Exporting a Company
 
 Export a company into a portable folder:
@@ -39,15 +49,15 @@ taskcore company export <company-id> --out ./my-export
 
 ### Options
 
-| Option | Description | Default |
-|--------|-------------|---------|
-| `--out <path>` | Output directory (required) | — |
-| `--include <values>` | Comma-separated set: `company`, `agents`, `projects`, `issues`, `tasks`, `skills` | `company,agents` |
-| `--skills <values>` | Export only specific skill slugs | all |
-| `--projects <values>` | Export only specific project shortnames or IDs | all |
-| `--issues <values>` | Export specific issue identifiers or IDs | none |
-| `--project-issues <values>` | Export issues belonging to specific projects | none |
-| `--expand-referenced-skills` | Vendor skill file contents instead of keeping upstream references | `false` |
+| Option                       | Description                                                                       | Default          |
+| ---------------------------- | --------------------------------------------------------------------------------- | ---------------- |
+| `--out <path>`               | Output directory (required)                                                       | —                |
+| `--include <values>`         | Comma-separated set: `company`, `agents`, `projects`, `issues`, `tasks`, `skills` | `company,agents` |
+| `--skills <values>`          | Export only specific skill slugs                                                  | all              |
+| `--projects <values>`        | Export only specific project shortnames or IDs                                    | all              |
+| `--issues <values>`          | Export specific issue identifiers or IDs                                          | none             |
+| `--project-issues <values>`  | Export issues belonging to specific projects                                      | none             |
+| `--expand-referenced-skills` | Vendor skill file contents instead of keeping upstream references                 | `false`          |
 
 ### Examples
 
@@ -94,18 +104,18 @@ taskcore company import org/repo/companies/acme
 
 ### Options
 
-| Option | Description | Default |
-|--------|-------------|---------|
-| `--target <mode>` | `new` (create a new company) or `existing` (merge into existing) | inferred from context |
-| `--company-id <id>` | Target company ID for `--target existing` | current context |
-| `--new-company-name <name>` | Override company name for `--target new` | from package |
-| `--include <values>` | Comma-separated set: `company`, `agents`, `projects`, `issues`, `tasks`, `skills` | auto-detected |
-| `--agents <list>` | Comma-separated agent slugs to import, or `all` | `all` |
-| `--collision <mode>` | How to handle name conflicts: `rename`, `skip`, or `replace` | `rename` |
-| `--ref <value>` | Git ref for GitHub imports (branch, tag, or commit) | default branch |
-| `--dry-run` | Preview what would be imported without applying | `false` |
-| `--yes` | Skip the interactive confirmation prompt | `false` |
-| `--json` | Output result as JSON | `false` |
+| Option                      | Description                                                                       | Default               |
+| --------------------------- | --------------------------------------------------------------------------------- | --------------------- |
+| `--target <mode>`           | `new` (create a new company) or `existing` (merge into existing)                  | inferred from context |
+| `--company-id <id>`         | Target company ID for `--target existing`                                         | current context       |
+| `--new-company-name <name>` | Override company name for `--target new`                                          | from package          |
+| `--include <values>`        | Comma-separated set: `company`, `agents`, `projects`, `issues`, `tasks`, `skills` | auto-detected         |
+| `--agents <list>`           | Comma-separated agent slugs to import, or `all`                                   | `all`                 |
+| `--collision <mode>`        | How to handle name conflicts: `rename`, `skip`, or `replace`                      | `rename`              |
+| `--ref <value>`             | Git ref for GitHub imports (branch, tag, or commit)                               | default branch        |
+| `--dry-run`                 | Preview what would be imported without applying                                   | `false`               |
+| `--yes`                     | Skip the interactive confirmation prompt                                          | `false`               |
+| `--json`                    | Output result as JSON                                                             | `false`               |
 
 ### Target Modes
 
@@ -135,12 +145,15 @@ taskcore company import org/repo --target existing --company-id abc123 --dry-run
 ```
 
 The preview shows:
+
 - **Package contents** — How many agents, projects, tasks, and skills are in the source
 - **Import plan** — What will be created, renamed, skipped, or replaced
 - **Env inputs** — Environment variables that may need values after import
 - **Warnings** — Potential issues like missing skills or unresolved references
 
 Imported agents always land with timer heartbeats disabled. Assignment/on-demand wake behavior from the package is preserved, but scheduled runs stay off until a board operator re-enables them.
+
+Imports can additionally request `pauseAutomations` (the default in the app's Import page) so imported agents and routines land fully paused. Use the post-import activation panel — or resume the agents and activate the routines individually — when you are ready for them to run.
 
 ### Common Workflows
 
@@ -181,13 +194,16 @@ taskcore company import ./package \
 
 The CLI commands use these API endpoints under the hood:
 
-| Action | Endpoint |
-|--------|----------|
-| Export company | `POST /api/companies/{companyId}/export` |
+| Action                            | Endpoint                                          |
+| --------------------------------- | ------------------------------------------------- |
+| Export company                    | `POST /api/companies/{companyId}/export`          |
+| Export fidelity report            | `GET /api/companies/{companyId}/export/fidelity`  |
 | Preview import (existing company) | `POST /api/companies/{companyId}/imports/preview` |
-| Apply import (existing company) | `POST /api/companies/{companyId}/imports/apply` |
-| Preview import (new company) | `POST /api/companies/import/preview` |
-| Apply import (new company) | `POST /api/companies/import` |
+| Apply import (existing company)   | `POST /api/companies/{companyId}/imports/apply`   |
+| Preview import (new company)      | `POST /api/companies/import/preview`              |
+| Apply import (new company)        | `POST /api/companies/import`                      |
+
+Import apply requests accept `pauseAutomations: true` to create imported agents and routines in a paused state.
 
 CEO agents can also use the safe import routes (`/imports/preview` and `/imports/apply`) which enforce non-destructive rules: `replace` is rejected, collisions resolve with `rename` or `skip`, and issues are always created as new.
 

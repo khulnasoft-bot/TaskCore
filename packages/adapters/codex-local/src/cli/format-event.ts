@@ -1,7 +1,9 @@
 import pc from "picocolors";
+import { printAcpxStreamEvent } from "@taskcore/adapter-utils/acpx-engine/cli";
 
 function asRecord(value: unknown): Record<string, unknown> | null {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  if (typeof value !== "object" || value === null || Array.isArray(value))
+    return null;
   return value as Record<string, unknown>;
 }
 
@@ -86,7 +88,10 @@ function printItemCompleted(item: Record<string, unknown>): boolean {
   if (itemType === "command_execution") {
     const command = asString(item.command);
     const status = asString(item.status);
-    const exitCode = typeof item.exit_code === "number" && Number.isFinite(item.exit_code) ? item.exit_code : null;
+    const exitCode =
+      typeof item.exit_code === "number" && Number.isFinite(item.exit_code)
+        ? item.exit_code
+        : null;
     const output = asString(item.aggregated_output).replace(/\s+$/, "");
     const isError =
       (exitCode !== null && exitCode !== 0) ||
@@ -116,7 +121,8 @@ function printItemCompleted(item: Record<string, unknown>): boolean {
         const path = asString(change.path, "unknown");
         return `${kind} ${path}`;
       });
-    const preview = entries.length > 0 ? entries.slice(0, 6).join(", ") : "none";
+    const preview =
+      entries.length > 0 ? entries.slice(0, 6).join(", ") : "none";
     const more = entries.length > 6 ? ` (+${entries.length - 6} more)` : "";
     console.log(pc.cyan(`file_change: ${preview}${more}`));
     return true;
@@ -130,8 +136,11 @@ function printItemCompleted(item: Record<string, unknown>): boolean {
 
   if (itemType === "tool_result") {
     const isError = item.is_error === true || asString(item.status) === "error";
-    const text = asString(item.content) || asString(item.result) || asString(item.output);
-    console.log((isError ? pc.red : pc.cyan)(`tool_result${isError ? " (error)" : ""}`));
+    const text =
+      asString(item.content) || asString(item.result) || asString(item.output);
+    console.log(
+      (isError ? pc.red : pc.cyan)(`tool_result${isError ? " (error)" : ""}`),
+    );
     if (text) console.log((isError ? pc.red : pc.gray)(text));
     return true;
   }
@@ -152,12 +161,23 @@ export function printCodexStreamEvent(raw: string, _debug: boolean): void {
   }
 
   const type = asString(parsed.type);
+  if (type.startsWith("acpx.")) {
+    printAcpxStreamEvent(line, _debug);
+    return;
+  }
 
   if (type === "thread.started") {
     const threadId = asString(parsed.thread_id);
     const model = asString(parsed.model);
-    const details = [threadId ? `session: ${threadId}` : "", model ? `model: ${model}` : ""].filter(Boolean).join(", ");
-    console.log(pc.blue(`Codex thread started${details ? ` (${details})` : ""}`));
+    const details = [
+      threadId ? `session: ${threadId}` : "",
+      model ? `model: ${model}` : "",
+    ]
+      .filter(Boolean)
+      .join(", ");
+    console.log(
+      pc.blue(`Codex thread started${details ? ` (${details})` : ""}`),
+    );
     return;
   }
 
@@ -177,7 +197,9 @@ export function printCodexStreamEvent(raw: string, _debug: boolean): void {
         const itemType = asString(item.type, "unknown");
         const id = asString(item.id);
         const status = asString(item.status);
-        const meta = [id ? `id=${id}` : "", status ? `status=${status}` : ""].filter(Boolean).join(" ");
+        const meta = [id ? `id=${id}` : "", status ? `status=${status}` : ""]
+          .filter(Boolean)
+          .join(" ");
         console.log(pc.gray(`${type}: ${itemType}${meta ? ` (${meta})` : ""}`));
       }
     } else {
@@ -190,20 +212,30 @@ export function printCodexStreamEvent(raw: string, _debug: boolean): void {
     const usage = asRecord(parsed.usage);
     const input = asNumber(usage?.input_tokens);
     const output = asNumber(usage?.output_tokens);
-    const cached = asNumber(usage?.cached_input_tokens, asNumber(usage?.cache_read_input_tokens));
+    const cached = asNumber(
+      usage?.cached_input_tokens,
+      asNumber(usage?.cache_read_input_tokens),
+    );
     const cost = asNumber(parsed.total_cost_usd);
     const isError = parsed.is_error === true;
     const subtype = asString(parsed.subtype);
-    const errors = Array.isArray(parsed.errors) ? parsed.errors.map(errorText).filter(Boolean) : [];
+    const errors = Array.isArray(parsed.errors)
+      ? parsed.errors.map(errorText).filter(Boolean)
+      : [];
 
     console.log(
-      pc.blue(`tokens: in=${input} out=${output} cached=${cached} cost=$${cost.toFixed(6)}`),
+      pc.blue(
+        `tokens: in=${input} out=${output} cached=${cached} cost=$${cost.toFixed(6)}`,
+      ),
     );
     if (subtype || isError || errors.length > 0) {
       console.log(
-        pc.red(`result: subtype=${subtype || "unknown"} is_error=${isError ? "true" : "false"}`),
+        pc.red(
+          `result: subtype=${subtype || "unknown"} is_error=${isError ? "true" : "false"}`,
+        ),
       );
-      if (errors.length > 0) console.log(pc.red(`errors: ${errors.join(" | ")}`));
+      if (errors.length > 0)
+        console.log(pc.red(`errors: ${errors.join(" | ")}`));
     }
     return;
   }
@@ -212,7 +244,10 @@ export function printCodexStreamEvent(raw: string, _debug: boolean): void {
     const usage = asRecord(parsed.usage);
     const input = asNumber(usage?.input_tokens);
     const output = asNumber(usage?.output_tokens);
-    const cached = asNumber(usage?.cached_input_tokens, asNumber(usage?.cache_read_input_tokens));
+    const cached = asNumber(
+      usage?.cached_input_tokens,
+      asNumber(usage?.cache_read_input_tokens),
+    );
     const message = errorText(parsed.error ?? parsed.message);
     console.log(pc.red(`turn failed${message ? `: ${message}` : ""}`));
     console.log(pc.blue(`tokens: in=${input} out=${output} cached=${cached}`));

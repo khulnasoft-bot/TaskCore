@@ -27,7 +27,8 @@ Legacy aliases still map to `authenticated/private + bind=lan`:
 
 pnpm dev --authenticated-private
 pnpm dev --tailscale-auth
-```
+
+````
 
 ## 2. Find your reachable Tailscale address
 
@@ -35,7 +36,7 @@ From the machine running Taskcore:
 
 ```sh
 tailscale ip -4
-```
+````
 
 You can also use your Tailscale MagicDNS hostname (for example `my-macbook.tailnet.ts.net`).
 
@@ -58,7 +59,7 @@ http://my-macbook.tailnet.ts.net:3100
 If you access Taskcore with a custom private hostname, add it to the allowlist:
 
 ```sh
-pnpm taskcore allowed-hostname my-macbook.tailnet.ts.net
+npx taskcore allowed-hostname my-macbook.tailnet.ts.net
 ```
 
 ## 5. Verify the server is reachable
@@ -72,7 +73,7 @@ curl http://<tailscale-host-or-ip>:3100/api/health
 Expected result:
 
 ```json
-{"status":"ok"}
+{ "status": "ok" }
 ```
 
 ## Troubleshooting

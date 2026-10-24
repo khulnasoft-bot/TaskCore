@@ -20,7 +20,7 @@ describe("opencode local skill sync", () => {
     cleanupDirs.clear();
   });
 
-  it("reports configured Taskcore skills and installs them into the shared Claude/OpenCode skills home", async () => {
+  it("defaults and installs the operational Taskcore skill in the shared Claude/OpenCode skills home", async () => {
     const home = await makeTempDir("taskcore-opencode-skill-sync-");
     cleanupDirs.add(home);
 
@@ -32,9 +32,6 @@ describe("opencode local skill sync", () => {
         env: {
           HOME: home,
         },
-        taskcoreSkillSync: {
-          desiredSkills: [taskcoreKey],
-        },
       },
     } as const;
 
@@ -42,48 +39,9 @@ describe("opencode local skill sync", () => {
     expect(before.mode).toBe("persistent");
     expect(before.warnings).toContain("OpenCode currently uses the shared Claude skills home (~/.claude/skills).");
     expect(before.desiredSkills).toContain(taskcoreKey);
-    expect(before.entries.find((entry) => entry.key === taskcoreKey)?.required).toBe(true);
     expect(before.entries.find((entry) => entry.key === taskcoreKey)?.state).toBe("missing");
 
     const after = await syncOpenCodeSkills(ctx, [taskcoreKey]);
-    expect(after.entries.find((entry) => entry.key === taskcoreKey)?.state).toBe("installed");
-    expect((await fs.lstat(path.join(home, ".claude", "skills", "taskcore"))).isSymbolicLink()).toBe(true);
-  });
-
-  it("keeps required bundled Taskcore skills installed even when the desired set is emptied", async () => {
-    const home = await makeTempDir("taskcore-opencode-skill-prune-");
-    cleanupDirs.add(home);
-
-    const configuredCtx = {
-      agentId: "agent-2",
-      companyId: "company-1",
-      adapterType: "opencode_local",
-      config: {
-        env: {
-          HOME: home,
-        },
-        taskcoreSkillSync: {
-          desiredSkills: [taskcoreKey],
-        },
-      },
-    } as const;
-
-    await syncOpenCodeSkills(configuredCtx, [taskcoreKey]);
-
-    const clearedCtx = {
-      ...configuredCtx,
-      config: {
-        env: {
-          HOME: home,
-        },
-        taskcoreSkillSync: {
-          desiredSkills: [],
-        },
-      },
-    } as const;
-
-    const after = await syncOpenCodeSkills(clearedCtx, []);
-    expect(after.desiredSkills).toContain(taskcoreKey);
     expect(after.entries.find((entry) => entry.key === taskcoreKey)?.state).toBe("installed");
     expect((await fs.lstat(path.join(home, ".claude", "skills", "taskcore"))).isSymbolicLink()).toBe(true);
   });

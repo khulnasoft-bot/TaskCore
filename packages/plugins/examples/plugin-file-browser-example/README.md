@@ -39,13 +39,13 @@ From the repo root, build the plugin and install it by local path:
 
 ```bash
 pnpm --filter @taskcore/plugin-file-browser-example build
-pnpm taskcore plugin install ./packages/plugins/examples/plugin-file-browser-example
+npx taskcore plugin install ./packages/plugins/examples/plugin-file-browser-example
 ```
 
 To uninstall:
 
 ```bash
-pnpm taskcore plugin uninstall taskcore-file-browser-example --force
+npx taskcore plugin uninstall taskcore-file-browser-example --force
 ```
 
 **Local development notes:**

@@ -1,5 +1,21 @@
 # Agent Configuration & Activity UI
 
+## Current implementation (2026-09-07)
+
+The shipped new-agent flow starts from **Agents → New Agent**. A small dialog collects a name and an enabled adapter, then opens a setup page with numbered navigation. Claude, Codex, and Grok have a subscription/API-key connection step. Configuration provides a searchable, free-text model selector and an environment selector; additional settings remain on the full agent page. **Finish setup** submits the existing governed hire request. Confirmation links to configuration and opens a new task with the created agent assigned; agents awaiting approval cannot be assigned work yet.
+
+On Cloud, the new-agent picker and direct setup links allow Claude, Codex, OpenCode, and Grok. Four available adapters use a two-column grid on desktop and mobile. Grok uses the existing `grok_local` adapter with an xAI subscription or API-key connection and the managed sandbox environment. The picker and connection step share provider marks that adapt to light and dark mode. An adapter must also be loaded and enabled to be available.
+
+Taskcore Runner offers native Codex (app server), Claude via ACPX, and OpenCode. The selected provider is passed through the existing runner configuration builder. Codex's default is the adapter catalog default. OpenCode and Pi require a provider/model ID; OpenRouter uses `openrouter/<provider>/<model>` and `OPENROUTER_API_KEY`. Entered keys are tested through the probe-only `testCredentials` field without storage. Finishing setup saves each key as an isolated user secret so a failed test cannot overwrite another agent’s credential, and an existing organization secret can also be bound. Agent configuration and revisions contain references, never the entered key.
+
+**Run test** uses the chosen environment and current configuration. For Claude/Codex readiness checks that do not make a model request, setup also invokes the adapter's existing CLI hello probe with the same environment and credentials. Runtime failures, provider failures, warnings, and in-progress tests use the same compact result card in setup and full configuration. Warnings remain distinguishable from blocking failures.
+
+The new-agent dialog also retains an external-agent invitation link, with an optional message, one-time onboarding prompt, and clipboard fallback. External agents still require organization-admin approval.
+
+The full configuration page retains the contextual navigation and existing instruction-file editor, skills, tools, permissions, API keys, and revision behavior. **Secrets & variables** groups environment bindings with API secret-access grants. Its page-level Save/Discard actions include editor-local environment drafts. Activity, runs, costs, and budgets link to the company audit views scoped to the agent.
+
+The sections below are the original design reference; the implementation summary above supersedes their creation-dialog layout.
+
 ## Context
 
 Agents are the employees of a Taskcore company. Each agent has an adapter type (`claude_local`, `codex_local`, `process`, `http`) that determines how it runs, a position in the org chart (who it reports to), a heartbeat policy (how/when it wakes up), and a budget. The UI at `/agents` needs to support creating and configuring agents, viewing their org hierarchy, and inspecting what they've been doing -- their run history, live logs, and accumulated costs.
@@ -20,72 +36,76 @@ Follows the existing `NewIssueDialog` / `NewProjectDialog` pattern: a `Dialog` c
 
 **Identity (always visible):**
 
-| Field | Control | Required | Default | Notes |
-|-------|---------|----------|---------|-------|
-| Name | Text input (large, auto-focused) | Yes | -- | e.g. "Alice", "Build Bot" |
-| Title | Text input (subtitle style) | No | -- | e.g. "VP of Engineering" |
-| Role | Chip popover (select) | No | `general` | Values from `AGENT_ROLES`: ceo, cto, cmo, cfo, engineer, designer, pm, qa, devops, researcher, general |
-| Reports To | Chip popover (agent select) | No | -- | Dropdown of existing agents in the company. If this is the first agent, auto-set role to `ceo` and gray out Reports To. Otherwise required unless role is `ceo`. |
-| Capabilities | Text input | No | -- | Free-text description of what this agent can do |
+| Field        | Control                          | Required | Default   | Notes                                                                                                                                                            |
+| ------------ | -------------------------------- | -------- | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Name         | Text input (large, auto-focused) | Yes      | --        | e.g. "Alice", "Build Bot"                                                                                                                                        |
+| Title        | Text input (subtitle style)      | No       | --        | e.g. "VP of Engineering"                                                                                                                                         |
+| Role         | Chip popover (select)            | No       | `general` | Values from `AGENT_ROLES`: ceo, cto, cmo, cfo, engineer, designer, pm, qa, devops, researcher, general                                                           |
+| Reports To   | Chip popover (agent select)      | No       | --        | Dropdown of existing agents in the company. If this is the first agent, auto-set role to `ceo` and gray out Reports To. Otherwise required unless role is `ceo`. |
+| Capabilities | Text input                       | No       | --        | Free-text description of what this agent can do                                                                                                                  |
 
 **Adapter (collapsible section, default open):**
 
-| Field | Control | Default | Notes |
-|-------|---------|---------|-------|
-| Adapter Type | Chip popover (select) | `claude_local` | `claude_local`, `codex_local`, `process`, `http` |
-| Test environment | Button | -- | Runs adapter-specific diagnostics and returns pass/warn/fail checks for current unsaved config |
-| CWD | Text input | -- | Working directory for local adapters |
-| Prompt Template | Textarea | -- | Supports `{{ agent.id }}`, `{{ agent.name }}` etc. |
-| Model | Text input | -- | Optional model override |
+| Field            | Control               | Default        | Notes                                                                                          |
+| ---------------- | --------------------- | -------------- | ---------------------------------------------------------------------------------------------- |
+| Adapter Type     | Chip popover (select) | `claude_local` | `claude_local`, `codex_local`, `process`, `http`                                               |
+| Test environment | Button                | --             | Runs adapter-specific diagnostics and returns pass/warn/fail checks for current unsaved config |
+| CWD              | Text input            | --             | Working directory for local adapters                                                           |
+| Prompt Template  | Textarea              | --             | Supports `{{ agent.id }}`, `{{ agent.name }}` etc.                                             |
+| Model            | Text input            | --             | Optional model override                                                                        |
 
 **Adapter-specific fields (shown/hidden based on adapter type):**
 
-*claude_local:*
-| Field | Control | Default |
-|-------|---------|---------|
-| Max Turns Per Run | Number input | 80 |
-| Skip Permissions | Toggle | true |
+_claude_local:_
 
-*codex_local:*
-| Field | Control | Default |
-|-------|---------|---------|
-| Search | Toggle | false |
-| Bypass Sandbox | Toggle | true |
+| Field             | Control      | Default |
+| ----------------- | ------------ | ------- |
+| Max Turns Per Run | Number input | 80      |
+| Skip Permissions  | Toggle       | true    |
 
-*process:*
-| Field | Control | Default |
-|-------|---------|---------|
-| Command | Text input | -- |
-| Args | Text input (comma-separated) | -- |
+_codex_local:_
 
-*http:*
-| Field | Control | Default |
-|-------|---------|---------|
-| URL | Text input | -- |
-| Method | Select | POST |
-| Headers | Key-value pairs | -- |
+| Field          | Control | Default |
+| -------------- | ------- | ------- |
+| Search         | Toggle  | false   |
+| Bypass Sandbox | Toggle  | true    |
+
+_process:_
+
+| Field   | Control                      | Default |
+| ------- | ---------------------------- | ------- |
+| Command | Text input                   | --      |
+| Args    | Text input (comma-separated) | --      |
+
+_http:_
+
+| Field   | Control         | Default |
+| ------- | --------------- | ------- |
+| URL     | Text input      | --      |
+| Method  | Select          | POST    |
+| Headers | Key-value pairs | --      |
 
 **Runtime (collapsible section, default collapsed):**
 
-| Field | Control | Default |
-|-------|---------|---------|
-| Context Mode | Chip popover | `thin` |
-| Monthly Budget (cents) | Number input | 0 |
-| Timeout (sec) | Number input | 900 |
-| Grace Period (sec) | Number input | 15 |
-| Extra Args | Text input | -- |
-| Env Vars | Key-value pair editor | -- |
+| Field                  | Control               | Default |
+| ---------------------- | --------------------- | ------- |
+| Context Mode           | Chip popover          | `thin`  |
+| Monthly Budget (cents) | Number input          | 0       |
+| Timeout (sec)          | Number input          | 900     |
+| Grace Period (sec)     | Number input          | 15      |
+| Extra Args             | Text input            | --      |
+| Env Vars               | Key-value pair editor | --      |
 
 **Heartbeat Policy (collapsible section, default collapsed):**
 
-| Field | Control | Default |
-|-------|---------|---------|
-| Enabled | Toggle | true |
-| Interval (sec) | Number input | 300 |
-| Wake on Assignment | Toggle | true |
-| Wake on On-Demand | Toggle | true |
-| Wake on Automation | Toggle | true |
-| Cooldown (sec) | Number input | 10 |
+| Field              | Control      | Default |
+| ------------------ | ------------ | ------- |
+| Enabled            | Toggle       | true    |
+| Interval (sec)     | Number input | 300     |
+| Wake on Assignment | Toggle       | true    |
+| Wake on On-Demand  | Toggle       | true    |
+| Wake on Automation | Toggle       | true    |
+| Cooldown (sec)     | Number input | 10      |
 
 ### Behavior
 
@@ -116,6 +136,7 @@ The `[...]` overflow menu contains: Terminate, Reset Session, Create API Key.
 Two-column layout: left column is a summary card, right column is the org position.
 
 **Summary card:**
+
 - Adapter type + model (if set)
 - Heartbeat interval (e.g. "every 5 min") or "Disabled"
 - Last heartbeat time (relative, e.g. "3 min ago")
@@ -123,6 +144,7 @@ Two-column layout: left column is a summary card, right column is the org positi
 - Current month spend / budget with progress bar
 
 **Org position card:**
+
 - Reports to: clickable agent name (links to their detail page)
 - Direct reports: list of agents who report to this agent (clickable)
 
@@ -131,6 +153,7 @@ Two-column layout: left column is a summary card, right column is the org positi
 Editable form with the same sections as the creation dialog (Adapter, Runtime, Heartbeat Policy) but pre-populated with current values. Uses inline editing -- click a value to edit, press Enter or blur to save via `agentsApi.update()`.
 
 Sections:
+
 - **Identity**: name, title, role, reports to, capabilities
 - **Adapter Config**: all adapter-specific fields for the current adapter type
 - **Heartbeat Policy**: enable/disable, interval, wake-on triggers, cooldown
@@ -143,12 +166,14 @@ Each section is a collapsible card. Save happens per-field (PATCH on blur/enter)
 This is the primary activity/history view. Shows a paginated list of heartbeat runs, most recent first.
 
 **Run list item:**
+
 ```
 [StatusIcon] #run-id-short   source: timer     2 min ago     1.2k tokens   $0.03
              "Reviewed 3 PRs and filed 2 issues"
 ```
 
 Fields per row:
+
 - Status icon (green check = succeeded, red X = failed, yellow spinner = running, gray clock = queued, orange timeout = timed_out, slash = cancelled)
 - Run ID (short, first 8 chars)
 - Invocation source chip (timer, assignment, on_demand, automation)
@@ -167,6 +192,7 @@ Fields per row:
 - Exit code and signal (if applicable)
 
 **Log viewer** within the run detail:
+
 - Streams `heartbeat_run_events` for the run, ordered by `seq`
 - Each event rendered as a log line with timestamp, level (color-coded), and message
 - Events of type `stdout`/`stderr` shown in monospace
@@ -191,6 +217,7 @@ Expand the existing costs tab:
 ### Properties Panel (Right Sidebar)
 
 The existing `AgentProperties` panel continues to show the quick-glance info. Add:
+
 - Session ID (truncated, with copy button)
 - Last error (if any, in red)
 - Link to "View Configuration" (scrolls to / switches to Configuration tab)
@@ -210,6 +237,7 @@ Shows a flat list of agents with status badge, name, role, title, and budget bar
 **Add view toggle**: List view (current) and Org Chart view.
 
 **Org Chart view:**
+
 - Tree layout showing reporting hierarchy
 - Each node shows: agent name, role, status badge
 - CEO at the top, direct reports below, etc.
@@ -217,11 +245,13 @@ Shows a flat list of agents with status badge, name, role, title, and budget bar
 - Clicking a node navigates to agent detail
 
 **List view improvements:**
+
 - Add adapter type as a small chip/tag on each row
 - Add "last active" relative timestamp
 - Add running indicator (animated dot) if agent currently has a running heartbeat
 
 **Filtering:**
+
 - Tab filters: All, Active, Paused, Error (similar to Issues page pattern)
 
 ---
@@ -230,20 +260,21 @@ Shows a flat list of agents with status badge, name, role, title, and budget bar
 
 New components needed:
 
-| Component | Purpose |
-|-----------|---------|
-| `NewAgentDialog` | Agent creation form dialog |
-| `AgentConfigForm` | Shared form sections for create + edit (adapter, heartbeat, runtime) |
-| `AdapterConfigFields` | Conditional fields based on adapter type |
-| `HeartbeatPolicyFields` | Heartbeat configuration fields |
-| `EnvVarEditor` | Key-value pair editor for environment variables |
-| `RunListItem` | Single run row in the runs list |
-| `RunDetail` | Expanded run detail with log viewer |
-| `LogViewer` | Streaming log viewer with auto-scroll |
-| `OrgChart` | Tree visualization of agent hierarchy |
-| `AgentSelect` | Reusable agent picker (for Reports To, etc.) |
+| Component               | Purpose                                                              |
+| ----------------------- | -------------------------------------------------------------------- |
+| `NewAgentDialog`        | Agent creation form dialog                                           |
+| `AgentConfigForm`       | Shared form sections for create + edit (adapter, heartbeat, runtime) |
+| `AdapterConfigFields`   | Conditional fields based on adapter type                             |
+| `HeartbeatPolicyFields` | Heartbeat configuration fields                                       |
+| `EnvVarEditor`          | Key-value pair editor for environment variables                      |
+| `RunListItem`           | Single run row in the runs list                                      |
+| `RunDetail`             | Expanded run detail with log viewer                                  |
+| `LogViewer`             | Streaming log viewer with auto-scroll                                |
+| `OrgChart`              | Tree visualization of agent hierarchy                                |
+| `AgentSelect`           | Reusable agent picker (for Reports To, etc.)                         |
 
 Reused existing components:
+
 - `StatusBadge`, `EntityRow`, `EmptyState`, `PropertyRow`
 - shadcn: `Dialog`, `Tabs`, `Button`, `Popover`, `Command`, `Separator`, `Toggle`
 
@@ -253,21 +284,21 @@ Reused existing components:
 
 All endpoints already exist. No new server work needed for V1.
 
-| Action | Endpoint | Used by |
-|--------|----------|---------|
-| List agents | `GET /companies/:id/agents` | List page |
-| Get org tree | `GET /companies/:id/org` | Org chart view |
-| Create agent | `POST /companies/:id/agents` | Creation dialog |
-| Update agent | `PATCH /agents/:id` | Configuration tab |
-| Pause/Resume/Terminate | `POST /agents/:id/{action}` | Header actions |
-| Reset session | `POST /agents/:id/runtime-state/reset-session` | Overflow menu |
-| Create API key | `POST /agents/:id/keys` | Overflow menu |
-| Get runtime state | `GET /agents/:id/runtime-state` | Overview tab, properties panel |
-| Invoke/Wakeup | `POST /agents/:id/heartbeat/invoke` | Header invoke button |
-| List runs | `GET /companies/:id/heartbeat-runs?agentId=X` | Runs tab |
-| Cancel run | `POST /heartbeat-runs/:id/cancel` | Run detail |
-| Run events | `GET /heartbeat-runs/:id/events` | Log viewer |
-| Run log | `GET /heartbeat-runs/:id/log` | Full log view |
+| Action                 | Endpoint                                       | Used by                        |
+| ---------------------- | ---------------------------------------------- | ------------------------------ |
+| List agents            | `GET /companies/:id/agents`                    | List page                      |
+| Get org tree           | `GET /companies/:id/org`                       | Org chart view                 |
+| Create agent           | `POST /companies/:id/agents`                   | Creation dialog                |
+| Update agent           | `PATCH /agents/:id`                            | Configuration tab              |
+| Pause/Resume/Terminate | `POST /agents/:id/{action}`                    | Header actions                 |
+| Reset session          | `POST /agents/:id/runtime-state/reset-session` | Overflow menu                  |
+| Create API key         | `POST /agents/:id/keys`                        | Overflow menu                  |
+| Get runtime state      | `GET /agents/:id/runtime-state`                | Overview tab, properties panel |
+| Invoke/Wakeup          | `POST /agents/:id/heartbeat/invoke`            | Header invoke button           |
+| List runs              | `GET /companies/:id/heartbeat-runs?agentId=X`  | Runs tab                       |
+| Cancel run             | `POST /heartbeat-runs/:id/cancel`              | Run detail                     |
+| Run events             | `GET /heartbeat-runs/:id/events`               | Log viewer                     |
+| Run log                | `GET /heartbeat-runs/:id/log`                  | Full log view                  |
 
 ---
 
@@ -284,3 +315,8 @@ All endpoints already exist. No new server work needed for V1.
 9. **Properties panel updates** -- session ID, last error
 
 Steps 1-5 are the core. Steps 6-9 are polish.
+
+Native ACPX connection tests reject unsupported local platforms before a host CLI
+login can incorrectly mark the runner connected. The existing verified Claude
+ACPX runtime requires Linux x64; remote environments are evaluated independently
+of the control-plane host platform.

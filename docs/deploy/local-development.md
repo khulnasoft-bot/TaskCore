@@ -7,7 +7,7 @@ Run Taskcore locally with zero external dependencies.
 
 ## Prerequisites
 
-- Node.js 20+
+- Node.js 24.11+
 - pnpm 9+
 
 ## Start Dev Server
@@ -64,7 +64,7 @@ pnpm dev --authenticated-private
 Allow additional private hostnames:
 
 ```sh
-pnpm taskcore allowed-hostname dotta-macbook-pro
+npx taskcore allowed-hostname dotta-macbook-pro
 ```
 
 For full setup and troubleshooting, see [Tailscale Private Access](/deploy/tailscale-private-access).
@@ -79,6 +79,33 @@ curl http://localhost:3100/api/companies
 # -> []
 ```
 
+## Safe Worktree Bootstrap for Local Agent Runs
+
+For safer parallel local experiments, initialize a dedicated worktree instance instead of reusing your main checkout:
+
+```sh
+npx taskcore worktree:make local-lab --seed-mode minimal
+cd ~/taskcore-local-lab
+pnpm taskcore worktree env                       # inspect generated env exports
+eval "$(npx taskcore worktree env)"             # bash/zsh
+pnpm taskcore run
+pnpm taskcore doctor
+```
+
+If the experiment gets noisy, repair or reseed the worktree without touching the main branch:
+
+```sh
+# worktree repair rebuilds the local checkout metadata, so run the checked-out CLI through the direct-exec form.
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts worktree repair --branch taskcore-local-lab
+npx taskcore worktree reseed --from . --to taskcore-local-lab
+```
+
+When done, shut it down and remove the isolated state explicitly:
+
+```sh
+npx taskcore worktree:cleanup local-lab --force
+```
+
 ## Reset Dev Data
 
 To wipe local data and start fresh:
@@ -90,13 +117,13 @@ pnpm dev
 
 ## Data Locations
 
-| Data | Path |
-|------|------|
-| Config | `~/.taskcore/instances/default/config.json` |
-| Database | `~/.taskcore/instances/default/db` |
-| Storage | `~/.taskcore/instances/default/data/storage` |
+| Data        | Path                                               |
+| ----------- | -------------------------------------------------- |
+| Config      | `~/.taskcore/instances/default/config.json`        |
+| Database    | `~/.taskcore/instances/default/db`                 |
+| Storage     | `~/.taskcore/instances/default/data/storage`       |
 | Secrets key | `~/.taskcore/instances/default/secrets/master.key` |
-| Logs | `~/.taskcore/instances/default/logs` |
+| Logs        | `~/.taskcore/instances/default/logs`               |
 
 Override with environment variables:
 

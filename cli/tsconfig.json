@@ -4,5 +4,10 @@
     "outDir": "dist",
     "rootDir": ".."
   },
-  "include": ["src", "../packages/shared/src"]
+  "include": [
+    "src",
+    "../packages/shared/src",
+    "../server/src/types/express.d.ts",
+    "../packages/plugins/create-taskcore-plugin/src"
+  ]
 }

@@ -18,13 +18,22 @@ type DbBackupOptions = {
   json?: boolean;
 };
 
-function resolveConnectionString(configPath?: string): { value: string; source: string } {
+function resolveConnectionString(configPath?: string): {
+  value: string;
+  source: string;
+} {
   const envUrl = process.env.DATABASE_URL?.trim();
   if (envUrl) return { value: envUrl, source: "DATABASE_URL" };
 
   const config = readConfig(configPath);
-  if (config?.database.mode === "postgres" && config.database.connectionString?.trim()) {
-    return { value: config.database.connectionString.trim(), source: "config.database.connectionString" };
+  if (
+    config?.database.mode === "postgres" &&
+    config.database.connectionString?.trim()
+  ) {
+    return {
+      value: config.database.connectionString.trim(),
+      source: "config.database.connectionString",
+    };
   }
 
   const port = config?.database.embeddedPostgresPort ?? 54329;
@@ -34,10 +43,15 @@ function resolveConnectionString(configPath?: string): { value: string; source: 
   };
 }
 
-function normalizeRetentionDays(value: number | undefined, fallback: number): number {
+function normalizeRetentionDays(
+  value: number | undefined,
+  fallback: number,
+): number {
   const candidate = value ?? fallback;
   if (!Number.isInteger(candidate) || candidate < 1) {
-    throw new Error(`Invalid retention days '${String(candidate)}'. Use a positive integer.`);
+    throw new Error(
+      `Invalid retention days '${String(candidate)}'. Use a positive integer.`,
+    );
   }
   return candidate;
 }
@@ -54,7 +68,8 @@ export async function dbBackupCommand(opts: DbBackupOptions): Promise<void> {
   const config = readConfig(opts.config);
   const connection = resolveConnectionString(opts.config);
   const defaultDir = resolveDefaultBackupDir(resolveTaskcoreInstanceId());
-  const configuredDir = opts.dir?.trim() || config?.database.backup.dir || defaultDir;
+  const configuredDir =
+    opts.dir?.trim() || config?.database.backup.dir || defaultDir;
   const backupDir = resolveBackupDir(configuredDir);
   const retentionDays = normalizeRetentionDays(
     opts.retentionDays,

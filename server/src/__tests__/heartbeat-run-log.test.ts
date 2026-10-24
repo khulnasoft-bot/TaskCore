@@ -21,4 +21,23 @@ describe("compactRunLogChunk", () => {
     expect(compacted).toContain("[taskcore truncated run log chunk:");
     expect(compacted.endsWith("tail")).toBe(true);
   });
+
+  it("redacts Taskcore credential shapes before persisting run-log chunks", () => {
+    const chunk = [
+      "Authorization: Bearer live-bearer-token-value",
+      `export TASKCORE_API_KEY='taskcore-shell-secret'`,
+      `auth {"refresh_token":"refresh-token-fixture-secret"}`,
+      `payload {"TASKCORE_API_KEY":"taskcore-json-secret"}`,
+      "--taskcore-api-key=taskcore-flag-secret",
+    ].join("\n");
+
+    const compacted = compactRunLogChunk(chunk);
+
+    expect(compacted).toContain("***REDACTED***");
+    expect(compacted).not.toContain("live-bearer-token-value");
+    expect(compacted).not.toContain("taskcore-shell-secret");
+    expect(compacted).not.toContain("refresh-token-fixture-secret");
+    expect(compacted).not.toContain("taskcore-json-secret");
+    expect(compacted).not.toContain("taskcore-flag-secret");
+  });
 });

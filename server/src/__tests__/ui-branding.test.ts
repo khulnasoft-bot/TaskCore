@@ -65,6 +65,30 @@ describe("ui branding", () => {
     expect(meta).toContain('name="taskcore-worktree-color"');
   });
 
+  it("surfaces the runtime instance id so the UI can fail closed on copied rows", () => {
+    const branding = getWorktreeUiBranding({
+      TASKCORE_IN_WORKTREE: "true",
+      TASKCORE_WORKTREE_NAME: "taskcore-pr-432",
+      TASKCORE_WORKTREE_COLOR: "#4f86f7",
+      TASKCORE_INSTANCE_ID: "inst-abc123",
+    });
+    expect(branding.instanceId).toBe("inst-abc123");
+
+    const meta = renderRuntimeBrandingMeta(branding);
+    expect(meta).toContain('name="taskcore-instance-id"');
+    expect(meta).toContain('content="inst-abc123"');
+  });
+
+  it("omits the instance-id meta when the runtime id is unset", () => {
+    const branding = getWorktreeUiBranding({
+      TASKCORE_IN_WORKTREE: "true",
+      TASKCORE_WORKTREE_NAME: "taskcore-pr-432",
+      TASKCORE_WORKTREE_COLOR: "#4f86f7",
+    });
+    expect(branding.instanceId).toBeNull();
+    expect(renderRuntimeBrandingMeta(branding)).not.toContain('name="taskcore-instance-id"');
+  });
+
   it("rewrites the favicon and runtime branding blocks for worktree instances only", () => {
     const branded = applyUiBranding(TEMPLATE, {
       TASKCORE_IN_WORKTREE: "true",

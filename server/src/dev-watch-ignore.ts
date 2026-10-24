@@ -18,6 +18,11 @@ function addIgnorePath(target: Set<string>, candidate: string): void {
 }
 
 export function resolveServerDevWatchIgnorePaths(serverRoot: string): string[] {
+  const checkoutRoot = path.dirname(serverRoot);
+  const linkedWorktreesRoot = path.dirname(checkoutRoot);
+  const isLinkedWorktree =
+    path.basename(linkedWorktreesRoot) === "worktrees" &&
+    path.basename(path.dirname(linkedWorktreesRoot)) === ".taskcore";
   const ignorePaths = new Set<string>([
     "**/{node_modules,bower_components,vendor}/**",
     "**/.vite-temp/**",
@@ -28,6 +33,14 @@ export function resolveServerDevWatchIgnorePaths(serverRoot: string): string[] {
     "../ui/node_modules/.vite-temp",
     "../ui/.vite",
     "../ui/dist",
+    // Git worktrees live under <repo>/.taskcore/worktrees, each a full
+    // checkout (source + its own .taskcore). Watching them can add hundreds
+    // of thousands of files, stalling tsx watch before it ever spawns the
+    // server. None of them are part of this checkout's reloadable source.
+    // A linked checkout has serverRoot at
+    // <repo>/.taskcore/worktrees/<branch>/server. In that case, the shared
+    // worktree directory is the checkout's parent, not a nested path.
+    isLinkedWorktree ? "../.." : "../.taskcore/worktrees",
     // npm install during reinstall would trigger a restart mid-request
     // if tsx watch sees the new files. Exclude the managed plugins dir.
     process.env.HOME + "/.taskcore/adapter-plugins",

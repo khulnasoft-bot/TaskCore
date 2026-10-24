@@ -1,6 +1,6 @@
 {
   "name": "@taskcore/adapter-codex-local",
-  "version": "0.2.1",
+  "version": "0.3.1",
   "license": "MIT",
   "homepage": "https://github.com/khulnasoft/taskcore",
   "bugs": {
@@ -46,17 +46,22 @@
     "skills"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && cp src/server/codex-auth-merge-decision.cjs src/server/codex-auth-merge-extract.sh dist/server/",
     "clean": "rm -rf dist",
     "typecheck": "tsc --noEmit",
     "probe:quota": "pnpm exec tsx src/cli/quota-probe.ts --json"
   },
   "dependencies": {
+    "@agentclientprotocol/codex-acp": "^1.6.2",
     "@taskcore/adapter-utils": "workspace:*",
+    "@taskcore/shared": "workspace:*",
     "picocolors": "^1.1.1"
   },
   "devDependencies": {
-    "@types/node": "^24.6.0",
-    "typescript": "^5.7.3"
+    "@types/node": "^24.0.0",
+    "typescript": "^7.0.2"
+  },
+  "engines": {
+    "node": ">=24.11.0"
   }
 }

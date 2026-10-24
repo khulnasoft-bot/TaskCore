@@ -1,13 +1,20 @@
 import * as p from "@clack/prompts";
 import type { LoggingConfig } from "../config/schema.js";
-import { resolveDefaultLogsDir, resolveTaskcoreInstanceId } from "../config/home.js";
+import {
+  resolveDefaultLogsDir,
+  resolveTaskcoreInstanceId,
+} from "../config/home.js";
 
 export async function promptLogging(): Promise<LoggingConfig> {
   const defaultLogDir = resolveDefaultLogsDir(resolveTaskcoreInstanceId());
   const mode = await p.select({
     message: "Logging mode",
     options: [
-      { value: "file" as const, label: "File-based logging", hint: "recommended" },
+      {
+        value: "file" as const,
+        label: "File-based logging",
+        hint: "recommended",
+      },
       { value: "cloud" as const, label: "Cloud logging", hint: "coming soon" },
     ],
   });

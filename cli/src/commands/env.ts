@@ -1,7 +1,11 @@
 import * as p from "@clack/prompts";
 import pc from "picocolors";
 import type { TaskcoreConfig } from "../config/schema.js";
-import { configExists, readConfig, resolveConfigPath } from "../config/store.js";
+import {
+  configExists,
+  readConfig,
+  resolveConfigPath,
+} from "../config/store.js";
 import {
   readAgentJwtSecretFromEnv,
   readAgentJwtSecretFromEnvFile,
@@ -56,8 +60,13 @@ export async function envCommand(opts: { config?: string }): Promise<void> {
   }
 
   const rows = collectDeploymentEnvRows(config, configPath);
-  const missingRequired = rows.filter((row) => row.required && row.source === "missing");
-  const sortedRows = rows.sort((a, b) => Number(b.required) - Number(a.required) || a.key.localeCompare(b.key));
+  const missingRequired = rows.filter(
+    (row) => row.required && row.source === "missing",
+  );
+  const sortedRows = rows.sort(
+    (a, b) =>
+      Number(b.required) - Number(a.required) || a.key.localeCompare(b.key),
+  );
 
   const requiredRows = sortedRows.filter((row) => row.required);
   const optionalRows = sortedRows.filter((row) => !row.required);
@@ -67,7 +76,12 @@ export async function envCommand(opts: { config?: string }): Promise<void> {
 
     p.log.message(pc.bold(title));
     for (const entry of entries) {
-      const status = entry.source === "missing" ? pc.red("missing") : entry.source === "default" ? pc.yellow("default") : pc.green("set");
+      const status =
+        entry.source === "missing"
+          ? pc.red("missing")
+          : entry.source === "default"
+            ? pc.yellow("default")
+            : pc.green("set");
       const sourceNote = {
         env: "environment",
         config: "config",
@@ -84,9 +98,13 @@ export async function envCommand(opts: { config?: string }): Promise<void> {
   formatSection("Required environment variables", requiredRows);
   formatSection("Optional environment variables", optionalRows);
 
-  const exportRows = rows.map((row) => (row.source === "missing" ? { ...row, value: "<set-this-value>" } : row));
+  const exportRows = rows.map((row) =>
+    row.source === "missing" ? { ...row, value: "<set-this-value>" } : row,
+  );
   const uniqueRows = uniqueByKey(exportRows);
-  const exportBlock = uniqueRows.map((row) => `export ${row.key}=${quoteShellValue(row.value)}`).join("\n");
+  const exportBlock = uniqueRows
+    .map((row) => `export ${row.key}=${quoteShellValue(row.value)}`)
+    .join("\n");
 
   if (configReadError) {
     p.log.error(`Could not load config cleanly: ${configReadError}`);
@@ -109,15 +127,25 @@ export async function envCommand(opts: { config?: string }): Promise<void> {
   p.outro("Done");
 }
 
-function collectDeploymentEnvRows(config: TaskcoreConfig | null, configPath: string): EnvVarRow[] {
+function collectDeploymentEnvRows(
+  config: TaskcoreConfig | null,
+  configPath: string,
+): EnvVarRow[] {
   const agentJwtEnvFile = resolveAgentJwtEnvFile(configPath);
   const jwtEnv = readAgentJwtSecretFromEnv(configPath);
-  const jwtFile = jwtEnv ? null : readAgentJwtSecretFromEnvFile(agentJwtEnvFile);
+  const jwtFile = jwtEnv
+    ? null
+    : readAgentJwtSecretFromEnvFile(agentJwtEnvFile);
   const jwtSource = jwtEnv ? "env" : jwtFile ? "file" : "missing";
 
-  const dbUrl = process.env.DATABASE_URL ?? config?.database?.connectionString ?? "";
+  const dbUrl =
+    process.env.DATABASE_URL ?? config?.database?.connectionString ?? "";
   const databaseMode = config?.database?.mode ?? "embedded-postgres";
-  const dbUrlSource: EnvSource = process.env.DATABASE_URL ? "env" : config?.database?.connectionString ? "config" : "missing";
+  const dbUrlSource: EnvSource = process.env.DATABASE_URL
+    ? "env"
+    : config?.database?.connectionString
+      ? "config"
+      : "missing";
   const publicUrl =
     process.env.TASKCORE_PUBLIC_URL ??
     process.env.TASKCORE_AUTH_PUBLIC_BASE_URL ??
@@ -125,14 +153,15 @@ function collectDeploymentEnvRows(config: TaskcoreConfig | null, configPath: str
     process.env.BETTER_AUTH_BASE_URL ??
     config?.auth?.publicBaseUrl ??
     "";
-  const publicUrlSource: EnvSource =
-    process.env.TASKCORE_PUBLIC_URL
+  const publicUrlSource: EnvSource = process.env.TASKCORE_PUBLIC_URL
+    ? "env"
+    : process.env.TASKCORE_AUTH_PUBLIC_BASE_URL ||
+        process.env.BETTER_AUTH_URL ||
+        process.env.BETTER_AUTH_BASE_URL
       ? "env"
-      : process.env.TASKCORE_AUTH_PUBLIC_BASE_URL || process.env.BETTER_AUTH_URL || process.env.BETTER_AUTH_BASE_URL
-        ? "env"
-        : config?.auth?.publicBaseUrl
-          ? "config"
-          : "missing";
+      : config?.auth?.publicBaseUrl
+        ? "config"
+        : "missing";
   let trustedOriginsDefault = "";
   if (publicUrl) {
     try {
@@ -142,7 +171,9 @@ function collectDeploymentEnvRows(config: TaskcoreConfig | null, configPath: str
     }
   }
 
-  const heartbeatInterval = process.env.HEARTBEAT_SCHEDULER_INTERVAL_MS ?? DEFAULT_HEARTBEAT_SCHEDULER_INTERVAL_MS;
+  const heartbeatInterval =
+    process.env.HEARTBEAT_SCHEDULER_INTERVAL_MS ??
+    DEFAULT_HEARTBEAT_SCHEDULER_INTERVAL_MS;
   const heartbeatEnabled = process.env.HEARTBEAT_SCHEDULER_ENABLED ?? "true";
   const secretsProvider =
     process.env.TASKCORE_SECRETS_PROVIDER ??
@@ -176,9 +207,7 @@ function collectDeploymentEnvRows(config: TaskcoreConfig | null, configPath: str
     config?.storage?.s3?.endpoint ??
     "";
   const storageS3Prefix =
-    process.env.TASKCORE_STORAGE_S3_PREFIX ??
-    config?.storage?.s3?.prefix ??
-    "";
+    process.env.TASKCORE_STORAGE_S3_PREFIX ?? config?.storage?.s3?.prefix ?? "";
   const storageS3ForcePathStyle =
     process.env.TASKCORE_STORAGE_S3_FORCE_PATH_STYLE ??
     String(config?.storage?.s3?.forcePathStyle ?? false);
@@ -210,8 +239,14 @@ function collectDeploymentEnvRows(config: TaskcoreConfig | null, configPath: str
       key: "PORT",
       value:
         process.env.PORT ??
-        (config?.server?.port !== undefined ? String(config.server.port) : "3100"),
-      source: process.env.PORT ? "env" : config?.server?.port !== undefined ? "config" : "default",
+        (config?.server?.port !== undefined
+          ? String(config.server.port)
+          : "3100"),
+      source: process.env.PORT
+        ? "env"
+        : config?.server?.port !== undefined
+          ? "config"
+          : "default",
       required: false,
       note: "HTTP listen port",
     },
@@ -235,7 +270,9 @@ function collectDeploymentEnvRows(config: TaskcoreConfig | null, configPath: str
     },
     {
       key: "TASKCORE_AGENT_JWT_TTL_SECONDS",
-      value: process.env.TASKCORE_AGENT_JWT_TTL_SECONDS ?? DEFAULT_AGENT_JWT_TTL_SECONDS,
+      value:
+        process.env.TASKCORE_AGENT_JWT_TTL_SECONDS ??
+        DEFAULT_AGENT_JWT_TTL_SECONDS,
       source: process.env.TASKCORE_AGENT_JWT_TTL_SECONDS ? "env" : "default",
       required: false,
       note: "JWT lifetime in seconds",
@@ -249,7 +286,8 @@ function collectDeploymentEnvRows(config: TaskcoreConfig | null, configPath: str
     },
     {
       key: "TASKCORE_AGENT_JWT_AUDIENCE",
-      value: process.env.TASKCORE_AGENT_JWT_AUDIENCE ?? DEFAULT_AGENT_JWT_AUDIENCE,
+      value:
+        process.env.TASKCORE_AGENT_JWT_AUDIENCE ?? DEFAULT_AGENT_JWT_AUDIENCE,
       source: process.env.TASKCORE_AGENT_JWT_AUDIENCE ? "env" : "default",
       required: false,
       note: "JWT audience",
@@ -406,6 +444,6 @@ function uniqueByKey(rows: EnvVarRow[]): EnvVarRow[] {
 }
 
 function quoteShellValue(value: string): string {
-  if (value === "") return "\"\"";
+  if (value === "") return '""';
   return `'${value.replaceAll("'", "'\\''")}'`;
 }

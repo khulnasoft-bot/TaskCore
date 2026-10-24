@@ -32,7 +32,9 @@ describe("board auth store", () => {
       storePath: authPath,
     });
 
-    expect(getStoredBoardCredential("http://localhost:3100", authPath)).toMatchObject({
+    expect(
+      getStoredBoardCredential("http://localhost:3100", authPath),
+    ).toMatchObject({
       apiBase: "http://localhost:3100",
       token: "token-123",
       userId: "user-1",
@@ -47,7 +49,11 @@ describe("board auth store", () => {
       storePath: authPath,
     });
 
-    expect(removeStoredBoardCredential("http://localhost:3100", authPath)).toBe(true);
-    expect(getStoredBoardCredential("http://localhost:3100", authPath)).toBeNull();
+    expect(removeStoredBoardCredential("http://localhost:3100", authPath)).toBe(
+      true,
+    );
+    expect(
+      getStoredBoardCredential("http://localhost:3100", authPath),
+    ).toBeNull();
   });
 });

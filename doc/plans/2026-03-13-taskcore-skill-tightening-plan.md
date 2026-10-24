@@ -1,4 +1,4 @@
-# Taskcore Skill Tightening Plan
+# TaskCore Skill Tightening Plan
 
 ## Status
 

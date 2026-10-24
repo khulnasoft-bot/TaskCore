@@ -77,7 +77,7 @@ export const runTranscriptFixtureEntries: TranscriptEntry[] = [
     kind: "tool_result",
     ts: "2026-03-11T15:21:19.035Z",
     toolUseId: "item_2",
-    content: "command: sed -n '1,320p' doc/SPEC-implementation.md\nstatus: completed\nexit_code: 0\n\n# Taskcore V1 Implementation Spec\n\nTaskcore V1 must provide a full control-plane loop for autonomous agents.",
+    content: "command: sed -n '1,320p' doc/SPEC-implementation.md\nstatus: completed\nexit_code: 0\n\n# TaskCore V1 Implementation Spec\n\nTaskcore V1 must provide a full control-plane loop for autonomous agents.",
     isError: false,
   },
   {

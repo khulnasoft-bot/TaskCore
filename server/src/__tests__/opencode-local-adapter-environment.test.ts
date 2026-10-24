@@ -20,7 +20,7 @@ describe("opencode_local environment diagnostics", () => {
       config: {
         command: process.execPath,
         cwd,
-        dangerouslySkipPermissions: false,
+        env: { XDG_CONFIG_HOME: path.join(cwd, "config") },
       },
     });
 
@@ -31,6 +31,9 @@ describe("opencode_local environment diagnostics", () => {
 
   it("treats an empty OPENAI_API_KEY override as missing", async () => {
     const cwd = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-opencode-env-empty-key-"));
+    // This case tests environment precedence, not model-discovery retry delays.
+    const fakeOpencode = path.join(cwd, "opencode");
+    await fs.writeFile(fakeOpencode, "#!/bin/sh\necho openai/test-model\n", { mode: 0o755 });
     const originalOpenAiKey = process.env.OPENAI_API_KEY;
     process.env.OPENAI_API_KEY = "sk-host-value";
 
@@ -39,11 +42,11 @@ describe("opencode_local environment diagnostics", () => {
         companyId: "company-1",
         adapterType: "opencode_local",
         config: {
-          command: process.execPath,
+          command: fakeOpencode,
           cwd,
-          dangerouslySkipPermissions: false,
           env: {
             OPENAI_API_KEY: "",
+            XDG_CONFIG_HOME: path.join(cwd, "config"),
           },
         },
       });
@@ -59,7 +62,7 @@ describe("opencode_local environment diagnostics", () => {
       }
       await fs.rm(cwd, { recursive: true, force: true });
     }
-  });
+  }, 10_000);
 
   it("classifies ProviderModelNotFoundError probe output as model-unavailable warning", async () => {
     const cwd = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-opencode-env-probe-cwd-"));
@@ -83,7 +86,7 @@ describe("opencode_local environment diagnostics", () => {
         config: {
           command: fakeOpencode,
           cwd,
-          dangerouslySkipPermissions: false,
+          env: { XDG_CONFIG_HOME: path.join(cwd, "config") },
         },
       });
 
@@ -95,5 +98,5 @@ describe("opencode_local environment diagnostics", () => {
       await fs.rm(cwd, { recursive: true, force: true });
       await fs.rm(binDir, { recursive: true, force: true });
     }
-  });
+  }, 10_000);
 });

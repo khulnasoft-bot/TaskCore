@@ -1,0 +1,26 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "taskcore",
+  "version": "0.1.0",
+  "description": "Review your team, delegate work and retrieve durable results in Taskcore.",
+  "author": {
+    "name": "Taskcore",
+    "url": "https://taskcore.ing"
+  },
+  "homepage": "https://taskcore.ing",
+  "repository": "https://github.com/khulnasoft/taskcore",
+  "license": "MIT",
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Taskcore",
+        "shortDescription": "Your persistent team behind your assistant.",
+        "longDescription": "Use your Taskcore team as yourself. Review tasks, delegate work to agents, add feedback and retrieve documents. Delegation can start autonomous work using your team's configured execution capacity and budget.",
+        "developerName": "Taskcore",
+        "category": "Productivity",
+        "capabilities": ["Read", "Write"],
+        "defaultPrompt": "Review my Taskcore team and show what needs my attention."
+      }
+    }
+  }
+}

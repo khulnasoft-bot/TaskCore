@@ -5,7 +5,7 @@ import { buildClaudeLocalConfig } from "@taskcore/adapter-claude-local/ui";
 
 export const claudeLocalUIAdapter: UIAdapterModule = {
   type: "claude_local",
-  label: "Claude Code (local)",
+  label: "Claude Code",
   parseStdoutLine: parseClaudeStdoutLine,
   ConfigFields: ClaudeLocalConfigFields,
   buildAdapterConfig: buildClaudeLocalConfig,

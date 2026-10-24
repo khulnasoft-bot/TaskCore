@@ -105,4 +105,25 @@ describe("resolveDatabaseTarget", () => {
       source: "embedded-postgres@55444",
     });
   });
+
+  it("uses the instance root for a fresh default embedded postgres target", () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "taskcore-db-home-"));
+    const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "taskcore-db-cwd-"));
+    process.chdir(cwd);
+    process.env.TASKCORE_HOME = home;
+    delete process.env.TASKCORE_CONFIG;
+    delete process.env.TASKCORE_INSTANCE_ID;
+    delete process.env.DATABASE_URL;
+
+    const target = resolveDatabaseTarget();
+
+    expect(target).toMatchObject({
+      mode: "embedded-postgres",
+      dataDir: path.join(home, "instances", "default", "db"),
+      port: 54329,
+      source: "embedded-postgres@54329",
+      configPath: path.join(home, "instances", "default", "config.json"),
+      envPath: path.join(home, "instances", "default", ".env"),
+    });
+  });
 });

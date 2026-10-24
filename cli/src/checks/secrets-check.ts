@@ -5,6 +5,9 @@ import type { TaskcoreConfig } from "../config/schema.js";
 import type { CheckResult } from "./index.js";
 import { resolveRuntimeLikePath } from "./path-resolver.js";
 
+const AWS_CREDENTIAL_SOURCE_HINT =
+  "Provide AWS runtime credentials through the AWS SDK default credential chain: IAM role/workload identity, AWS_PROFILE/SSO/shared credentials, web identity, container/instance metadata, or short-lived shell credentials";
+
 function decodeMasterKey(raw: string): Buffer | null {
   const trimmed = raw.trim();
   if (!trimmed) return null;
@@ -27,7 +30,10 @@ function decodeMasterKey(raw: string): Buffer | null {
 }
 
 function withStrictModeNote(
-  base: Pick<CheckResult, "name" | "status" | "message" | "canRepair" | "repair" | "repairHint">,
+  base: Pick<
+    CheckResult,
+    "name" | "status" | "message" | "canRepair" | "repair" | "repairHint"
+  >,
   config: TaskcoreConfig,
 ): CheckResult {
   const strictModeDisabledInDeployedSetup =
@@ -45,15 +51,22 @@ function withStrictModeNote(
   };
 }
 
-export function secretsCheck(config: TaskcoreConfig, configPath?: string): CheckResult {
+export function secretsCheck(
+  config: TaskcoreConfig,
+  configPath?: string,
+): CheckResult {
   const provider = config.secrets.provider;
+  if (provider === "aws_secrets_manager") {
+    return withStrictModeNote(awsSecretsManagerCheck(), config);
+  }
   if (provider !== "local_encrypted") {
     return {
       name: "Secrets adapter",
       status: "fail",
-      message: `${provider} is configured, but this build only supports local_encrypted`,
+      message: `${provider} is configured, but this build only supports local_encrypted and aws_secrets_manager`,
       canRepair: false,
-      repairHint: "Run `taskcore configure --section secrets` and set provider to local_encrypted",
+      repairHint:
+        "Run `taskcore configure --section secrets` and choose local_encrypted or aws_secrets_manager",
     };
   }
 
@@ -66,7 +79,8 @@ export function secretsCheck(config: TaskcoreConfig, configPath?: string): Check
         message:
           "TASKCORE_SECRETS_MASTER_KEY is invalid (expected 32-byte base64, 64-char hex, or raw 32-char string)",
         canRepair: false,
-        repairHint: "Set TASKCORE_SECRETS_MASTER_KEY to a valid key or unset it to use a key file",
+        repairHint:
+          "Set TASKCORE_SECRETS_MASTER_KEY to a valid key or unset it to use a key file",
       };
     }
 
@@ -74,7 +88,8 @@ export function secretsCheck(config: TaskcoreConfig, configPath?: string): Check
       {
         name: "Secrets adapter",
         status: "pass",
-        message: "Local encrypted provider configured via TASKCORE_SECRETS_MASTER_KEY",
+        message:
+          "Local encrypted provider configured via TASKCORE_SECRETS_MASTER_KEY",
       },
       config,
     );
@@ -106,7 +121,8 @@ export function secretsCheck(config: TaskcoreConfig, configPath?: string): Check
             // best effort
           }
         },
-        repairHint: "Run with --repair to create a local encrypted secrets key file",
+        repairHint:
+          "Run with --repair to create a local encrypted secrets key file",
       },
       config,
     );
@@ -131,16 +147,117 @@ export function secretsCheck(config: TaskcoreConfig, configPath?: string): Check
       status: "fail",
       message: `Invalid key material in ${keyFilePath}`,
       canRepair: false,
-      repairHint: "Replace with valid key material or delete it and run doctor --repair",
+      repairHint:
+        "Replace with valid key material or delete it and run doctor --repair",
     };
   }
+
+  const keyMode = fs.statSync(keyFilePath).mode & 0o777;
+  const permissionWarning =
+    (keyMode & 0o077) !== 0
+      ? `; key file permissions are ${keyMode.toString(8)} (run chmod 600 ${keyFilePath})`
+      : "";
 
   return withStrictModeNote(
     {
       name: "Secrets adapter",
-      status: "pass",
-      message: `Local encrypted provider configured with key file ${keyFilePath}`,
+      status: permissionWarning ? "warn" : "pass",
+      message: `Local encrypted provider configured with key file ${keyFilePath}${permissionWarning}`,
+      repairHint: permissionWarning
+        ? "Restrict the local encrypted secrets key file to owner read/write permissions"
+        : undefined,
     },
     config,
   );
+}
+
+function awsSecretsManagerCheck(): CheckResult {
+  const missingConfig = missingAwsSecretsManagerConfig();
+  if (missingConfig.length > 0) {
+    return {
+      name: "Secrets adapter",
+      status: "fail",
+      message: `AWS Secrets Manager provider is missing non-secret config: ${missingConfig.join(", ")}`,
+      canRepair: false,
+      repairHint: `Set ${missingConfig.join(", ")} in the Taskcore server runtime. ${AWS_CREDENTIAL_SOURCE_HINT}. Do not store AWS root credentials or long-lived IAM user keys in Taskcore secrets.`,
+    };
+  }
+
+  const staticEnvCredentials =
+    process.env.AWS_ACCESS_KEY_ID?.trim() &&
+    process.env.AWS_SECRET_ACCESS_KEY?.trim();
+  const credentialSource = detectedAwsCredentialSources().join(", ");
+  const message =
+    `AWS Secrets Manager provider configured for deployment ${process.env.TASKCORE_SECRETS_AWS_DEPLOYMENT_ID}; ` +
+    `runtime credentials source: ${credentialSource || "AWS SDK default credential chain"}`;
+
+  if (staticEnvCredentials) {
+    return {
+      name: "Secrets adapter",
+      status: "warn",
+      message,
+      canRepair: false,
+      repairHint:
+        "AWS static environment credentials are visible. Use only short-lived shell credentials locally; prefer IAM role/workload identity for hosted deployments and never store AWS access keys in Taskcore company secrets.",
+    };
+  }
+
+  return {
+    name: "Secrets adapter",
+    status: "pass",
+    message,
+  };
+}
+
+function missingAwsSecretsManagerConfig(): string[] {
+  const missing: string[] = [];
+  if (!(
+    process.env.TASKCORE_SECRETS_AWS_REGION?.trim() ||
+    process.env.AWS_REGION?.trim() ||
+    process.env.AWS_DEFAULT_REGION?.trim()
+  )) {
+    missing.push(
+      "TASKCORE_SECRETS_AWS_REGION or AWS_REGION/AWS_DEFAULT_REGION",
+    );
+  }
+  if (!process.env.TASKCORE_SECRETS_AWS_DEPLOYMENT_ID?.trim()) {
+    missing.push("TASKCORE_SECRETS_AWS_DEPLOYMENT_ID");
+  }
+  if (!process.env.TASKCORE_SECRETS_AWS_KMS_KEY_ID?.trim()) {
+    missing.push("TASKCORE_SECRETS_AWS_KMS_KEY_ID");
+  }
+  return missing;
+}
+
+function detectedAwsCredentialSources(): string[] {
+  const sources: string[] = [];
+  if (process.env.AWS_PROFILE?.trim())
+    sources.push("AWS_PROFILE/shared config");
+  if (
+    process.env.AWS_ACCESS_KEY_ID?.trim() &&
+    process.env.AWS_SECRET_ACCESS_KEY?.trim()
+  ) {
+    sources.push(
+      "temporary AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY environment credentials",
+    );
+  }
+  if (
+    process.env.AWS_WEB_IDENTITY_TOKEN_FILE?.trim() &&
+    process.env.AWS_ROLE_ARN?.trim()
+  ) {
+    sources.push("AWS web identity token");
+  }
+  if (
+    process.env.AWS_CONTAINER_CREDENTIALS_RELATIVE_URI?.trim() ||
+    process.env.AWS_CONTAINER_CREDENTIALS_FULL_URI?.trim()
+  ) {
+    sources.push("AWS container credentials endpoint");
+  }
+  if (
+    process.env.AWS_SHARED_CREDENTIALS_FILE?.trim() ||
+    process.env.AWS_CONFIG_FILE?.trim()
+  ) {
+    sources.push("custom AWS shared credentials/config file");
+  }
+  return sources;
 }

@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { buildWorktreeMergePlan, parseWorktreeMergeScopes } from "../commands/worktree-merge-history-lib.js";
+import {
+  buildWorktreeMergePlan,
+  parseWorktreeMergeScopes,
+} from "../commands/worktree-merge-history-lib.js";
 
 function makeIssue(overrides: Record<string, unknown> = {}) {
   return {
@@ -168,7 +171,11 @@ describe("worktree merge history planner", () => {
   });
 
   it("dedupes nested worktree issues by preserved source uuid", () => {
-    const sharedIssue = makeIssue({ id: "issue-a", identifier: "PAP-10", title: "Shared" });
+    const sharedIssue = makeIssue({
+      id: "issue-a",
+      identifier: "PAP-10",
+      title: "Shared",
+    });
     const branchOneIssue = makeIssue({
       id: "issue-b",
       identifier: "PAP-22",
@@ -199,8 +206,16 @@ describe("worktree merge history planner", () => {
     });
 
     expect(plan.counts.issuesToInsert).toBe(1);
-    expect(plan.issuePlans.filter((item) => item.action === "insert").map((item) => item.source.id)).toEqual(["issue-c"]);
-    expect(plan.issuePlans.find((item) => item.source.id === "issue-c" && item.action === "insert")).toMatchObject({
+    expect(
+      plan.issuePlans
+        .filter((item) => item.action === "insert")
+        .map((item) => item.source.id),
+    ).toEqual(["issue-c"]);
+    expect(
+      plan.issuePlans.find(
+        (item) => item.source.id === "issue-c" && item.action === "insert",
+      ),
+    ).toMatchObject({
       previewIdentifier: "PAP-501",
     });
   });
@@ -266,7 +281,13 @@ describe("worktree merge history planner", () => {
       sourceComments: [],
       targetComments: [],
       targetAgents: [],
-      targetProjects: [{ id: "target-project-1", name: "Mapped project", status: "in_progress" }] as any,
+      targetProjects: [
+        {
+          id: "target-project-1",
+          name: "Mapped project",
+          status: "in_progress",
+        },
+      ] as any,
       targetProjectWorkspaces: [],
       targetGoals: [{ id: "goal-1" }] as any,
       projectIdOverrides: {
@@ -343,8 +364,14 @@ describe("worktree merge history planner", () => {
       identifier: "PAP-11",
       createdAt: new Date("2026-03-20T01:00:00.000Z"),
     });
-    const existingComment = makeComment({ id: "comment-existing", issueId: "issue-a" });
-    const sharedIssueComment = makeComment({ id: "comment-shared", issueId: "issue-a" });
+    const existingComment = makeComment({
+      id: "comment-existing",
+      issueId: "issue-a",
+    });
+    const sharedIssueComment = makeComment({
+      id: "comment-shared",
+      issueId: "issue-a",
+    });
     const newIssueComment = makeComment({
       id: "comment-new-issue",
       issueId: "issue-b",
@@ -370,10 +397,11 @@ describe("worktree merge history planner", () => {
 
     expect(plan.counts.commentsToInsert).toBe(2);
     expect(plan.counts.commentsExisting).toBe(1);
-    expect(plan.commentPlans.filter((item) => item.action === "insert").map((item) => item.source.id)).toEqual([
-      "comment-shared",
-      "comment-new-issue",
-    ]);
+    expect(
+      plan.commentPlans
+        .filter((item) => item.action === "insert")
+        .map((item) => item.source.id),
+    ).toEqual(["comment-shared", "comment-new-issue"]);
     expect(plan.adjustments.clear_author_agent).toBe(1);
   });
 
@@ -397,7 +425,10 @@ describe("worktree merge history planner", () => {
       documentUpdatedAt: new Date("2026-03-20T01:00:00.000Z"),
       linkUpdatedAt: new Date("2026-03-20T01:00:00.000Z"),
     });
-    const sourceRevisionOne = makeDocumentRevision({ documentId: "document-a", id: "revision-1" });
+    const sourceRevisionOne = makeDocumentRevision({
+      documentId: "document-a",
+      id: "revision-1",
+    });
     const sourceRevisionTwo = makeDocumentRevision({
       documentId: "document-a",
       id: "revision-branch-2",
@@ -405,7 +436,10 @@ describe("worktree merge history planner", () => {
       body: "# Branch plan",
       createdAt: new Date("2026-03-20T02:00:00.000Z"),
     });
-    const targetRevisionOne = makeDocumentRevision({ documentId: "document-a", id: "revision-1" });
+    const targetRevisionOne = makeDocumentRevision({
+      documentId: "document-a",
+      id: "revision-1",
+    });
     const targetRevisionTwo = makeDocumentRevision({
       documentId: "document-a",
       id: "revision-main-2",

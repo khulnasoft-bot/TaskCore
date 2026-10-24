@@ -1,9 +1,20 @@
 import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import type { TaskcoreConfig } from "../config/schema.js";
 import type { CheckResult } from "./index.js";
 import { resolveRuntimeLikePath } from "./path-resolver.js";
 
-export async function databaseCheck(config: TaskcoreConfig, configPath?: string): Promise<CheckResult> {
+function isInsideOsTmpDir(targetPath: string): boolean {
+  const tmpRoot = path.resolve(os.tmpdir());
+  const resolved = path.resolve(targetPath);
+  return resolved === tmpRoot || resolved.startsWith(`${tmpRoot}${path.sep}`);
+}
+
+export async function databaseCheck(
+  config: TaskcoreConfig,
+  configPath?: string,
+): Promise<CheckResult> {
   if (config.database.mode === "postgres") {
     if (!config.database.connectionString) {
       return {
@@ -30,16 +41,47 @@ export async function databaseCheck(config: TaskcoreConfig, configPath?: string)
         status: "fail",
         message: `Cannot connect to PostgreSQL: ${err instanceof Error ? err.message : String(err)}`,
         canRepair: false,
-        repairHint: "Check your connection string and ensure PostgreSQL is running",
+        repairHint:
+          "Check your connection string and ensure PostgreSQL is running",
       };
     }
   }
 
   if (config.database.mode === "embedded-postgres") {
-    const dataDir = resolveRuntimeLikePath(config.database.embeddedPostgresDataDir, configPath);
-    const reportedPath = dataDir;
+    const dataDir = resolveRuntimeLikePath(
+      config.database.embeddedPostgresDataDir,
+      configPath,
+    );
+
+    // A worktree-mode instance whose data dir lives under the OS temp dir is a red
+    // flag: this is what happens when TASKCORE_HOME / TASKCORE_IN_WORKTREE leak
+    // into a PRIMARY instance's environment and silently relocate it to a throwaway
+    // temp home, so it boots an empty DB and locks everyone out. (Intentional
+    // ephemeral/CI instances that don't set TASKCORE_IN_WORKTREE are not flagged.)
+    // Check BEFORE creating the dir so we don't bootstrap the very temp location
+    // we're warning about.
+    if (
+      isInsideOsTmpDir(dataDir) &&
+      process.env.TASKCORE_IN_WORKTREE === "true"
+    ) {
+      return {
+        name: "Database",
+        status: "warn",
+        message:
+          `Embedded PostgreSQL data dir is inside the OS temp directory (${dataDir}) ` +
+          "while running in worktree mode (TASKCORE_IN_WORKTREE=true). Data stored here is " +
+          "ephemeral and will be lost on reboot or a temp cleanup. If this is your primary " +
+          "instance, TASKCORE_HOME / TASKCORE_IN_WORKTREE likely leaked into its environment, " +
+          "pointing it at a throwaway worktree home instead of your real data.",
+        canRepair: false,
+        repairHint:
+          "If this is the primary instance, unset TASKCORE_HOME and TASKCORE_IN_WORKTREE " +
+          "(or pass --data-dir <persistent path>) and restart so it uses the persistent instance.",
+      };
+    }
+
     if (!fs.existsSync(dataDir)) {
-      fs.mkdirSync(reportedPath, { recursive: true });
+      fs.mkdirSync(dataDir, { recursive: true });
     }
 
     return {

@@ -4,13 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
-import {
-  agents,
-  companies,
-  createDb,
-  projects,
-  routines,
-} from "@taskcore/db";
+import { agents, companies, createDb, projects, routines } from "@taskcore/db";
 import {
   getEmbeddedPostgresTestSupport,
   startEmbeddedPostgresTestDatabase,
@@ -18,7 +12,9 @@ import {
 import { disableAllRoutinesInConfig } from "../commands/routines.js";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -26,7 +22,11 @@ if (!embeddedPostgresSupport.supported) {
   );
 }
 
-function writeTestConfig(configPath: string, tempRoot: string, connectionString: string) {
+function writeTestConfig(
+  configPath: string,
+  tempRoot: string,
+  connectionString: string,
+) {
   const config = {
     $meta: {
       version: 1,
@@ -88,14 +88,20 @@ function writeTestConfig(configPath: string, tempRoot: string, connectionString:
 
 describeEmbeddedPostgres("disableAllRoutinesInConfig", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
   let tempRoot = "";
   let configPath = "";
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-routines-cli-db-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-routines-cli-db-",
+    );
     db = createDb(tempDb.connectionString);
-    tempRoot = mkdtempSync(path.join(os.tmpdir(), "taskcore-routines-cli-config-"));
+    tempRoot = mkdtempSync(
+      path.join(os.tmpdir(), "taskcore-routines-cli-config-"),
+    );
     configPath = path.join(tempRoot, "config.json");
     writeTestConfig(configPath, tempRoot, tempDb.connectionString);
   }, 20_000);
@@ -232,7 +238,9 @@ describeEmbeddedPostgres("disableAllRoutinesInConfig", () => {
       })
       .from(routines)
       .where(eq(routines.companyId, companyId));
-    const statusById = new Map(companyRoutines.map((routine) => [routine.id, routine.status]));
+    const statusById = new Map(
+      companyRoutines.map((routine) => [routine.id, routine.status]),
+    );
 
     expect(statusById.get(activeRoutineId)).toBe("paused");
     expect(statusById.get(pausedRoutineId)).toBe("paused");

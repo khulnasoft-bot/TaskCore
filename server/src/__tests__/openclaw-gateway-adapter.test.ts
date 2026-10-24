@@ -493,21 +493,17 @@ describe("openclaw gateway adapter execute", () => {
       expect(String(payload?.message ?? "")).toContain("wake now");
       expect(String(payload?.message ?? "")).toContain("TASKCORE_RUN_ID=run-123");
       expect(String(payload?.message ?? "")).toContain("TASKCORE_TASK_ID=task-123");
-      expect(String(payload?.message ?? "")).toContain("## Taskcore Wake Payload");
+      expect(String(payload?.message ?? "")).toContain("## TaskCore Wake Payload");
       expect(String(payload?.message ?? "")).toContain(
-        "Treat this wake payload as the highest-priority change for the current heartbeat.",
+        "Use this wake to continue the task, applying new user direction and preserving its approval gates.",
       );
       expect(String(payload?.message ?? "")).toContain(
         "Do not switch to another issue until you have handled this wake.",
       );
       expect(String(payload?.message ?? "")).toContain("First comment");
       expect(String(payload?.message ?? "")).toContain("\"commentIds\":[\"comment-1\",\"comment-2\"]");
-      expect(payload?.taskcore).toMatchObject({
-        wake: {
-          latestCommentId: "comment-2",
-          commentIds: ["comment-1", "comment-2"],
-        },
-      });
+      expect(payload?.taskcore).toBeUndefined();
+      expect(String(payload?.message ?? "")).toContain("\"latestCommentId\":\"comment-2\"");
 
       expect(logs.some((entry) => entry.includes("[openclaw-gateway:event] run=run-123 stream=assistant"))).toBe(true);
     } finally {

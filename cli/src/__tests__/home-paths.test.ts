@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -16,13 +17,16 @@ describe("home path resolution", () => {
   });
 
   it("defaults to ~/.taskcore and default instance", () => {
-    delete process.env.TASKCORE_HOME;
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "taskcore-home-paths-"));
+    process.env.TASKCORE_HOME = home;
     delete process.env.TASKCORE_INSTANCE_ID;
 
     const paths = describeLocalInstancePaths();
-    expect(paths.homeDir).toBe(path.resolve(os.homedir(), ".taskcore"));
+    expect(paths.homeDir).toBe(home);
     expect(paths.instanceId).toBe("default");
-    expect(paths.configPath).toBe(path.resolve(os.homedir(), ".taskcore", "instances", "default", "config.json"));
+    expect(paths.configPath).toBe(
+      path.resolve(home, "instances", "default", "config.json"),
+    );
   });
 
   it("supports TASKCORE_HOME and explicit instance ids", () => {
@@ -34,7 +38,9 @@ describe("home path resolution", () => {
   });
 
   it("rejects invalid instance ids", () => {
-    expect(() => resolveTaskcoreInstanceId("bad/id")).toThrow(/Invalid instance id/);
+    expect(() => resolveTaskcoreInstanceId("bad/id")).toThrow(
+      /Invalid TASKCORE_INSTANCE_ID/,
+    );
   });
 
   it("expands ~ prefixes", () => {

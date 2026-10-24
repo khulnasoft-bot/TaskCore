@@ -42,11 +42,9 @@ Session routing fields:
 - sessionKeyStrategy (string, optional): issue (default), fixed, or run
 - sessionKey (string, optional): fixed session key when strategy=fixed (default taskcore)
 
-Standard outbound payload additions:
-- taskcore (object): standardized Taskcore context added to every gateway agent request
-- taskcore.workspace (object, optional): resolved execution workspace for this run
-- taskcore.workspaces (array, optional): additional workspace hints Taskcore exposed to the run
-- taskcore.workspaceRuntime (object, optional): reserved workspace runtime metadata when explicitly supplied outside normal heartbeat execution
+Wake payload notes:
+- Taskcore wake context is embedded into the generated message text
+- No top-level taskcore field is sent; the gateway agent schema rejects unknown root params
 
 Standard result metadata supported:
 - meta.runtimeServices (array, optional): normalized adapter-managed runtime service reports

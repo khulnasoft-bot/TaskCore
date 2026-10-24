@@ -7,11 +7,11 @@ Taskcore supports three deployment configurations, from zero-friction local to i
 
 ## Deployment Modes
 
-| Mode | Auth | Best For |
-|------|------|----------|
-| `local_trusted` | No login required | Single-operator local machine |
-| `authenticated` + `private` | Login required | Private network (Tailscale, VPN, LAN) |
-| `authenticated` + `public` | Login required | Internet-facing cloud deployment |
+| Mode                        | Auth              | Best For                              |
+| --------------------------- | ----------------- | ------------------------------------- |
+| `local_trusted`             | No login required | Single-operator local machine         |
+| `authenticated` + `private` | Login required    | Private network (Tailscale, VPN, LAN) |
+| `authenticated` + `public`  | Login required    | Internet-facing cloud deployment      |
 
 ## Quick Comparison
 
@@ -40,7 +40,7 @@ Taskcore supports three deployment configurations, from zero-friction local to i
 
 - **Just trying Taskcore?** Use `local_trusted` (the default)
 - **Sharing with a team on private network?** Use `authenticated` + `private`
-- **Deploying to the cloud?** Use `authenticated` + `public`
+- **Deploying to the cloud?** Use `authenticated` + `public` — see [AWS ECS Fargate guide](aws-ecs.md)
 
 Set the mode during onboarding:
 

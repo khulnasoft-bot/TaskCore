@@ -6,7 +6,9 @@ import type { TaskcoreConfig } from "../config/schema.js";
 import { addAllowedHostname } from "../commands/allowed-hostname.js";
 
 function createTempConfigPath() {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "taskcore-allowed-hostname-"));
+  const dir = fs.mkdtempSync(
+    path.join(os.tmpdir(), "taskcore-allowed-hostname-"),
+  );
   return path.join(dir, "config.json");
 }
 
@@ -71,10 +73,14 @@ describe("allowed-hostname command", () => {
     const configPath = createTempConfigPath();
     writeBaseConfig(configPath);
 
-    await addAllowedHostname("https://Dotta-MacBook-Pro:3100", { config: configPath });
+    await addAllowedHostname("https://Dotta-MacBook-Pro:3100", {
+      config: configPath,
+    });
     await addAllowedHostname("dotta-macbook-pro", { config: configPath });
 
-    const raw = JSON.parse(fs.readFileSync(configPath, "utf-8")) as TaskcoreConfig;
+    const raw = JSON.parse(
+      fs.readFileSync(configPath, "utf-8"),
+    ) as TaskcoreConfig;
     expect(raw.server.allowedHostnames).toEqual(["dotta-macbook-pro"]);
   });
 });

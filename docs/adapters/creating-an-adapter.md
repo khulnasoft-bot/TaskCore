@@ -11,13 +11,13 @@ If you're using Claude Code, the `.agents/skills/create-agent-adapter` skill can
 
 ## Two Paths
 
-| | Built-in | External Plugin |
-|---|---|---|
-| Source | Inside `taskcore-fork` | Separate npm package |
-| Distribution | Ships with Taskcore | Independent npm publish |
-| UI parser | Static import | Dynamic load from API |
-| Registration | Edit 3 registries | Auto-loaded at startup |
-| Best for | Core adapters, contributors | Third-party adapters, internal tools |
+|              | Built-in                    | External Plugin                      |
+| ------------ | --------------------------- | ------------------------------------ |
+| Source       | Inside `taskcore-fork`      | Separate npm package                 |
+| Distribution | Ships with Taskcore         | Independent npm publish              |
+| UI parser    | Static import               | Dynamic load from API                |
+| Registration | Edit 3 registries           | Auto-loaded at startup               |
+| Best for     | Core adapters, contributors | Third-party adapters, internal tools |
 
 For most cases, **build an external adapter plugin**. It's cleaner, independently versioned, and doesn't require modifying Taskcore's source. See [External Adapters](/adapters/external-adapters) for the full guide.
 
@@ -53,11 +53,9 @@ my-adapter/                   # external plugin
 `src/index.ts` is imported by all three consumers. Keep it dependency-free.
 
 ```ts
-export const type = "my_agent";        // snake_case, globally unique
-export const label = "My Agent (local)";
-export const models = [
-  { id: "model-a", label: "Model A" },
-];
+export const type = "my_agent"; // snake_case, globally unique
+export const label = "My Agent";
+export const models = [{ id: "model-a", label: "Model A" }];
 export const agentConfigurationDoc = `# my_agent configuration
 Use when: ...
 Don't use when: ...
@@ -84,23 +82,31 @@ Key responsibilities:
 
 ### Available Helpers
 
-| Helper | Source | Purpose |
-|--------|--------|---------|
+| Helper                       | Source                                 | Purpose                              |
+| ---------------------------- | -------------------------------------- | ------------------------------------ |
 | `runChildProcess(cmd, opts)` | `@taskcore/adapter-utils/server-utils` | Spawn with timeout, grace, streaming |
-| `buildTaskcoreEnv(agent)` | `@taskcore/adapter-utils/server-utils` | Inject `TASKCORE_*` env vars |
-| `renderTemplate(tpl, data)` | `@taskcore/adapter-utils/server-utils` | `{{variable}}` substitution |
-| `asString(v)` | `@taskcore/adapter-utils` | Safe config value extraction |
-| `asNumber(v)` | `@taskcore/adapter-utils` | Safe number extraction |
+| `buildTaskcoreEnv(agent)`    | `@taskcore/adapter-utils/server-utils` | Inject `TASKCORE_*` env vars         |
+| `renderTemplate(tpl, data)`  | `@taskcore/adapter-utils/server-utils` | `{{variable}}` substitution          |
+| `asString(v)`                | `@taskcore/adapter-utils`              | Safe config value extraction         |
+| `asNumber(v)`                | `@taskcore/adapter-utils`              | Safe number extraction               |
 
 ### AdapterExecutionContext
 
 ```ts
 interface AdapterExecutionContext {
   runId: string;
-  agent: { id: string; companyId: string; name: string; adapterConfig: unknown };
-  runtime: { sessionId: string | null; sessionParams: Record<string, unknown> | null };
-  config: Record<string, unknown>;      // agent's adapterConfig
-  context: Record<string, unknown>;      // task, wake reason, etc.
+  agent: {
+    id: string;
+    companyId: string;
+    name: string;
+    adapterConfig: unknown;
+  };
+  runtime: {
+    sessionId: string | null;
+    sessionParams: Record<string, unknown> | null;
+  };
+  config: Record<string, unknown>; // agent's adapterConfig
+  context: Record<string, unknown>; // task, wake reason, etc.
   onLog: (stream: "stdout" | "stderr", chunk: string) => Promise<void>;
   onMeta?: (meta: AdapterInvocationMeta) => Promise<void>;
   onSpawn?: (meta: { pid: number; startedAt: string }) => Promise<void>;
@@ -116,12 +122,12 @@ interface AdapterExecutionResult {
   timedOut: boolean;
   errorMessage?: string | null;
   usage?: { inputTokens: number; outputTokens: number };
-  sessionParams?: Record<string, unknown> | null;  // persist across heartbeats
+  sessionParams?: Record<string, unknown> | null; // persist across heartbeats
   sessionDisplayId?: string | null;
   provider?: string | null;
   model?: string | null;
   costUsd?: number | null;
-  clearSession?: boolean;  // set true to force fresh session on next wake
+  clearSession?: boolean; // set true to force fresh session on next wake
 }
 ```
 
@@ -131,11 +137,11 @@ interface AdapterExecutionResult {
 
 Return structured diagnostics:
 
-| Level | Meaning | Effect |
-|-------|---------|--------|
-| `error` | Invalid or unusable setup | Blocks execution |
-| `warn` | Non-blocking issue | Shown with yellow indicator |
-| `info` | Successful check | Shown in test results |
+| Level   | Meaning                   | Effect                      |
+| ------- | ------------------------- | --------------------------- |
+| `error` | Invalid or unusable setup | Blocks execution            |
+| `warn`  | Non-blocking issue        | Shown with yellow indicator |
+| `info`  | Successful check          | Shown in test results       |
 
 ```ts
 export async function testEnvironment(
@@ -143,10 +149,15 @@ export async function testEnvironment(
 ): Promise<AdapterEnvironmentTestResult> {
   return {
     adapterType: ctx.adapterType,
-    status: "pass",  // "pass" | "warn" | "fail"
+    status: "pass", // "pass" | "warn" | "fail"
     checks: [
       { level: "info", message: "CLI v1.2.0 detected", code: "cli_detected" },
-      { level: "warn", message: "No API key found", hint: "Set ANTHROPIC_API_KEY", code: "no_key" },
+      {
+        level: "warn",
+        message: "No API key found",
+        hint: "Set ANTHROPIC_API_KEY",
+        code: "no_key",
+      },
     ],
     testedAt: new Date().toISOString(),
   };
@@ -197,9 +208,15 @@ If your agent runtime supports conversation continuity across heartbeats:
 
 ```ts
 export const sessionCodec: AdapterSessionCodec = {
-  deserialize(raw) { /* validate raw session data */ },
-  serialize(params) { /* serialize for storage */ },
-  getDisplayId(params) { /* human-readable session label */ },
+  deserialize(raw) {
+    /* validate raw session data */
+  },
+  serialize(params) {
+    /* serialize for storage */
+  },
+  getDisplayId(params) {
+    /* human-readable session label */
+  },
 };
 ```
 
@@ -207,12 +224,12 @@ export const sessionCodec: AdapterSessionCodec = {
 
 Adapters can declare what "local" capabilities they support by setting optional fields on the `ServerAdapterModule`. The server and UI use these flags to decide which features to enable for agents using the adapter (instructions bundle editor, skills sync, JWT auth, etc.).
 
-| Flag | Type | Default | What it controls |
-|------|------|---------|------------------|
-| `supportsLocalAgentJwt` | `boolean` | `false` | Whether heartbeat generates a local JWT for the agent |
-| `supportsInstructionsBundle` | `boolean` | `false` | Managed instructions bundle (AGENTS.md) — server-side resolution + UI editor |
-| `instructionsPathKey` | `string` | `"instructionsFilePath"` | The `adapterConfig` key that holds the instructions file path |
-| `requiresMaterializedRuntimeSkills` | `boolean` | `false` | Whether runtime skill entries must be written to disk before execution |
+| Flag                                | Type      | Default                  | What it controls                                                             |
+| ----------------------------------- | --------- | ------------------------ | ---------------------------------------------------------------------------- |
+| `supportsLocalAgentJwt`             | `boolean` | `false`                  | Whether heartbeat generates a local JWT for the agent                        |
+| `supportsInstructionsBundle`        | `boolean` | `false`                  | Managed instructions bundle (AGENTS.md) — server-side resolution + UI editor |
+| `instructionsPathKey`               | `string`  | `"instructionsFilePath"` | The `adapterConfig` key that holds the instructions file path                |
+| `requiresMaterializedRuntimeSkills` | `boolean` | `false`                  | Whether runtime skill entries must be written to disk before execution       |
 
 These flags are exposed via `GET /api/adapters` in a `capabilities` object, along with a derived `supportsSkills` flag (true when `listSkills` or `syncSkills` is defined).
 
@@ -248,6 +265,23 @@ Make Taskcore skills discoverable to your agent runtime without writing to the a
 2. **Acceptable: global config dir** — symlink to the runtime's global plugins directory
 3. **Acceptable: env var** — point a skills path env var at the repo's `skills/` directory
 4. **Last resort: prompt injection** — include skill content in the prompt template
+
+## Cross-run workspace persistence (no-remote-git contract)
+
+The local execution-workspace cwd is the **only** persistence boundary across runs. No adapter may depend on a git remote for cross-run state.
+
+The supported round-trip:
+
+- **Per-run, on the remote side.** `prepareWorkspaceForSshExecution` (in `packages/adapter-utils/src/ssh.ts`) git-bundles the local worktree and ships it to the run's remote dir. No `git remote` is set anywhere; the bundle is the transport.
+- **End-of-run, in the adapter's `finally` block.** The adapter invokes `restoreRemoteWorkspace` (e.g. claude-local's `execute.ts`), which calls `restoreWorkspaceFromSshExecution` → `exportGitWorkspaceFromSsh` → `integrateImportedGitHead`. Remote commits made during the run land back in the local Mac worktree with no `git push` and no remote configured.
+
+The invariant adapters must preserve:
+
+- **Never `git push`** from adapter or runtime code. Operator-supplied configuration may opt in, but the default contract is no remote operations.
+- **Never assume a remote exists.** The local cwd is the source of truth between runs.
+- **Surface restore failures.** A failed sync-back must propagate as a run-level error, not a silent warning. The heartbeat records a `workspace_finalize` row (`succeeded`/`failed`) around `adapter.execute` so dependent issues do not wake on a stale worktree.
+
+The invariant is pinned by the "no-remote-git contract" case in `packages/adapter-utils/src/ssh-fixture.test.ts`: it asserts `git remote` is empty before and after the round-trip and that a remote-only commit still lands locally via restore alone.
 
 ## Security
 

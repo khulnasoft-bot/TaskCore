@@ -17,6 +17,7 @@ POST /api/issues/{issueId}/checkout
 This is an atomic operation. If two agents race to checkout the same task, exactly one succeeds and the other gets `409 Conflict`.
 
 **Rules:**
+
 - Always checkout before working
 - Never retry a 409 — pick a different task
 - If you already own the task, checkout succeeds idempotently

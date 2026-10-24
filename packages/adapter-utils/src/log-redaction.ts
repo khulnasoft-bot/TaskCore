@@ -15,25 +15,32 @@ function maskHomePathUserSegment(value: string) {
 const HOME_PATH_PATTERNS = [
   {
     regex: /\/Users\/([^/\\\s]+)/g,
-    replace: (_match: string, user: string) => `/Users/${maskHomePathUserSegment(user)}`,
+    replace: (_match: string, user: string) =>
+      `/Users/${maskHomePathUserSegment(user)}`,
   },
   {
     regex: /\/home\/([^/\\\s]+)/g,
-    replace: (_match: string, user: string) => `/home/${maskHomePathUserSegment(user)}`,
+    replace: (_match: string, user: string) =>
+      `/home/${maskHomePathUserSegment(user)}`,
   },
   {
     regex: /([A-Za-z]:\\Users\\)([^\\/\s]+)/g,
-    replace: (_match: string, prefix: string, user: string) => `${prefix}${maskHomePathUserSegment(user)}`,
+    replace: (_match: string, prefix: string, user: string) =>
+      `${prefix}${maskHomePathUserSegment(user)}`,
   },
 ] as const;
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  if (typeof value !== "object" || value === null || Array.isArray(value))
+    return false;
   const proto = Object.getPrototypeOf(value);
   return proto === Object.prototype || proto === null;
 }
 
-export function redactHomePathUserSegments(text: string, opts?: HomePathRedactionOptions): string {
+export function redactHomePathUserSegments(
+  text: string,
+  opts?: HomePathRedactionOptions,
+): string {
   if (opts?.enabled === false) return text;
   let result = text;
   for (const pattern of HOME_PATH_PATTERNS) {
@@ -42,12 +49,17 @@ export function redactHomePathUserSegments(text: string, opts?: HomePathRedactio
   return result;
 }
 
-export function redactHomePathUserSegmentsInValue<T>(value: T, opts?: HomePathRedactionOptions): T {
+export function redactHomePathUserSegmentsInValue<T>(
+  value: T,
+  opts?: HomePathRedactionOptions,
+): T {
   if (typeof value === "string") {
     return redactHomePathUserSegments(value, opts) as T;
   }
   if (Array.isArray(value)) {
-    return value.map((entry) => redactHomePathUserSegmentsInValue(entry, opts)) as T;
+    return value.map((entry) =>
+      redactHomePathUserSegmentsInValue(entry, opts),
+    ) as T;
   }
   if (!isPlainObject(value)) {
     return value;
@@ -60,7 +72,10 @@ export function redactHomePathUserSegmentsInValue<T>(value: T, opts?: HomePathRe
   return redacted as T;
 }
 
-export function redactTranscriptEntryPaths(entry: TranscriptEntry, opts?: HomePathRedactionOptions): TranscriptEntry {
+export function redactTranscriptEntryPaths(
+  entry: TranscriptEntry,
+  opts?: HomePathRedactionOptions,
+): TranscriptEntry {
   switch (entry.kind) {
     case "assistant":
     case "thinking":
@@ -77,7 +92,10 @@ export function redactTranscriptEntryPaths(entry: TranscriptEntry, opts?: HomePa
         input: redactHomePathUserSegmentsInValue(entry.input, opts),
       };
     case "tool_result":
-      return { ...entry, content: redactHomePathUserSegments(entry.content, opts) };
+      return {
+        ...entry,
+        content: redactHomePathUserSegments(entry.content, opts),
+      };
     case "init":
       return {
         ...entry,
@@ -89,7 +107,9 @@ export function redactTranscriptEntryPaths(entry: TranscriptEntry, opts?: HomePa
         ...entry,
         text: redactHomePathUserSegments(entry.text, opts),
         subtype: redactHomePathUserSegments(entry.subtype, opts),
-        errors: entry.errors.map((error) => redactHomePathUserSegments(error, opts)),
+        errors: entry.errors.map((error) =>
+          redactHomePathUserSegments(error, opts),
+        ),
       };
     default:
       return entry;

@@ -1,10 +1,9 @@
 ---
 name: deal-with-security-advisory
 description: >
-  Handle a GitHub Security Advisory response for Taskcore, including
-  confidential fix development in a temporary private fork, human coordination
-  on advisory-thread comments, CVE request, synchronized advisory publication,
-  and immediate security release steps.
+  Handle confidential GitHub Security Advisory response for Taskcore. Use when
+  coordinating advisory triage, private-fork fixes, CVE/publication steps, and
+  immediate security releases.
 ---
 
 # Security Vulnerability Response Instructions
@@ -196,7 +195,7 @@ This release fixes a critical security vulnerability.
 {{briefDescription}} (e.g., Remote code execution via DNS rebinding in \`local_trusted\` mode)
 
 ### Advisory
-https://github.com/taskcore/taskcore/security/advisories/{{ghsaId}}
+https://github.com/khulnasoft/taskcore/security/advisories/{{ghsaId}}
 
 ### Credit
 Thanks to @{{reporterHandle}} for responsibly disclosing this vulnerability.
@@ -224,7 +223,7 @@ If the CVE hasn't been assigned yet, that's normal — it can take a few hours.
 
 Tell the human operator what you did by posting a comment to this task, including:
 
-* The published advisory URL: `https://github.com/taskcore/taskcore/security/advisories/{{ghsaId}}`
+* The published advisory URL: `https://github.com/khulnasoft/taskcore/security/advisories/{{ghsaId}}`
 * The release URL
 * Whether the CVE has been assigned yet
 * All URLs to any pull requests or branches

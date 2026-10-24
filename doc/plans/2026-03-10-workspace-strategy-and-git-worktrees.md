@@ -380,7 +380,10 @@ Add a project-owned execution workspace policy object. Suggested shared shape:
 ```ts
 type ProjectExecutionWorkspacePolicy = {
   enabled: boolean;
-  defaultMode: "inherit_project_default" | "shared_project_workspace" | "isolated_issue_checkout";
+  defaultMode:
+    | "inherit_project_default"
+    | "shared_project_workspace"
+    | "isolated_issue_checkout";
   implementation: "git_worktree" | "adapter_managed";
   branchPolicy: {
     baseBranch: string | null;
@@ -422,9 +425,17 @@ Add issue-owned opt-in/override fields. Suggested shape:
 
 ```ts
 type IssueExecutionWorkspaceSettings = {
-  mode?: "inherit_project_default" | "shared_project_workspace" | "isolated_issue_checkout";
+  mode?:
+    | "inherit_project_default"
+    | "shared_project_workspace"
+    | "isolated_issue_checkout";
   branchOverride?: string | null;
-  pullRequestModeOverride?: "inherit" | "none" | "agent_may_open" | "agent_auto_open" | "approval_required";
+  pullRequestModeOverride?:
+    | "inherit"
+    | "none"
+    | "agent_may_open"
+    | "agent_auto_open"
+    | "approval_required";
 };
 ```
 
@@ -974,7 +985,7 @@ Keep issue-level overrides possible through the existing `assigneeAdapterOverrid
 
 ## Responsibilities by Layer
 
-### Taskcore Core
+### TaskCore Core
 
 Taskcore core should:
 

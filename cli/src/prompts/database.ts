@@ -6,7 +6,9 @@ import {
   resolveTaskcoreInstanceId,
 } from "../config/home.js";
 
-export async function promptDatabase(current?: DatabaseConfig): Promise<DatabaseConfig> {
+export async function promptDatabase(
+  current?: DatabaseConfig,
+): Promise<DatabaseConfig> {
   const instanceId = resolveTaskcoreInstanceId();
   const defaultEmbeddedDir = resolveDefaultEmbeddedPostgresDir(instanceId);
   const defaultBackupDir = resolveDefaultBackupDir(instanceId);
@@ -25,7 +27,11 @@ export async function promptDatabase(current?: DatabaseConfig): Promise<Database
   const mode = await p.select({
     message: "Database mode",
     options: [
-      { value: "embedded-postgres" as const, label: "Embedded PostgreSQL (managed locally)", hint: "recommended" },
+      {
+        value: "embedded-postgres" as const,
+        label: "Embedded PostgreSQL (managed locally)",
+        hint: "recommended",
+      },
       { value: "postgres" as const, label: "PostgreSQL (external server)" },
     ],
     initialValue: base.mode,
@@ -37,17 +43,26 @@ export async function promptDatabase(current?: DatabaseConfig): Promise<Database
   }
 
   let connectionString: string | undefined = base.connectionString;
-  let embeddedPostgresDataDir = base.embeddedPostgresDataDir || defaultEmbeddedDir;
+  let embeddedPostgresDataDir =
+    base.embeddedPostgresDataDir || defaultEmbeddedDir;
   let embeddedPostgresPort = base.embeddedPostgresPort || 54329;
+  const embeddedPortDefault = String(base.embeddedPostgresPort || 54329);
 
   if (mode === "postgres") {
+    // Clack validates the raw input before applying defaultValue, so an
+    // Enter press hands the validator an empty string. Validate the value
+    // that will actually be submitted — the typed input, or the default.
+    const connectionStringDefault = base.connectionString ?? "";
     const value = await p.text({
       message: "PostgreSQL connection string",
-      defaultValue: base.connectionString ?? "",
+      defaultValue: connectionStringDefault,
       placeholder: "postgres://user:pass@localhost:5432/taskcore",
       validate: (val) => {
-        if (!val) return "Connection string is required for PostgreSQL mode";
-        if (!val.startsWith("postgres")) return "Must be a postgres:// or postgresql:// URL";
+        const candidate = val || connectionStringDefault;
+        if (!candidate)
+          return "Connection string is required for PostgreSQL mode";
+        if (!candidate.startsWith("postgres"))
+          return "Must be a postgres:// or postgresql:// URL";
       },
     });
 
@@ -73,11 +88,12 @@ export async function promptDatabase(current?: DatabaseConfig): Promise<Database
 
     const portValue = await p.text({
       message: "Embedded PostgreSQL port",
-      defaultValue: String(base.embeddedPostgresPort || 54329),
+      defaultValue: embeddedPortDefault,
       placeholder: "54329",
       validate: (val) => {
-        const n = Number(val);
-        if (!Number.isInteger(n) || n < 1 || n > 65535) return "Port must be an integer between 1 and 65535";
+        const n = Number(val || embeddedPortDefault);
+        if (!Number.isInteger(n) || n < 1 || n > 65535)
+          return "Port must be an integer between 1 and 65535";
       },
     });
 
@@ -86,7 +102,7 @@ export async function promptDatabase(current?: DatabaseConfig): Promise<Database
       process.exit(0);
     }
 
-    embeddedPostgresPort = Number(portValue || "54329");
+    embeddedPostgresPort = Number(portValue || embeddedPortDefault);
     connectionString = undefined;
   }
 
@@ -99,24 +115,31 @@ export async function promptDatabase(current?: DatabaseConfig): Promise<Database
     process.exit(0);
   }
 
+  const backupDirDefault = base.backup.dir || defaultBackupDir;
   const backupDirInput = await p.text({
     message: "Backup directory",
-    defaultValue: base.backup.dir || defaultBackupDir,
+    defaultValue: backupDirDefault,
     placeholder: defaultBackupDir,
-    validate: (val) => (!val || val.trim().length === 0 ? "Backup directory is required" : undefined),
+    validate: (val) =>
+      (val || backupDirDefault).trim().length === 0
+        ? "Backup directory is required"
+        : undefined,
   });
   if (p.isCancel(backupDirInput)) {
     p.cancel("Setup cancelled.");
     process.exit(0);
   }
 
+  const backupIntervalDefault = String(base.backup.intervalMinutes || 60);
+  const backupRetentionDefault = String(base.backup.retentionDays || 30);
   const backupIntervalInput = await p.text({
     message: "Backup interval (minutes)",
-    defaultValue: String(base.backup.intervalMinutes || 60),
+    defaultValue: backupIntervalDefault,
     placeholder: "60",
     validate: (val) => {
-      const n = Number(val);
-      if (!Number.isInteger(n) || n < 1) return "Interval must be a positive integer";
+      const n = Number(val || backupIntervalDefault);
+      if (!Number.isInteger(n) || n < 1)
+        return "Interval must be a positive integer";
       if (n > 10080) return "Interval must be 10080 minutes (7 days) or less";
       return undefined;
     },
@@ -128,11 +151,12 @@ export async function promptDatabase(current?: DatabaseConfig): Promise<Database
 
   const backupRetentionInput = await p.text({
     message: "Backup retention (days)",
-    defaultValue: String(base.backup.retentionDays || 30),
+    defaultValue: backupRetentionDefault,
     placeholder: "30",
     validate: (val) => {
-      const n = Number(val);
-      if (!Number.isInteger(n) || n < 1) return "Retention must be a positive integer";
+      const n = Number(val || backupRetentionDefault);
+      if (!Number.isInteger(n) || n < 1)
+        return "Retention must be a positive integer";
       if (n > 3650) return "Retention must be 3650 days or less";
       return undefined;
     },
@@ -149,8 +173,8 @@ export async function promptDatabase(current?: DatabaseConfig): Promise<Database
     embeddedPostgresPort,
     backup: {
       enabled: backupEnabled,
-      intervalMinutes: Number(backupIntervalInput || "60"),
-      retentionDays: Number(backupRetentionInput || "30"),
+      intervalMinutes: Number(backupIntervalInput || backupIntervalDefault),
+      retentionDays: Number(backupRetentionInput || backupRetentionDefault),
       dir: backupDirInput || defaultBackupDir,
     },
   };

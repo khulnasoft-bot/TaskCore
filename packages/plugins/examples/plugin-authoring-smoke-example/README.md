@@ -14,7 +14,7 @@ pnpm test
 ## Install Into Taskcore
 
 ```bash
-pnpm taskcore plugin install ./
+npx taskcore plugin install ./
 ```
 
 ## Build Options

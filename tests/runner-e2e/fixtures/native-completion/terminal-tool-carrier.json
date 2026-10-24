@@ -1,0 +1,55 @@
+{
+  "schema": "taskcore.native-completion-terminal-carrier.fixture.v1",
+  "cases": [
+    {
+      "name": "taskcore_finish",
+      "providerInput": {
+        "item": {
+          "id": "terminal-call",
+          "type": "tool_call",
+          "name": "taskcore_finish",
+          "status": "inProgress",
+          "arguments": {
+            "secret": "not-for-the-log"
+          }
+        }
+      },
+      "normalizedPayload": {
+        "provider": "codex",
+        "itemId": "terminal-call",
+        "kind": "tool_call",
+        "status": "running",
+        "channel": "detail",
+        "text": null,
+        "item": {
+          "name": "taskcore_finish"
+        }
+      }
+    },
+    {
+      "name": "taskcore_block",
+      "providerInput": {
+        "item": {
+          "id": "terminal-call",
+          "type": "tool_call",
+          "name": "taskcore_block",
+          "status": "inProgress",
+          "arguments": {
+            "secret": "not-for-the-log"
+          }
+        }
+      },
+      "normalizedPayload": {
+        "provider": "codex",
+        "itemId": "terminal-call",
+        "kind": "tool_call",
+        "status": "running",
+        "channel": "detail",
+        "text": null,
+        "item": {
+          "name": "taskcore_block"
+        }
+      }
+    }
+  ]
+}

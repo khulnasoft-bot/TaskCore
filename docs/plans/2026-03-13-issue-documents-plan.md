@@ -405,11 +405,7 @@ Recommended future shape:
 
 ```ts
 type ArtifactKind =
-  | "document"
-  | "attachment"
-  | "workspace_file"
-  | "preview"
-  | "report_link";
+  "document" | "attachment" | "workspace_file" | "preview" | "report_link";
 ```
 
 ## Implementation Phases

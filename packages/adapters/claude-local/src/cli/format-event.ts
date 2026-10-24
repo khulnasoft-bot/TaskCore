@@ -1,8 +1,10 @@
 import pc from "picocolors";
+import { printAcpxStreamEvent } from "@taskcore/adapter-utils/acpx-engine/cli";
 
 function asErrorText(value: unknown): string {
   if (typeof value === "string") return value;
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return "";
+  if (typeof value !== "object" || value === null || Array.isArray(value))
+    return "";
   const obj = value as Record<string, unknown>;
   const message =
     (typeof obj.message === "string" && obj.message) ||
@@ -25,14 +27,17 @@ function printToolResult(block: Record<string, unknown>): void {
   } else if (Array.isArray(block.content)) {
     const parts: string[] = [];
     for (const part of block.content) {
-      if (typeof part !== "object" || part === null || Array.isArray(part)) continue;
+      if (typeof part !== "object" || part === null || Array.isArray(part))
+        continue;
       const record = part as Record<string, unknown>;
       if (typeof record.text === "string") parts.push(record.text);
     }
     text = parts.join("\n");
   }
 
-  console.log((isError ? pc.red : pc.cyan)(`tool_result${isError ? " (error)" : ""}`));
+  console.log(
+    (isError ? pc.red : pc.cyan)(`tool_result${isError ? " (error)" : ""}`),
+  );
   if (text) {
     console.log((isError ? pc.red : pc.gray)(text));
   }
@@ -51,22 +56,38 @@ export function printClaudeStreamEvent(raw: string, debug: boolean): void {
   }
 
   const type = typeof parsed.type === "string" ? parsed.type : "";
+  if (type.startsWith("acpx.")) {
+    printAcpxStreamEvent(line, debug);
+    return;
+  }
 
   if (type === "system" && parsed.subtype === "init") {
     const model = typeof parsed.model === "string" ? parsed.model : "unknown";
-    const sessionId = typeof parsed.session_id === "string" ? parsed.session_id : "";
-    console.log(pc.blue(`Claude initialized (model: ${model}${sessionId ? `, session: ${sessionId}` : ""})`));
+    const sessionId =
+      typeof parsed.session_id === "string" ? parsed.session_id : "";
+    console.log(
+      pc.blue(
+        `Claude initialized (model: ${model}${sessionId ? `, session: ${sessionId}` : ""})`,
+      ),
+    );
     return;
   }
 
   if (type === "assistant") {
     const message =
-      typeof parsed.message === "object" && parsed.message !== null && !Array.isArray(parsed.message)
+      typeof parsed.message === "object" &&
+      parsed.message !== null &&
+      !Array.isArray(parsed.message)
         ? (parsed.message as Record<string, unknown>)
         : {};
     const content = Array.isArray(message.content) ? message.content : [];
     for (const blockRaw of content) {
-      if (typeof blockRaw !== "object" || blockRaw === null || Array.isArray(blockRaw)) continue;
+      if (
+        typeof blockRaw !== "object" ||
+        blockRaw === null ||
+        Array.isArray(blockRaw)
+      )
+        continue;
       const block = blockRaw as Record<string, unknown>;
       const blockType = typeof block.type === "string" ? block.type : "";
       if (blockType === "text") {
@@ -88,12 +109,19 @@ export function printClaudeStreamEvent(raw: string, debug: boolean): void {
 
   if (type === "user") {
     const message =
-      typeof parsed.message === "object" && parsed.message !== null && !Array.isArray(parsed.message)
+      typeof parsed.message === "object" &&
+      parsed.message !== null &&
+      !Array.isArray(parsed.message)
         ? (parsed.message as Record<string, unknown>)
         : {};
     const content = Array.isArray(message.content) ? message.content : [];
     for (const blockRaw of content) {
-      if (typeof blockRaw !== "object" || blockRaw === null || Array.isArray(blockRaw)) continue;
+      if (
+        typeof blockRaw !== "object" ||
+        blockRaw === null ||
+        Array.isArray(blockRaw)
+      )
+        continue;
       const block = blockRaw as Record<string, unknown>;
       if (typeof block.type === "string" && block.type === "tool_result") {
         printToolResult(block);
@@ -104,7 +132,9 @@ export function printClaudeStreamEvent(raw: string, debug: boolean): void {
 
   if (type === "result") {
     const usage =
-      typeof parsed.usage === "object" && parsed.usage !== null && !Array.isArray(parsed.usage)
+      typeof parsed.usage === "object" &&
+      parsed.usage !== null &&
+      !Array.isArray(parsed.usage)
         ? (parsed.usage as Record<string, unknown>)
         : {};
     const input = Number(usage.input_tokens ?? 0);
@@ -118,9 +148,15 @@ export function printClaudeStreamEvent(raw: string, debug: boolean): void {
       console.log(pc.green("result:"));
       console.log(resultText);
     }
-    const errors = Array.isArray(parsed.errors) ? parsed.errors.map(asErrorText).filter(Boolean) : [];
+    const errors = Array.isArray(parsed.errors)
+      ? parsed.errors.map(asErrorText).filter(Boolean)
+      : [];
     if (subtype.startsWith("error") || isError || errors.length > 0) {
-      console.log(pc.red(`claude_result: subtype=${subtype || "unknown"} is_error=${isError ? "true" : "false"}`));
+      console.log(
+        pc.red(
+          `claude_result: subtype=${subtype || "unknown"} is_error=${isError ? "true" : "false"}`,
+        ),
+      );
       if (errors.length > 0) {
         console.log(pc.red(`claude_errors: ${errors.join(" | ")}`));
       }

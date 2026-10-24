@@ -1,0 +1,477 @@
+{
+  "schema": "taskcore.prp.contract_manifest.v1",
+  "protocolVersion": 3,
+  "fixtureVersion": 1,
+  "generatedFrom": [
+    "protocol/schemas",
+    "protocol/fixtures"
+  ],
+  "schemas": [
+    {
+      "path": "schemas/capabilities-v2.schema.json",
+      "id": "https://taskcore.dev/schemas/prp/v2/capabilities.schema.json",
+      "sha256": "e8c48546745c37fd584b47b34d2fb7756c29855373d371103312388c8c364077"
+    },
+    {
+      "path": "schemas/capabilities-v3.schema.json",
+      "id": "https://taskcore.dev/schemas/prp/v3/capabilities.schema.json",
+      "sha256": "5fb1471670a7b0fd094da0e2f59bbc56c67fa8c3a74922c21c5c177d395f7772"
+    },
+    {
+      "path": "schemas/capabilities.schema.json",
+      "id": "https://taskcore.dev/schemas/prp/v1/capabilities.schema.json",
+      "sha256": "8d152fcad33632ab5f014a7cdb4a0dd83b73c271bc198ede85bbe78d0eb56a29"
+    },
+    {
+      "path": "schemas/command-v2.schema.json",
+      "id": "https://taskcore.dev/schemas/prp/v2/command.schema.json",
+      "sha256": "777c61c20ca1f4cad33489a0db1f9a2aeb3b3b343be27bc99e4659421fb40da8"
+    },
+    {
+      "path": "schemas/command-v3.schema.json",
+      "id": "https://taskcore.dev/schemas/prp/v3/command.schema.json",
+      "sha256": "63f3f0c398d4bc3f12e8e3cd98b4d57d78b5cdf9a7f963028790b3b850050f5d"
+    },
+    {
+      "path": "schemas/command.schema.json",
+      "id": "https://taskcore.dev/schemas/prp/v1/command.schema.json",
+      "sha256": "d2149135f4b9a9ce8369258a946747fe788349b9b1f5ca442093760cbd8bc229"
+    },
+    {
+      "path": "schemas/conformance-fixture.schema.json",
+      "id": "https://taskcore.dev/schemas/prp/v1/conformance-fixture.schema.json",
+      "sha256": "0d0e7f95a38cee99b9f8add881fe3100e03e0f5abf2e7e6036241203b51006c2"
+    },
+    {
+      "path": "schemas/conformance-output.schema.json",
+      "id": "https://taskcore.dev/schemas/prp/v1/conformance-output.schema.json",
+      "sha256": "805af1a98f3adcaaee6d6e891da675da7d22b37e3cf19dbac22c2f0ddbaee927"
+    },
+    {
+      "path": "schemas/event-v2.schema.json",
+      "id": "https://taskcore.dev/schemas/prp/v2/event.schema.json",
+      "sha256": "bfbf643a6d7b996bedb0dd204fb846e4dfceebb866e71b574144cc27c88b90db"
+    },
+    {
+      "path": "schemas/event-v3.schema.json",
+      "id": "https://taskcore.dev/schemas/prp/v3/event.schema.json",
+      "sha256": "d75d549810819fae00bbf1a235ae65a6f96b61aba28961408a8c98a86c94c127"
+    },
+    {
+      "path": "schemas/event.schema.json",
+      "id": "https://taskcore.dev/schemas/prp/v1/event.schema.json",
+      "sha256": "731a5585e7135a286227ac66e172cf1559bc867bf5f4635657f59c91b0634b5e"
+    },
+    {
+      "path": "schemas/fixture.schema.json",
+      "id": "https://taskcore.dev/schemas/prp/v1/fixture.schema.json",
+      "sha256": "bfe29655073f107628bd577f7e95ab55ecfb02192798124ba66159966846bd0d"
+    },
+    {
+      "path": "schemas/identity.schema.json",
+      "id": "https://taskcore.dev/schemas/prp/v1/identity.schema.json",
+      "sha256": "631c83e87cc94b466d4560e23cdfb344618a7c0359bd1654335b750033e0c90f"
+    },
+    {
+      "path": "schemas/native-execution.schema.json",
+      "id": "https://taskcore.dev/schemas/prp/v1/native-execution.schema.json",
+      "sha256": "01f1559fc772a2d94ca5924443078f785c4c7a99c7187e1e3c8ae836e48b9c0b"
+    },
+    {
+      "path": "schemas/provider-descriptor.schema.json",
+      "id": "https://taskcore.dev/schemas/prp/v1/provider-descriptor.schema.json",
+      "sha256": "8809cccccdfbd0f963abd0f0aeb6a25e31cacb6e611aa78c60ee4a11801fa453"
+    },
+    {
+      "path": "schemas/provider-event.schema.json",
+      "id": "https://taskcore.dev/schemas/prp/v1/provider-event.schema.json",
+      "sha256": "5f448c69dbf59530326d5905358b41c60ac529c31ddaefd75988f7870eb6f57c"
+    },
+    {
+      "path": "schemas/question-adapter-fixture.schema.json",
+      "id": "https://taskcore.dev/schemas/prp/v1/question-adapter-fixture.schema.json",
+      "sha256": "8fd2af69088a50e6cd2304ea0c129e8a33055db533a015168c12ecf5a93d39f4"
+    },
+    {
+      "path": "schemas/question-response.schema.json",
+      "id": "https://taskcore.dev/schemas/prp/v1/question-response.schema.json",
+      "sha256": "ec4d7684e4c3bfabd670a343303cdda73a7c1d37b182289faa7a3963b8f062b3"
+    },
+    {
+      "path": "schemas/question-set.schema.json",
+      "id": "https://taskcore.dev/schemas/prp/v1/question-set.schema.json",
+      "sha256": "c320090d252188b4c64fb9d192f5870021f3c09cb9e06ea663c3221b950471e1"
+    },
+    {
+      "path": "schemas/request.schema.json",
+      "id": "https://taskcore.dev/schemas/prp/v1/request.schema.json",
+      "sha256": "7693c7e6f9e81d3dbdeb47e1c4b5cb3d7961c4ba14ab2f5a5a563cb91b15659e"
+    },
+    {
+      "path": "schemas/result.schema.json",
+      "id": "https://taskcore.dev/schemas/prp/v1/result.schema.json",
+      "sha256": "03f30cdd330cc46d5b31b4fcb9391094246433d593195def8813dc9a9c4be332"
+    },
+    {
+      "path": "schemas/semantic-tool.schema.json",
+      "id": "https://taskcore.dev/schemas/prp/v1/semantic-tool.schema.json",
+      "sha256": "2ee03a8ef295e180c4fd9789674a7216b34b376e73a12895e2b7fac98bdcb99f"
+    },
+    {
+      "path": "schemas/session-goal.schema.json",
+      "id": "https://taskcore.dev/schemas/prp/v2/session-goal.schema.json",
+      "sha256": "2791aec3097c4f225a6b9c5e33b68de1cbe64bb39072246995b783e897e681a8"
+    },
+    {
+      "path": "schemas/stop-reason.schema.json",
+      "id": "https://taskcore.dev/schemas/prp/v1/stop-reason.schema.json",
+      "sha256": "4314e14fbcf94c4e380498eb455cff02bea1d4415f8522b28c43ee5f7b02f37e"
+    },
+    {
+      "path": "schemas/terminal.schema.json",
+      "id": "https://taskcore.dev/schemas/prp/v1/terminal.schema.json",
+      "sha256": "9ea19487459ee1c834ce9626942cf3103d24ed7b31d6f3800f68487739af77cd"
+    },
+    {
+      "path": "schemas/usage.schema.json",
+      "id": "https://taskcore.dev/schemas/prp/v1/usage.schema.json",
+      "sha256": "cf8949929ff8020e679621b8cd866c501758e5729753641d8b01d487a2aeb605"
+    },
+    {
+      "path": "schemas/workspace-diff.schema.json",
+      "id": "https://taskcore.dev/schemas/prp/v1/workspace-diff.schema.json",
+      "sha256": "6df9c4d14b802a8475368bc4cdec28e38fcd992d1f02a6529ea0d6568e61cc85"
+    },
+    {
+      "path": "schemas/workspace-file-reference.schema.json",
+      "id": "https://taskcore.dev/schemas/prp/v1/workspace-file-reference.schema.json",
+      "sha256": "3e6bde94c85dde67fdff810a308fce879127f3a9c6071b1d2e89f1fbdb7576bc"
+    }
+  ],
+  "fixtures": [
+    {
+      "path": "fixtures/codex-driver/driver-conformance.json",
+      "sha256": "912d5eb71568afdedcabcd4d200d93458267418d142a2d4587adee8e869fadbe",
+      "expectation": "accept",
+      "compatibilityCase": "canonical"
+    },
+    {
+      "path": "fixtures/conformance-expected-output.json",
+      "sha256": "f7b528cc65527bc6f136c698e8e3db6321d67794384d421c57d38d99c12f2cfc",
+      "expectation": "accept",
+      "compatibilityCase": "cross-language-output"
+    },
+    {
+      "path": "fixtures/conformance-minimal-run.json",
+      "sha256": "1a9e3e2ed9419b2f9906aa0c137357f28532f9920172579fdda3bcb16e25e815",
+      "expectation": "accept",
+      "compatibilityCase": "cross-language-input"
+    },
+    {
+      "path": "fixtures/evals/harness-driver-conformance.json",
+      "sha256": "c158ff81ab0a49d804be0e13878e12fd388869566fdbf98b68c71af035483a19",
+      "expectation": "accept",
+      "compatibilityCase": "canonical"
+    },
+    {
+      "path": "fixtures/evals/native-execution-seeded.json",
+      "sha256": "3f546ccba14b5807c1ccda23d1f1ed1b680eb59c6b9090a1ad182541b6dc8b71",
+      "expectation": "accept",
+      "compatibilityCase": "canonical"
+    },
+    {
+      "path": "fixtures/local-runner/scripts/duplicate-terminal.json",
+      "sha256": "bb1c7e9eeab4b9ce79250a19097e4bfd144f1fb9e5c63fc65ff4e0a0ba01008a",
+      "expectation": "accept",
+      "compatibilityCase": "canonical"
+    },
+    {
+      "path": "fixtures/local-runner/scripts/error.json",
+      "sha256": "15dabd5330074fbb6edb619f80e16dc546ab489269416eb3b617d757ea6572a1",
+      "expectation": "accept",
+      "compatibilityCase": "canonical"
+    },
+    {
+      "path": "fixtures/local-runner/scripts/happy-path.json",
+      "sha256": "b3413b68651c58d18d7658494333b155e4a83d7ae21bc08bb4a13682d3ee5b87",
+      "expectation": "accept",
+      "compatibilityCase": "canonical"
+    },
+    {
+      "path": "fixtures/local-runner/scripts/interrupted.json",
+      "sha256": "f572a0162cf6351d4d6dd6279c8dd85c55dedadd2933b3b2e59c1e9de5d9aa9e",
+      "expectation": "accept",
+      "compatibilityCase": "canonical"
+    },
+    {
+      "path": "fixtures/local-runner/scripts/linger.json",
+      "sha256": "0cbde762886aba81ee40b0eea6040a01feb3f03aa940616bfa6e32d653bdbe1f",
+      "expectation": "accept",
+      "compatibilityCase": "canonical"
+    },
+    {
+      "path": "fixtures/local-runner/scripts/oversized-line.json",
+      "sha256": "53e2e56edebef274eea691012ff6ab4a3ac2815895e307fdb36eed5a0851fc15",
+      "expectation": "accept",
+      "compatibilityCase": "canonical"
+    },
+    {
+      "path": "fixtures/local-runner/scripts/permission-input.json",
+      "sha256": "d08ce140d6a9a08a771e47b775f699285e86fdaa565b2efe1a8e23b7c7adc8c7",
+      "expectation": "accept",
+      "compatibilityCase": "canonical"
+    },
+    {
+      "path": "fixtures/provider-boundary/local-integrity.json",
+      "sha256": "01fa0388ec582d3f5d4d4f21d245f2cf157ec1c4a44db7f77cdcfeac1f35afe5",
+      "expectation": "accept",
+      "compatibilityCase": "canonical"
+    },
+    {
+      "path": "fixtures/questions/acpx.json",
+      "sha256": "2a454b4afe0f4c84c83a6ce23d5c361d9b5d7073c848256decf72567ec2c9e25",
+      "expectation": "accept",
+      "compatibilityCase": "acpx-structured-input"
+    },
+    {
+      "path": "fixtures/questions/codex.json",
+      "sha256": "0da7687381b350d6dbfab3b626e885257295d83508718bf3f3ac3f019b2c40d4",
+      "expectation": "accept",
+      "compatibilityCase": "codex-structured-input"
+    },
+    {
+      "path": "fixtures/questions/opencode.json",
+      "sha256": "12e2c5278e674cc8885071dce7010fb28d9154570e5781697655382dc8048fb1",
+      "expectation": "accept",
+      "compatibilityCase": "opencode-structured-input"
+    },
+    {
+      "path": "fixtures/replay/budget-cost-stop-reason.json",
+      "sha256": "7f1f4c3897333c2700ecbfd36d019993b2cf2ca0ec60493a887e6a1c71016d47",
+      "expectation": "accept",
+      "compatibilityCase": "canonical"
+    },
+    {
+      "path": "fixtures/replay/duplicate-event.json",
+      "sha256": "761f96cd60b73be4a8d4d4e216bdbc471d45337bd59f72b99fdbf11529ed9dac",
+      "expectation": "accept",
+      "compatibilityCase": "canonical"
+    },
+    {
+      "path": "fixtures/replay/failed-run.json",
+      "sha256": "4ba76130b78ca1f62a56972707dd8a3db6e6a38b87de69ce7fcef9d0331d66f2",
+      "expectation": "accept",
+      "compatibilityCase": "canonical"
+    },
+    {
+      "path": "fixtures/replay/golden/budget-cost-stop-reason.snapshot.json",
+      "sha256": "9834d84d5c6f1402f226d2630d38739e536e85b3be2ffc81e69ba8b1cdd5d2eb",
+      "expectation": "accept",
+      "compatibilityCase": "deterministic-replay-oracle"
+    },
+    {
+      "path": "fixtures/replay/golden/budget-cost-stop-reason.summary.json",
+      "sha256": "4c5c1a2a68e38655746b81940b45b77fa74142a1d0cb80c9c8045ca4643b0d94",
+      "expectation": "accept",
+      "compatibilityCase": "deterministic-replay-oracle"
+    },
+    {
+      "path": "fixtures/replay/golden/duplicate-event.snapshot.json",
+      "sha256": "0b6b2c8e1988640591fdbbf38b8e24d5941bd125ef65bcb6b3fc85aa997013a3",
+      "expectation": "accept",
+      "compatibilityCase": "deterministic-replay-oracle"
+    },
+    {
+      "path": "fixtures/replay/golden/duplicate-event.summary.json",
+      "sha256": "dcbb2dae5810649cc59c6c0fe136e1033131d9510ebcbcc5f3435bfa998b95c9",
+      "expectation": "accept",
+      "compatibilityCase": "deterministic-replay-oracle"
+    },
+    {
+      "path": "fixtures/replay/golden/failed-run.snapshot.json",
+      "sha256": "2f1e30c599f576e04e96de0dee21e72e9511868c279610ca483de8de652ddad4",
+      "expectation": "accept",
+      "compatibilityCase": "deterministic-replay-oracle"
+    },
+    {
+      "path": "fixtures/replay/golden/failed-run.summary.json",
+      "sha256": "d7ac19d40b5d1d6106e2232cd2436ba1c4232bc6daa8a71957f12300ba851f65",
+      "expectation": "accept",
+      "compatibilityCase": "deterministic-replay-oracle"
+    },
+    {
+      "path": "fixtures/replay/golden/happy-path.snapshot.json",
+      "sha256": "762b9c426a3318c258cfdb9f9eb49f16b68561559b29991de391eb772c3ecb09",
+      "expectation": "accept",
+      "compatibilityCase": "deterministic-replay-oracle"
+    },
+    {
+      "path": "fixtures/replay/golden/happy-path.summary.json",
+      "sha256": "00d2a033518c7b3f51ecb10aa64f7456922f6b3f930d853b3db35e72eaf55325",
+      "expectation": "accept",
+      "compatibilityCase": "deterministic-replay-oracle"
+    },
+    {
+      "path": "fixtures/replay/golden/interrupted-run.snapshot.json",
+      "sha256": "8ecd2b526f17b9229dfda7895dd7e2f90dd8ba7f1238f7d764d2a4f3af81da78",
+      "expectation": "accept",
+      "compatibilityCase": "deterministic-replay-oracle"
+    },
+    {
+      "path": "fixtures/replay/golden/interrupted-run.summary.json",
+      "sha256": "753f226607b2d97301736d7f54b281ab7157397f3f32015c644787d370526332",
+      "expectation": "accept",
+      "compatibilityCase": "deterministic-replay-oracle"
+    },
+    {
+      "path": "fixtures/replay/golden/semantic-tool-artifact-happy-path.snapshot.json",
+      "sha256": "ec1db84a830851ea8a53d894e8f64d9e9ccea3070d711b0780d98aa3a09d2857",
+      "expectation": "accept",
+      "compatibilityCase": "deterministic-replay-oracle"
+    },
+    {
+      "path": "fixtures/replay/golden/semantic-tool-artifact-happy-path.summary.json",
+      "sha256": "8b3e72e071f7458e67180fdd9933bb89cb6458f2507f2706000c1f172d1e529f",
+      "expectation": "accept",
+      "compatibilityCase": "deterministic-replay-oracle"
+    },
+    {
+      "path": "fixtures/replay/golden/semantic-tool-conflict-duplicate-retry.snapshot.json",
+      "sha256": "aa74b753ef6e224f2e24b85b64cc915b91f13798a358ccefa77146c1ff66241f",
+      "expectation": "accept",
+      "compatibilityCase": "deterministic-replay-oracle"
+    },
+    {
+      "path": "fixtures/replay/golden/semantic-tool-conflict-duplicate-retry.summary.json",
+      "sha256": "f0b277d37c422b90d2012ad61ea5fbe214ebf1607f1a6c2419c518c4f9a52b7e",
+      "expectation": "accept",
+      "compatibilityCase": "deterministic-replay-oracle"
+    },
+    {
+      "path": "fixtures/replay/golden/semantic-tool-denial-redaction.snapshot.json",
+      "sha256": "0f5fdb20fecc72d289cf3d652567fdcfdffe9235279e4f03e15f31d7239e1ea2",
+      "expectation": "accept",
+      "compatibilityCase": "deterministic-replay-oracle"
+    },
+    {
+      "path": "fixtures/replay/golden/semantic-tool-denial-redaction.summary.json",
+      "sha256": "b0379c2ea8d30e9c2866d3737d9fdc73711de24a955364bd78b75769d925764f",
+      "expectation": "accept",
+      "compatibilityCase": "deterministic-replay-oracle"
+    },
+    {
+      "path": "fixtures/replay/golden/semantic-tool-governance-wake-monitor.snapshot.json",
+      "sha256": "8cea006cb9ffe79e89e2bfe332fa7dc0611afcf65a58fde85bf8ca415ece6ea9",
+      "expectation": "accept",
+      "compatibilityCase": "deterministic-replay-oracle"
+    },
+    {
+      "path": "fixtures/replay/golden/semantic-tool-governance-wake-monitor.summary.json",
+      "sha256": "a20a038c04e3f023f7eb478b67144fca48dd288cf484e74d66810d92debc62e5",
+      "expectation": "accept",
+      "compatibilityCase": "deterministic-replay-oracle"
+    },
+    {
+      "path": "fixtures/replay/golden/semantic-tool-unknown-optional-envelope.snapshot.json",
+      "sha256": "2dd9d5e12fc4e1408d27f0e708a7eba89de2f2c410b7fd09f5b58c933efb2e40",
+      "expectation": "accept",
+      "compatibilityCase": "deterministic-replay-oracle"
+    },
+    {
+      "path": "fixtures/replay/golden/semantic-tool-unknown-optional-envelope.summary.json",
+      "sha256": "51fb686791aa158f9a23a0c2b90ca24d43bcc953add9e3277ab3f01b958fc26a",
+      "expectation": "accept",
+      "compatibilityCase": "deterministic-replay-oracle"
+    },
+    {
+      "path": "fixtures/replay/golden/source-gap.snapshot.json",
+      "sha256": "2b407a0c306deaff785d9ab719030c3b137197caa9d9c203fdec247934c28db6",
+      "expectation": "accept",
+      "compatibilityCase": "deterministic-replay-oracle"
+    },
+    {
+      "path": "fixtures/replay/golden/source-gap.summary.json",
+      "sha256": "861d0ee3fafe13bf8bf0fb71b7c1ef9a62cb26efba4dc8db889f36d27a14a813",
+      "expectation": "accept",
+      "compatibilityCase": "deterministic-replay-oracle"
+    },
+    {
+      "path": "fixtures/replay/golden/unknown-optional-fields.snapshot.json",
+      "sha256": "ece63bd6e56cc59a5a0f7f5eaaf58d37248f432ca43edc7390f38907a158d8a2",
+      "expectation": "accept",
+      "compatibilityCase": "deterministic-replay-oracle"
+    },
+    {
+      "path": "fixtures/replay/golden/unknown-optional-fields.summary.json",
+      "sha256": "7d983bcad0439b7884e70d07f8070b53ed594fba2da3e8ac6998570e238e84dc",
+      "expectation": "accept",
+      "compatibilityCase": "deterministic-replay-oracle"
+    },
+    {
+      "path": "fixtures/replay/happy-path.json",
+      "sha256": "abdba3fb8719308603a7c0f2e6b1781ccf4658df9bb9d2908fb15691ca7bd244",
+      "expectation": "accept",
+      "compatibilityCase": "canonical"
+    },
+    {
+      "path": "fixtures/replay/interrupted-run.json",
+      "sha256": "57b7fc76fb9282df8eec4a768c00fb6f6d8c96f120cd5cc265dfb94ac0d5d794",
+      "expectation": "accept",
+      "compatibilityCase": "canonical"
+    },
+    {
+      "path": "fixtures/replay/semantic-tool-artifact-happy-path.json",
+      "sha256": "47012de9844a64f0e3014b3b471869b3acf580ab41758a5d6e2be4cea4d11c38",
+      "expectation": "accept",
+      "compatibilityCase": "canonical"
+    },
+    {
+      "path": "fixtures/replay/semantic-tool-conflict-duplicate-retry.json",
+      "sha256": "06ae02a05065e969e71c399c05d29ff16aab2a09dad762b01ec4b04c219cc899",
+      "expectation": "accept",
+      "compatibilityCase": "canonical"
+    },
+    {
+      "path": "fixtures/replay/semantic-tool-denial-redaction.json",
+      "sha256": "679b1de1d7ebfc3815dc8b2701726116b5e14ce4f2d0c9dba999819e9c327449",
+      "expectation": "accept",
+      "compatibilityCase": "canonical"
+    },
+    {
+      "path": "fixtures/replay/semantic-tool-governance-wake-monitor.json",
+      "sha256": "ad7fcf4b582b4c334ad7fc35c41def0b35ec828accc3d8a284dc33b2eb8212ba",
+      "expectation": "accept",
+      "compatibilityCase": "canonical"
+    },
+    {
+      "path": "fixtures/replay/semantic-tool-unknown-optional-envelope.json",
+      "sha256": "3d36db5710579ae7575280d54b739ade06141f4c92abb5bd0a40167a3c018efe",
+      "expectation": "accept",
+      "compatibilityCase": "canonical"
+    },
+    {
+      "path": "fixtures/replay/semantic-tool-unsupported-required-version.json",
+      "sha256": "40d93fc0ecf6c9f2a32d99939c722c68256a85210c439f925edf146d703f863d",
+      "expectation": "reject",
+      "compatibilityCase": "unknown-required-version"
+    },
+    {
+      "path": "fixtures/replay/source-gap.json",
+      "sha256": "ca113e4524305824f3a115f73ee621be8c9b9b57ef76e8f6d5dc1f441eb14b52",
+      "expectation": "accept",
+      "compatibilityCase": "canonical"
+    },
+    {
+      "path": "fixtures/replay/unknown-optional-fields.json",
+      "sha256": "d62cd91a95d4e17b02864c83e82f944e6cf4b7d902fbd474bbc63355aab491f3",
+      "expectation": "accept",
+      "compatibilityCase": "additive-optional-fields"
+    },
+    {
+      "path": "fixtures/replay/unsupported-required-version.json",
+      "sha256": "128d66ad86795f67514308513dfb54bb485a32be2d8cea2ba6256258bc14be87",
+      "expectation": "reject",
+      "compatibilityCase": "unknown-required-version"
+    }
+  ]
+}

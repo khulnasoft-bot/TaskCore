@@ -13,18 +13,26 @@ import { cliVersion } from "./version.js";
 
 let client: TelemetryClient | null = null;
 
-export function initTelemetry(fileConfig?: { enabled?: boolean }): TelemetryClient | null {
+export function initTelemetry(fileConfig?: {
+  enabled?: boolean;
+}): TelemetryClient | null {
   if (client) return client;
 
   const config = resolveTelemetryConfig(fileConfig);
   if (!config.enabled) return null;
 
   const stateDir = path.join(resolveTaskcoreInstanceRoot(), "telemetry");
-  client = new TelemetryClient(config, () => loadOrCreateState(stateDir, cliVersion), cliVersion);
+  client = new TelemetryClient(
+    config,
+    () => loadOrCreateState(stateDir, cliVersion),
+    cliVersion,
+  );
   return client;
 }
 
-export function initTelemetryFromConfigFile(configPath?: string): TelemetryClient | null {
+export function initTelemetryFromConfigFile(
+  configPath?: string,
+): TelemetryClient | null {
   try {
     return initTelemetry(readConfig(configPath)?.telemetry);
   } catch {
@@ -42,8 +50,4 @@ export async function flushTelemetry(): Promise<void> {
   }
 }
 
-export {
-  trackInstallStarted,
-  trackInstallCompleted,
-  trackCompanyImported,
-};
+export { trackInstallStarted, trackInstallCompleted, trackCompanyImported };

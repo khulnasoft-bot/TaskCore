@@ -1,5 +1,7 @@
 import { existsSync, lstatSync, readFileSync } from "node:fs";
+import os from "node:os";
 import path from "node:path";
+import { hasVerifiedWorktreeSeedManifest } from "./worktree-seed-manifest.js";
 
 function parseEnvFile(contents: string): Record<string, string> {
   const entries: Record<string, string> = {};
@@ -55,6 +57,68 @@ export function resolveWorktreeEnvFilePath(rootDir: string): string {
   return path.resolve(rootDir, ".taskcore", ".env");
 }
 
+/** An explicitly empty instance owns its saved keys, even in an agent shell. */
+export function applyEmptyWorktreeSigningSecrets(rootDir: string, env: NodeJS.ProcessEnv = process.env): boolean {
+  if (!existsSync(path.resolve(rootDir, ".taskcore", "seed-empty"))) return false;
+  const entries = parseEnvFile(readFileSync(resolveWorktreeEnvFilePath(rootDir), "utf8"));
+  for (const key of ["TASKCORE_AGENT_JWT_SECRET", "TASKCORE_TOOL_ACTION_SIGNING_SECRET"] as const) {
+    if (!entries[key]?.trim()) throw new Error(`Empty worktree is missing its saved ${key}. Reinitialize its configuration before starting.`);
+    env[key] = entries[key];
+  }
+  // Better Auth otherwise prefers an inherited key over this instance's JWT key.
+  env.BETTER_AUTH_SECRET = entries.BETTER_AUTH_SECRET?.trim() || entries.TASKCORE_AGENT_JWT_SECRET;
+  return true;
+}
+
+export function isWorktreeSeedPending(rootDir: string): boolean {
+  const markerDir = path.resolve(rootDir, ".taskcore");
+  const manifestPath = path.resolve(markerDir, "seed-manifest.json");
+  if (existsSync(manifestPath)) {
+    return !hasVerifiedWorktreeSeedManifest(manifestPath);
+  }
+  return existsSync(path.resolve(markerDir, "seed-pending"))
+    && !existsSync(path.resolve(markerDir, "seed-complete"));
+}
+
+function expandHomePrefix(value: string): string {
+  if (value === "~") return os.homedir();
+  if (value.startsWith("~/")) return path.resolve(os.homedir(), value.slice(2));
+  return value;
+}
+
+function resolveHomeAwarePath(value: string): string {
+  return path.resolve(expandHomePrefix(value));
+}
+
+function resolveDefaultWorktreeHome(env: NodeJS.ProcessEnv): string {
+  return path.resolve(expandHomePrefix(env.TASKCORE_WORKTREES_DIR?.trim() || "~/.taskcore-worktrees"));
+}
+
+function repairStaleMigratedWorktreeEnvEntries(
+  rootDir: string,
+  entries: Record<string, string>,
+  env: NodeJS.ProcessEnv,
+): Record<string, string> {
+  const localConfigPath = path.resolve(rootDir, ".taskcore", "config.json");
+  const configuredPath = entries.TASKCORE_CONFIG?.trim();
+  if (!configuredPath) return entries;
+
+  const resolvedConfiguredPath = resolveHomeAwarePath(configuredPath);
+  const staleConfigPath =
+    resolvedConfiguredPath !== localConfigPath &&
+    !existsSync(resolvedConfiguredPath) &&
+    existsSync(localConfigPath);
+  if (!staleConfigPath) return entries;
+
+  const homeDir = resolveDefaultWorktreeHome(env);
+  return {
+    ...entries,
+    TASKCORE_HOME: homeDir,
+    TASKCORE_CONFIG: localConfigPath,
+    TASKCORE_CONTEXT: path.resolve(homeDir, "context.json"),
+  };
+}
+
 export function bootstrapDevRunnerWorktreeEnv(
   rootDir: string,
   env: NodeJS.ProcessEnv = process.env,
@@ -74,11 +138,16 @@ export function bootstrapDevRunnerWorktreeEnv(
     };
   }
 
-  const entries = parseEnvFile(readFileSync(envPath, "utf8"));
+  const entries = repairStaleMigratedWorktreeEnvEntries(
+    rootDir,
+    parseEnvFile(readFileSync(envPath, "utf8")),
+    env,
+  );
   for (const [key, value] of Object.entries(entries)) {
     if (typeof env[key] === "string" && env[key]!.trim().length > 0) continue;
     env[key] = value;
   }
+  applyEmptyWorktreeSigningSecrets(rootDir, env);
 
   return {
     envPath,

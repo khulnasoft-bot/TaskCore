@@ -3,7 +3,10 @@ import type { TaskcoreConfig } from "../config/schema.js";
 import type { CheckResult } from "./index.js";
 import { resolveRuntimeLikePath } from "./path-resolver.js";
 
-export function logCheck(config: TaskcoreConfig, configPath?: string): CheckResult {
+export function logCheck(
+  config: TaskcoreConfig,
+  configPath?: string,
+): CheckResult {
   const logDir = resolveRuntimeLikePath(config.logging.logDir, configPath);
   const reportedDir = logDir;
 
