@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 use std::time::Duration;
 
+use serde_json::json;
 use taskcore_runner_core::acpx_provider_session::{
     AcpxPermissionMode, AcpxProviderSession, AcpxProviderSessionConfig,
 };
@@ -9,7 +10,6 @@ use taskcore_runner_core::acpx_sidecar_transport::AcpxSidecarTransportConfig;
 use taskcore_runner_core::provider_bridge::{
     authorized_tool_catalog_digest, AuthorizedTool, AuthorizedToolSet, ToolResult,
 };
-use serde_json::json;
 
 fn tool_set() -> AuthorizedToolSet {
     let operations = vec![AuthorizedTool {
@@ -479,11 +479,7 @@ fn reserved_terminal_results_require_an_authorized_correlated_invocation() {
             "taskcore_finish",
             "yielded",
         ),
-        (
-            "turns-reserved-block-terminal",
-            "taskcore_block",
-            "blocked",
-        ),
+        ("turns-reserved-block-terminal", "taskcore_block", "blocked"),
     ] {
         let mut session = AcpxProviderSession::start(&config(mode)).unwrap();
         session

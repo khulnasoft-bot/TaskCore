@@ -3819,10 +3819,7 @@ impl CodexCommandExecutor {
                 .as_ref()
                 .is_some_and(|(operation_id, _)| {
                     !result.is_error
-                        && matches!(
-                            operation_id.as_str(),
-                            "taskcore_finish" | "taskcore_block"
-                        )
+                        && matches!(operation_id.as_str(), "taskcore_finish" | "taskcore_block")
                 });
         if let Some((operation_id, input)) = terminal_tool_input {
             admit_terminal_tool_authority(&mut next_state, &operation_id, &input, result.is_error)?;

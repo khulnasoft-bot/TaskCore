@@ -1,8 +1,8 @@
 use std::io::{self, BufRead, Write};
 use std::time::Duration;
 
-use taskcore_runner_core::generated_acpx_sidecar_contract::GENERATED_ACPX_SIDECAR_PROTOCOL_VERSION;
 use serde_json::{json, Value};
+use taskcore_runner_core::generated_acpx_sidecar_contract::GENERATED_ACPX_SIDECAR_PROTOCOL_VERSION;
 
 const PROJECTED_INPUT_PROVIDER_ID: &str = "input / réquest";
 

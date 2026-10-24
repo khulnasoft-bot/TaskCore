@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::time::Duration;
 
+use serde_json::json;
 use taskcore_runner_core::acpx_provider_session::{
     AcpxPermissionMode, AcpxProviderSession, AcpxProviderSessionConfig,
 };
@@ -11,10 +12,7 @@ use taskcore_runner_core::acpx_sidecar_transport::AcpxSidecarTransportConfig;
 use taskcore_runner_core::provider_bridge::{
     authorized_tool_catalog_digest, AuthorizedTool, AuthorizedToolSet, ToolResult,
 };
-use taskcore_runner_core::provider_events::{
-    project_acpx_state_event, AcpxEventProjectionContext,
-};
-use serde_json::json;
+use taskcore_runner_core::provider_events::{project_acpx_state_event, AcpxEventProjectionContext};
 
 fn tool_set() -> AuthorizedToolSet {
     let operations = vec![AuthorizedTool {

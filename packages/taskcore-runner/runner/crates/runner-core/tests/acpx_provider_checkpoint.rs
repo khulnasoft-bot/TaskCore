@@ -5,6 +5,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 
+use serde_json::json;
 use taskcore_runner_core::acpx_provider_checkpoint::{
     AcpxSuspensionCheckpoint, AcpxSuspensionCheckpointStore,
 };
@@ -15,7 +16,6 @@ use taskcore_runner_core::acpx_sidecar_transport::AcpxSidecarTransportConfig;
 use taskcore_runner_core::provider_bridge::{
     authorized_tool_catalog_digest, AuthorizedTool, AuthorizedToolSet,
 };
-use serde_json::json;
 
 fn temporary_directory(label: &str) -> PathBuf {
     let nonce = SystemTime::now()
