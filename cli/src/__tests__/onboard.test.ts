@@ -67,6 +67,10 @@ function createExistingConfigFixture() {
         prefix: "",
         forcePathStyle: false,
       },
+      vercelBlob: {
+        access: "private",
+        prefix: "",
+      },
     },
     secrets: {
       provider: "local_encrypted",

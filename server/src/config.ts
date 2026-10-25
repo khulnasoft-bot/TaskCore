@@ -14,12 +14,14 @@ import {
   DEPLOYMENT_EXPOSURES,
   SECRET_PROVIDERS,
   STORAGE_PROVIDERS,
+  STORAGE_VERCEL_BLOB_ACCESS_MODES,
   type BindMode,
   type AuthBaseUrlMode,
   type DeploymentExposure,
   type DeploymentMode,
   type SecretProvider,
   type StorageProvider,
+  type StorageVercelBlobAccess,
   inferBindModeFromHost,
   resolveRuntimeBind,
   validateConfiguredBindMode,
@@ -92,6 +94,10 @@ export interface Config {
   storageS3Endpoint: string | undefined;
   storageS3Prefix: string;
   storageS3ForcePathStyle: boolean;
+  storageVercelBlobAccess: StorageVercelBlobAccess;
+  storageVercelBlobPrefix: string;
+  storageVercelBlobToken: string | undefined;
+  storageVercelBlobStoreId: string | undefined;
   feedbackExportBackendUrl: string | undefined;
   feedbackExportBackendToken: string | undefined;
   heartbeatSchedulerEnabled: boolean;
@@ -161,6 +167,22 @@ export function loadConfig(): Config {
     process.env.TASKCORE_STORAGE_S3_FORCE_PATH_STYLE !== undefined
       ? process.env.TASKCORE_STORAGE_S3_FORCE_PATH_STYLE === "true"
       : (fileStorage?.s3?.forcePathStyle ?? false);
+  const storageVercelBlobAccessFromEnvRaw = process.env.TASKCORE_STORAGE_VERCEL_BLOB_ACCESS;
+  const storageVercelBlobAccess: StorageVercelBlobAccess =
+    storageVercelBlobAccessFromEnvRaw &&
+    STORAGE_VERCEL_BLOB_ACCESS_MODES.includes(storageVercelBlobAccessFromEnvRaw as StorageVercelBlobAccess)
+      ? (storageVercelBlobAccessFromEnvRaw as StorageVercelBlobAccess)
+      : (fileStorage?.vercelBlob?.access ?? "private");
+  const storageVercelBlobPrefix =
+    process.env.TASKCORE_STORAGE_VERCEL_BLOB_PREFIX ?? fileStorage?.vercelBlob?.prefix ?? "";
+  const storageVercelBlobToken =
+    process.env.TASKCORE_STORAGE_VERCEL_BLOB_TOKEN?.trim() ||
+    process.env.BLOB_READ_WRITE_TOKEN?.trim() ||
+    undefined;
+  const storageVercelBlobStoreId =
+    process.env.TASKCORE_STORAGE_VERCEL_BLOB_STORE_ID?.trim() ||
+    process.env.BLOB_STORE_ID?.trim() ||
+    undefined;
   const feedbackExportBackendUrl =
     process.env.TASKCORE_FEEDBACK_EXPORT_BACKEND_URL?.trim() ||
     process.env.TASKCORE_TELEMETRY_BACKEND_URL?.trim() ||
@@ -358,6 +380,10 @@ export function loadConfig(): Config {
     storageS3Endpoint,
     storageS3Prefix,
     storageS3ForcePathStyle,
+    storageVercelBlobAccess,
+    storageVercelBlobPrefix,
+    storageVercelBlobToken,
+    storageVercelBlobStoreId,
     feedbackExportBackendUrl,
     feedbackExportBackendToken,
     heartbeatSchedulerEnabled: process.env.HEARTBEAT_SCHEDULER_ENABLED !== "false",

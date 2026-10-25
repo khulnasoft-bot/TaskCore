@@ -6,6 +6,7 @@ import {
   DEPLOYMENT_MODES,
   SECRET_PROVIDERS,
   STORAGE_PROVIDERS,
+  STORAGE_VERCEL_BLOB_ACCESS_MODES,
 } from "./constants.js";
 import { validateConfiguredBindMode } from "./network-bind.js";
 
@@ -74,6 +75,11 @@ export const storageS3ConfigSchema = z.object({
   forcePathStyle: z.boolean().default(false),
 }).passthrough();
 
+export const storageVercelBlobConfigSchema = z.object({
+  access: z.enum(STORAGE_VERCEL_BLOB_ACCESS_MODES).default("private"),
+  prefix: z.string().default(""),
+}).passthrough();
+
 export const storageConfigSchema = z.object({
   provider: z.enum(STORAGE_PROVIDERS).default("local_disk"),
   localDisk: storageLocalDiskConfigSchema.default({
@@ -84,6 +90,10 @@ export const storageConfigSchema = z.object({
     region: "us-east-1",
     prefix: "",
     forcePathStyle: false,
+  }),
+  vercelBlob: storageVercelBlobConfigSchema.default({
+    access: "private",
+    prefix: "",
   }),
 }).passthrough();
 
@@ -130,6 +140,10 @@ export const taskcoreConfigSchema = z
         region: "us-east-1",
         prefix: "",
         forcePathStyle: false,
+      },
+      vercelBlob: {
+        access: "private",
+        prefix: "",
       },
     }),
     secrets: secretsConfigSchema.default({
@@ -197,6 +211,7 @@ export type ServerConfig = z.infer<typeof serverConfigSchema>;
 export type StorageConfig = z.infer<typeof storageConfigSchema>;
 export type StorageLocalDiskConfig = z.infer<typeof storageLocalDiskConfigSchema>;
 export type StorageS3Config = z.infer<typeof storageS3ConfigSchema>;
+export type StorageVercelBlobConfig = z.infer<typeof storageVercelBlobConfigSchema>;
 export type SecretsConfig = z.infer<typeof secretsConfigSchema>;
 export type SecretsLocalEncryptedConfig = z.infer<typeof secretsLocalEncryptedConfigSchema>;
 export type AuthConfig = z.infer<typeof authConfigSchema>;

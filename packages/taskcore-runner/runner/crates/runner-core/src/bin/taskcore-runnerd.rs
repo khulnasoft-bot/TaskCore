@@ -7,13 +7,13 @@ use std::time::Duration;
 #[cfg(unix)]
 use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
 
+use serde_json::json;
 use taskcore_runner_core::durable::{
     capture_bootstrap_ticket, redact_diagnostic_text, run_durable_runner, AcpxLaunchProfile,
     DurableRunnerConfig, OpenCodeLaunchProfile, QualifiedLaunchArtifact,
 };
 use taskcore_runner_core::local_runner::{run_local_runner, LocalRunnerError, RunnerConfig};
 use taskcore_runner_core::native_provider_backend::NativeProviderCommandExecutor;
-use serde_json::json;
 
 const RUNNERD_BUILD_METADATA_SCHEMA: &str = "taskcore-runner/runnerd-build-metadata/v1";
 const RUNNER_DIAGNOSTIC_MAX_BYTES: usize = 64 * 1024;

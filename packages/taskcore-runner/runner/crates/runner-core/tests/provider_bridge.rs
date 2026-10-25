@@ -1,8 +1,8 @@
+use serde_json::json;
 use taskcore_runner_core::provider_bridge::{
     authorized_tool_catalog_digest, AuthorizedTool, AuthorizedToolSet, ProviderToolBridge,
     ToolResult, TOOL_SET_SCHEMA,
 };
-use serde_json::json;
 
 fn tools(digest: &str) -> AuthorizedToolSet {
     let mut tool_set = AuthorizedToolSet {

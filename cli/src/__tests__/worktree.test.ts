@@ -280,6 +280,10 @@ function buildSourceConfig(): TaskcoreConfig {
         prefix: "",
         forcePathStyle: false,
       },
+      vercelBlob: {
+        access: "private",
+        prefix: "",
+      },
     },
     secrets: {
       provider: "local_encrypted",
@@ -2327,6 +2331,10 @@ describe("worktree helpers", () => {
                 region: "us-east-1",
                 prefix: "",
                 forcePathStyle: false,
+              },
+              vercelBlob: {
+                access: "private",
+                prefix: "",
               },
             },
             secrets: {

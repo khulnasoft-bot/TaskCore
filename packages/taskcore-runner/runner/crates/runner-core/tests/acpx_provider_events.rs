@@ -1,3 +1,4 @@
+use serde_json::json;
 use taskcore_runner_core::acpx_event_payload::{
     decode_acpx_event, AcpxEventPayload, AcpxRuntimeEventKind,
 };
@@ -8,7 +9,6 @@ use taskcore_runner_core::generated_acpx_sidecar_contract::{
     classify_generated_acpx_tool_operation, GeneratedAcpxSidecarEventType,
 };
 use taskcore_runner_core::provider_events::normalize_acpx_runtime_event;
-use serde_json::json;
 
 fn normalize(
     kind: AcpxRuntimeEventKind,
@@ -344,11 +344,7 @@ fn matches_typescript_mcp_display_identity_across_tool_lifecycle() {
             "taskcore",
             "write_document",
         ),
-        (
-            "mcp.taskcore.write_document",
-            "taskcore",
-            "write_document",
-        ),
+        ("mcp.taskcore.write_document", "taskcore", "write_document"),
         (
             "  MCP__Taskcore__write_document  ",
             "Taskcore",

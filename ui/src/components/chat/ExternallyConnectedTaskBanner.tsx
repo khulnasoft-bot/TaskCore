@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ExternalLink, Radio } from "lucide-react";
+import { ExternalLink, FileText, Radio } from "lucide-react";
 import { TaskcoreIcon } from "../icons/taskcore-icon";
 import type {
   ChatPublicationState,
@@ -643,7 +643,7 @@ function ConnectedTaskComposer({
                           publish.reset();
                         }}
                       />
-                      <Taskcore className="h-3.5 w-3.5 text-muted-foreground" />
+                      <FileText className="h-3.5 w-3.5 text-muted-foreground" />
                       <span className="truncate">{label}</span>
                     </label>
                   );

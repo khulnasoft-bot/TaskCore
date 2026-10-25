@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 use std::time::Duration;
 
+use serde_json::json;
 use taskcore_runner_core::acpx_provider_session::{
     AcpxPermissionMode, AcpxProviderRuntimePolicy, AcpxProviderSession, AcpxProviderSessionConfig,
     AcpxProviderSessionIdentity,
@@ -10,7 +11,6 @@ use taskcore_runner_core::generated_acpx_sidecar_contract::GeneratedAcpxSidecarC
 use taskcore_runner_core::provider_bridge::{
     authorized_tool_catalog_digest, AuthorizedTool, AuthorizedToolSet,
 };
-use serde_json::json;
 
 fn tool_set() -> AuthorizedToolSet {
     let operations = vec![AuthorizedTool {
@@ -208,8 +208,7 @@ fn rejects_non_utf8_directories_before_spawning() {
     use std::ffi::OsString;
     use std::os::unix::ffi::OsStringExt;
 
-    let mut directory_name =
-        format!("taskcore-acpx-non-utf8-{}-", std::process::id()).into_bytes();
+    let mut directory_name = format!("taskcore-acpx-non-utf8-{}-", std::process::id()).into_bytes();
     directory_name.push(0xff);
     let directory = std::env::temp_dir().join(OsString::from_vec(directory_name));
 

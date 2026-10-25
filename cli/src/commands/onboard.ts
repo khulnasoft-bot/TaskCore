@@ -8,6 +8,7 @@ import {
   DEPLOYMENT_MODES,
   SECRET_PROVIDERS,
   STORAGE_PROVIDERS,
+  STORAGE_VERCEL_BLOB_ACCESS_MODES,
   inferBindModeFromHost,
   resolveRuntimeBind,
   type BindMode,
@@ -16,6 +17,7 @@ import {
   type DeploymentMode,
   type SecretProvider,
   type StorageProvider,
+  type StorageVercelBlobAccess,
 } from "@taskcore/shared";
 import {
   backupInvalidConfig,
@@ -265,6 +267,11 @@ function quickstartDefaultsFromEnv(opts?: { preferTrustedLocal?: boolean }): {
       process.env.TASKCORE_STORAGE_PROVIDER,
       STORAGE_PROVIDERS,
     ) ?? defaultStorage.provider;
+  const storageVercelBlobAccess =
+    parseEnumFromEnv<StorageVercelBlobAccess>(
+      process.env.TASKCORE_STORAGE_VERCEL_BLOB_ACCESS,
+      STORAGE_VERCEL_BLOB_ACCESS_MODES,
+    ) ?? defaultStorage.vercelBlob.access;
   const secretsProvider =
     parseEnumFromEnv<SecretProvider>(
       process.env.TASKCORE_SECRETS_PROVIDER,
@@ -342,6 +349,12 @@ function quickstartDefaultsFromEnv(opts?: { preferTrustedLocal?: boolean }): {
           parseBooleanFromEnv(
             process.env.TASKCORE_STORAGE_S3_FORCE_PATH_STYLE,
           ) ?? defaultStorage.s3.forcePathStyle,
+      },
+      vercelBlob: {
+        access: storageVercelBlobAccess,
+        prefix:
+          process.env.TASKCORE_STORAGE_VERCEL_BLOB_PREFIX ??
+          defaultStorage.vercelBlob.prefix,
       },
     },
     secrets: {

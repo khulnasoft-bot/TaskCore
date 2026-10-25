@@ -10,12 +10,12 @@ use std::process::Command;
 use std::process::Stdio;
 use std::time::Duration;
 
+use serde_json::{json, Value};
+use sha2::{Digest, Sha256};
 use taskcore_runner_core::local_runner::HarnessCommand;
 use taskcore_runner_core::process_supervisor::{
     SupervisedProcess, VerifiedProcessArgument, VerifiedProcessArtifact, VerifiedProcessLaunch,
 };
-use serde_json::{json, Value};
-use sha2::{Digest, Sha256};
 
 fn process_exists(pid: u64) -> bool {
     Command::new("kill")

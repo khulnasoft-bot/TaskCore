@@ -120,6 +120,10 @@ function configWithSecretsProvider(
         prefix: "",
         forcePathStyle: false,
       },
+      vercelBlob: {
+        access: "private",
+        prefix: "",
+      },
     },
     secrets: {
       provider,

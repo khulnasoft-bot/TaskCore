@@ -1,6 +1,6 @@
 use num_bigint::BigUint;
-use taskcore_runner_core::question_response::validate_question_response;
 use serde_json::{json, Value};
+use taskcore_runner_core::question_response::validate_question_response;
 
 fn question_set() -> Value {
     json!({

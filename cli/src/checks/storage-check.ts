@@ -34,6 +34,36 @@ export function storageCheck(
     }
   }
 
+  if (config.storage.provider === "vercel_blob") {
+    const token =
+      process.env.TASKCORE_STORAGE_VERCEL_BLOB_TOKEN?.trim() ||
+      process.env.BLOB_READ_WRITE_TOKEN?.trim();
+    const storeId =
+      process.env.TASKCORE_STORAGE_VERCEL_BLOB_STORE_ID?.trim() ||
+      process.env.BLOB_STORE_ID?.trim();
+    const hasOidc = Boolean(storeId && process.env.VERCEL_OIDC_TOKEN);
+    if (!token && !hasOidc) {
+      return {
+        name: "Storage",
+        status: "fail",
+        message:
+          "Vercel Blob storage requires BLOB_READ_WRITE_TOKEN or BLOB_STORE_ID with VERCEL_OIDC_TOKEN",
+        canRepair: false,
+        repairHint:
+          "Connect a Blob store in Vercel, then pull the environment variables",
+      };
+    }
+
+    return {
+      name: "Storage",
+      status: "warn",
+      message: `Vercel Blob storage configured (access=${config.storage.vercelBlob.access}). Reachability check is skipped in doctor.`,
+      canRepair: false,
+      repairHint:
+        "Verify the Blob store credentials in the deployment environment",
+    };
+  }
+
   const bucket = config.storage.s3.bucket.trim();
   const region = config.storage.s3.region.trim();
   if (!bucket || !region) {
