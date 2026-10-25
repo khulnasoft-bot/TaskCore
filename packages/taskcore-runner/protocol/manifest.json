@@ -10,32 +10,32 @@
     {
       "path": "schemas/capabilities-v2.schema.json",
       "id": "https://taskcore.dev/schemas/prp/v2/capabilities.schema.json",
-      "sha256": "e8c48546745c37fd584b47b34d2fb7756c29855373d371103312388c8c364077"
+      "sha256": "61f6e4d6046d2e4c8410b0a7302c540e09148dc868cda91c1a75aa724c0ed9f1"
     },
     {
       "path": "schemas/capabilities-v3.schema.json",
       "id": "https://taskcore.dev/schemas/prp/v3/capabilities.schema.json",
-      "sha256": "5fb1471670a7b0fd094da0e2f59bbc56c67fa8c3a74922c21c5c177d395f7772"
+      "sha256": "bd4a5fca87c5105912a2775366bb026d35583375ab43f0438fd4cde5dc5894cc"
     },
     {
       "path": "schemas/capabilities.schema.json",
       "id": "https://taskcore.dev/schemas/prp/v1/capabilities.schema.json",
-      "sha256": "8d152fcad33632ab5f014a7cdb4a0dd83b73c271bc198ede85bbe78d0eb56a29"
+      "sha256": "bc9a4959e6719d4cf6e50939f02be4e5095cbbe5a753e2d34b44004d32c18f2f"
     },
     {
       "path": "schemas/command-v2.schema.json",
       "id": "https://taskcore.dev/schemas/prp/v2/command.schema.json",
-      "sha256": "777c61c20ca1f4cad33489a0db1f9a2aeb3b3b343be27bc99e4659421fb40da8"
+      "sha256": "0f4b2bfe7a4a1a7edf79df4b1476fb7f9ea771efba55ff5aaa846baf7e6b1d8d"
     },
     {
       "path": "schemas/command-v3.schema.json",
       "id": "https://taskcore.dev/schemas/prp/v3/command.schema.json",
-      "sha256": "63f3f0c398d4bc3f12e8e3cd98b4d57d78b5cdf9a7f963028790b3b850050f5d"
+      "sha256": "7fe80d1a59f4313b568767323e393c441d6d035d363741d3ffa72d3add311fea"
     },
     {
       "path": "schemas/command.schema.json",
       "id": "https://taskcore.dev/schemas/prp/v1/command.schema.json",
-      "sha256": "d2149135f4b9a9ce8369258a946747fe788349b9b1f5ca442093760cbd8bc229"
+      "sha256": "af6df3e2b9b79ec978737bd1d13f255b9c6640c98064a1fa9115e5edbe818ab3"
     },
     {
       "path": "schemas/conformance-fixture.schema.json",
@@ -50,22 +50,22 @@
     {
       "path": "schemas/event-v2.schema.json",
       "id": "https://taskcore.dev/schemas/prp/v2/event.schema.json",
-      "sha256": "bfbf643a6d7b996bedb0dd204fb846e4dfceebb866e71b574144cc27c88b90db"
+      "sha256": "bb49420f2fdf56d9f81b18b06b31822c9bf30676792d3b0abf2c57453f6c9bf0"
     },
     {
       "path": "schemas/event-v3.schema.json",
       "id": "https://taskcore.dev/schemas/prp/v3/event.schema.json",
-      "sha256": "d75d549810819fae00bbf1a235ae65a6f96b61aba28961408a8c98a86c94c127"
+      "sha256": "79ec2ab3da497f70ebdc6ffff2d833429891072d3d361774615e853d3f13b2aa"
     },
     {
       "path": "schemas/event.schema.json",
       "id": "https://taskcore.dev/schemas/prp/v1/event.schema.json",
-      "sha256": "731a5585e7135a286227ac66e172cf1559bc867bf5f4635657f59c91b0634b5e"
+      "sha256": "1eb1e15a34dc9c39460d22d0e8ef0c4f354680aff8d6a3b1c230cbbed1e3eaf3"
     },
     {
       "path": "schemas/fixture.schema.json",
       "id": "https://taskcore.dev/schemas/prp/v1/fixture.schema.json",
-      "sha256": "bfe29655073f107628bd577f7e95ab55ecfb02192798124ba66159966846bd0d"
+      "sha256": "83d17d7aa1a46101509db7d3c63f3880c58b5bc53f400dd03f0fab93c3c01feb"
     },
     {
       "path": "schemas/identity.schema.json",
@@ -75,22 +75,22 @@
     {
       "path": "schemas/native-execution.schema.json",
       "id": "https://taskcore.dev/schemas/prp/v1/native-execution.schema.json",
-      "sha256": "01f1559fc772a2d94ca5924443078f785c4c7a99c7187e1e3c8ae836e48b9c0b"
+      "sha256": "4bb5c5d049d6412fd9f6cf4e3f00dd816857a8c4a936980a91b6b862bb5c4157"
     },
     {
       "path": "schemas/provider-descriptor.schema.json",
       "id": "https://taskcore.dev/schemas/prp/v1/provider-descriptor.schema.json",
-      "sha256": "8809cccccdfbd0f963abd0f0aeb6a25e31cacb6e611aa78c60ee4a11801fa453"
+      "sha256": "052a64e66e25dad56779aa5cad4717aaa1eca8ed5c4ae054feca5f7df476adc1"
     },
     {
       "path": "schemas/provider-event.schema.json",
       "id": "https://taskcore.dev/schemas/prp/v1/provider-event.schema.json",
-      "sha256": "5f448c69dbf59530326d5905358b41c60ac529c31ddaefd75988f7870eb6f57c"
+      "sha256": "c50ec32af01e3164866fa794b0777a78c3a534aee4fa69e9079e9bdfa69ff055"
     },
     {
       "path": "schemas/question-adapter-fixture.schema.json",
       "id": "https://taskcore.dev/schemas/prp/v1/question-adapter-fixture.schema.json",
-      "sha256": "8fd2af69088a50e6cd2304ea0c129e8a33055db533a015168c12ecf5a93d39f4"
+      "sha256": "caa0bb5755c4c43d234d90f39601472617037962c80aae5d642ff06fcbac6b50"
     },
     {
       "path": "schemas/question-response.schema.json",
@@ -100,27 +100,27 @@
     {
       "path": "schemas/question-set.schema.json",
       "id": "https://taskcore.dev/schemas/prp/v1/question-set.schema.json",
-      "sha256": "c320090d252188b4c64fb9d192f5870021f3c09cb9e06ea663c3221b950471e1"
+      "sha256": "e1ef06d036ff62406285115bf982030294518171b7e5f0689eff1b006915231e"
     },
     {
       "path": "schemas/request.schema.json",
       "id": "https://taskcore.dev/schemas/prp/v1/request.schema.json",
-      "sha256": "7693c7e6f9e81d3dbdeb47e1c4b5cb3d7961c4ba14ab2f5a5a563cb91b15659e"
+      "sha256": "8583111d360f97b8280bc8b3fabff43db468b08089d4c0e8f29f976c065e1760"
     },
     {
       "path": "schemas/result.schema.json",
       "id": "https://taskcore.dev/schemas/prp/v1/result.schema.json",
-      "sha256": "03f30cdd330cc46d5b31b4fcb9391094246433d593195def8813dc9a9c4be332"
+      "sha256": "c4fbc90afd60c549e657a59fbe8ebbb6bc958a9c594d052fa3525535cf6ed0c9"
     },
     {
       "path": "schemas/semantic-tool.schema.json",
       "id": "https://taskcore.dev/schemas/prp/v1/semantic-tool.schema.json",
-      "sha256": "2ee03a8ef295e180c4fd9789674a7216b34b376e73a12895e2b7fac98bdcb99f"
+      "sha256": "34cb198b014c42beb939b932bdaf742846e72e44c10689f54ee5c1ed892f128e"
     },
     {
       "path": "schemas/session-goal.schema.json",
       "id": "https://taskcore.dev/schemas/prp/v2/session-goal.schema.json",
-      "sha256": "2791aec3097c4f225a6b9c5e33b68de1cbe64bb39072246995b783e897e681a8"
+      "sha256": "6d46555103c73cf026a0c4773d09ffe9174d5e8a40ae955c81475b6c26480485"
     },
     {
       "path": "schemas/stop-reason.schema.json",
@@ -130,34 +130,34 @@
     {
       "path": "schemas/terminal.schema.json",
       "id": "https://taskcore.dev/schemas/prp/v1/terminal.schema.json",
-      "sha256": "9ea19487459ee1c834ce9626942cf3103d24ed7b31d6f3800f68487739af77cd"
+      "sha256": "cb85e3be986e55b83a8c96b4844e0f0d16dcbfe1a8f0b52bb60b0c27ab53e058"
     },
     {
       "path": "schemas/usage.schema.json",
       "id": "https://taskcore.dev/schemas/prp/v1/usage.schema.json",
-      "sha256": "cf8949929ff8020e679621b8cd866c501758e5729753641d8b01d487a2aeb605"
+      "sha256": "bb1e63f60c63dbbad686bea5e67674ad185a5ec9d24f0fddfd1ac5de06df8f76"
     },
     {
       "path": "schemas/workspace-diff.schema.json",
       "id": "https://taskcore.dev/schemas/prp/v1/workspace-diff.schema.json",
-      "sha256": "6df9c4d14b802a8475368bc4cdec28e38fcd992d1f02a6529ea0d6568e61cc85"
+      "sha256": "cf8010b6ad3a55c4eaa1086a3c550149f0326744bc86620afac23de14ba7ac94"
     },
     {
       "path": "schemas/workspace-file-reference.schema.json",
       "id": "https://taskcore.dev/schemas/prp/v1/workspace-file-reference.schema.json",
-      "sha256": "3e6bde94c85dde67fdff810a308fce879127f3a9c6071b1d2e89f1fbdb7576bc"
+      "sha256": "df102ee63745d922c8fd4e0bbb15f50518a5b2c9b36c26a96cd2ae5a709a1af6"
     }
   ],
   "fixtures": [
     {
       "path": "fixtures/codex-driver/driver-conformance.json",
-      "sha256": "912d5eb71568afdedcabcd4d200d93458267418d142a2d4587adee8e869fadbe",
+      "sha256": "35b947a98052e3ae000b4cbb568e6a468809e4c05bb371e1745d1c498f50ba70",
       "expectation": "accept",
       "compatibilityCase": "canonical"
     },
     {
       "path": "fixtures/conformance-expected-output.json",
-      "sha256": "f7b528cc65527bc6f136c698e8e3db6321d67794384d421c57d38d99c12f2cfc",
+      "sha256": "6f9fe90dc45ea46cd89fe3b1eae58d36ac1bf7ea1844adfacc2bc124c8a92426",
       "expectation": "accept",
       "compatibilityCase": "cross-language-output"
     },
@@ -187,19 +187,19 @@
     },
     {
       "path": "fixtures/local-runner/scripts/error.json",
-      "sha256": "15dabd5330074fbb6edb619f80e16dc546ab489269416eb3b617d757ea6572a1",
+      "sha256": "0cc916366bd37a06a381563a92992ba958cc6e6676b3f0a4e573cc97361bb662",
       "expectation": "accept",
       "compatibilityCase": "canonical"
     },
     {
       "path": "fixtures/local-runner/scripts/happy-path.json",
-      "sha256": "b3413b68651c58d18d7658494333b155e4a83d7ae21bc08bb4a13682d3ee5b87",
+      "sha256": "8df20fd1ef8237473849374f50b45a5a2f6515f2184d19b3254248767d18fd8c",
       "expectation": "accept",
       "compatibilityCase": "canonical"
     },
     {
       "path": "fixtures/local-runner/scripts/interrupted.json",
-      "sha256": "f572a0162cf6351d4d6dd6279c8dd85c55dedadd2933b3b2e59c1e9de5d9aa9e",
+      "sha256": "42d8b939fb21d98002041fc362824e40a62d5ff4f8a7ce8c5797908535f2d93c",
       "expectation": "accept",
       "compatibilityCase": "canonical"
     },
@@ -217,7 +217,7 @@
     },
     {
       "path": "fixtures/local-runner/scripts/permission-input.json",
-      "sha256": "d08ce140d6a9a08a771e47b775f699285e86fdaa565b2efe1a8e23b7c7adc8c7",
+      "sha256": "445c8f2e3557efa17bc3133d7baa20889cc77c27045bcdaddaaa27f84269c6cc",
       "expectation": "accept",
       "compatibilityCase": "canonical"
     },
@@ -235,31 +235,31 @@
     },
     {
       "path": "fixtures/questions/codex.json",
-      "sha256": "0da7687381b350d6dbfab3b626e885257295d83508718bf3f3ac3f019b2c40d4",
+      "sha256": "45af4bec29bccad07efbf2ff7363e7f967a7b599ae0c72c1f3a1abb05e0a5b5c",
       "expectation": "accept",
       "compatibilityCase": "codex-structured-input"
     },
     {
       "path": "fixtures/questions/opencode.json",
-      "sha256": "12e2c5278e674cc8885071dce7010fb28d9154570e5781697655382dc8048fb1",
+      "sha256": "e9c30bd9e7a27d836052e77fd1a13d8bd3bc82e0f4bba5f4d0a29ae316b9fb9c",
       "expectation": "accept",
       "compatibilityCase": "opencode-structured-input"
     },
     {
       "path": "fixtures/replay/budget-cost-stop-reason.json",
-      "sha256": "7f1f4c3897333c2700ecbfd36d019993b2cf2ca0ec60493a887e6a1c71016d47",
+      "sha256": "d43b29796c6f328cc238fc4849c8feb6c4f9af67fec0778dc73371647b05a6d9",
       "expectation": "accept",
       "compatibilityCase": "canonical"
     },
     {
       "path": "fixtures/replay/duplicate-event.json",
-      "sha256": "761f96cd60b73be4a8d4d4e216bdbc471d45337bd59f72b99fdbf11529ed9dac",
+      "sha256": "290bfcbd27487d5cb26084d85895ed2b318484ce21d658a666df121eaa0eb57a",
       "expectation": "accept",
       "compatibilityCase": "canonical"
     },
     {
       "path": "fixtures/replay/failed-run.json",
-      "sha256": "4ba76130b78ca1f62a56972707dd8a3db6e6a38b87de69ce7fcef9d0331d66f2",
+      "sha256": "0c7022755d4c43b07b490837e8fba68b8625d6d3f84dc7add06b99f88351a37b",
       "expectation": "accept",
       "compatibilityCase": "canonical"
     },
@@ -409,67 +409,67 @@
     },
     {
       "path": "fixtures/replay/happy-path.json",
-      "sha256": "abdba3fb8719308603a7c0f2e6b1781ccf4658df9bb9d2908fb15691ca7bd244",
+      "sha256": "0a3f4357e03ea23efd27b764f62ff9f74551db395ac9089d8dbea330875c17eb",
       "expectation": "accept",
       "compatibilityCase": "canonical"
     },
     {
       "path": "fixtures/replay/interrupted-run.json",
-      "sha256": "57b7fc76fb9282df8eec4a768c00fb6f6d8c96f120cd5cc265dfb94ac0d5d794",
+      "sha256": "fef34be7b23405fbc1c7c8b88c8f5281db4046c2dfd4cb814075a408ce1ec7c9",
       "expectation": "accept",
       "compatibilityCase": "canonical"
     },
     {
       "path": "fixtures/replay/semantic-tool-artifact-happy-path.json",
-      "sha256": "47012de9844a64f0e3014b3b471869b3acf580ab41758a5d6e2be4cea4d11c38",
+      "sha256": "7b3b8b441910c3a10c6077bfe85d708e4b829272533132d8dc78ed08f0c1903f",
       "expectation": "accept",
       "compatibilityCase": "canonical"
     },
     {
       "path": "fixtures/replay/semantic-tool-conflict-duplicate-retry.json",
-      "sha256": "06ae02a05065e969e71c399c05d29ff16aab2a09dad762b01ec4b04c219cc899",
+      "sha256": "241006646c591df094675d1aa77f0435295f1a475e68cbaa7da7bdb22fcdf3b3",
       "expectation": "accept",
       "compatibilityCase": "canonical"
     },
     {
       "path": "fixtures/replay/semantic-tool-denial-redaction.json",
-      "sha256": "679b1de1d7ebfc3815dc8b2701726116b5e14ce4f2d0c9dba999819e9c327449",
+      "sha256": "44f7c12ab54e2887cbe7a4669112b565cbb61445496a6bbeed5365d70d39327f",
       "expectation": "accept",
       "compatibilityCase": "canonical"
     },
     {
       "path": "fixtures/replay/semantic-tool-governance-wake-monitor.json",
-      "sha256": "ad7fcf4b582b4c334ad7fc35c41def0b35ec828accc3d8a284dc33b2eb8212ba",
+      "sha256": "005a58e182cd28bc4f203a5fbd8ebc6ce04ffecdfb28a312e473ab44e983e7d9",
       "expectation": "accept",
       "compatibilityCase": "canonical"
     },
     {
       "path": "fixtures/replay/semantic-tool-unknown-optional-envelope.json",
-      "sha256": "3d36db5710579ae7575280d54b739ade06141f4c92abb5bd0a40167a3c018efe",
+      "sha256": "52beb173bfeb66df4c235aa3f6f81d7cbd102d3fad33d61b9503f2d401fb72db",
       "expectation": "accept",
       "compatibilityCase": "canonical"
     },
     {
       "path": "fixtures/replay/semantic-tool-unsupported-required-version.json",
-      "sha256": "40d93fc0ecf6c9f2a32d99939c722c68256a85210c439f925edf146d703f863d",
+      "sha256": "d776c5ef7d9782a181084c13edb09600f73e9a35e22e08fedb3e5650c05164d3",
       "expectation": "reject",
       "compatibilityCase": "unknown-required-version"
     },
     {
       "path": "fixtures/replay/source-gap.json",
-      "sha256": "ca113e4524305824f3a115f73ee621be8c9b9b57ef76e8f6d5dc1f441eb14b52",
+      "sha256": "52e5e5de0379b4330d43fff9c0982b47b88e1dab5d28cdbb7256bb27e2db0cd3",
       "expectation": "accept",
       "compatibilityCase": "canonical"
     },
     {
       "path": "fixtures/replay/unknown-optional-fields.json",
-      "sha256": "d62cd91a95d4e17b02864c83e82f944e6cf4b7d902fbd474bbc63355aab491f3",
+      "sha256": "3d3e2fe31c1cfdb4433d6cf80031259c2e68551be9c8dbfcb1650e35823c18a8",
       "expectation": "accept",
       "compatibilityCase": "additive-optional-fields"
     },
     {
       "path": "fixtures/replay/unsupported-required-version.json",
-      "sha256": "128d66ad86795f67514308513dfb54bb485a32be2d8cea2ba6256258bc14be87",
+      "sha256": "39ffc70e78c72e09550bd79c5d8894d90b19446b40f3747b7f30ce5afc474616",
       "expectation": "reject",
       "compatibilityCase": "unknown-required-version"
     }
